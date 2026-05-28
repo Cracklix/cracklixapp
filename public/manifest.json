@@ -1,0 +1,23 @@
+
+{
+  "name": "CRACKLIX | High-Performance Learning",
+  "short_name": "CRACKLIX",
+  "theme_color": "#111827",
+  "background_color": "#030712",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/appicon/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/appicon/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

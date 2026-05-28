@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -19,6 +20,29 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
+    "Notification": {
+      "title": "Notification",
+      "description": "Real-time alerts for users.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["mock", "exam", "achievement", "system"] },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "LiveActivity": {
+      "title": "Live Activity",
+      "description": "Platform-wide activity pulse.",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
     "CurrentAffair": {
       "title": "Current Affair",
       "description": "Daily news and exam-relevant current affairs.",
@@ -33,38 +57,18 @@
         "createdAt": { "type": "number" }
       }
     },
-    "PDFResource": {
-      "title": "PDF Resource",
-      "description": "Study materials and notes in PDF format.",
+    "MockTest": {
+      "title": "Mock Test",
+      "description": "Standardized exam simulations.",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "url": { "type": "string" },
-        "category": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "DailyQuiz": {
-      "title": "Daily Quiz",
-      "description": "Quick daily assessment questions.",
-      "type": "object",
-      "properties": {
-        "question": { "type": "string" },
-        "options": { "type": "array", "items": { "type": "string" } },
-        "correctAnswer": { "type": "string" },
-        "topic": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "Bookmark": {
-      "title": "Bookmark",
-      "description": "User-saved items for later review.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "type": { "type": "string", "enum": ["currentAffair", "pdf", "question"] },
-        "itemId": { "type": "string" },
-        "createdAt": { "type": "number" }
+        "title": { "type": "string" },
+        "exam": { "type": "string" },
+        "duration": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "negativeMarking": { "type": "number" },
+        "premium": { "type": "boolean" },
+        "published": { "type": "boolean" }
       }
     }
   },
@@ -74,23 +78,23 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Student profiles and statistics."
+      "description": "Student profiles."
+    },
+    "/notifications/{id}": {
+      "schema": "Notification",
+      "description": "User-specific alerts."
+    },
+    "/liveActivity/{id}": {
+      "schema": "LiveActivity",
+      "description": "Global activity feed."
     },
     "/currentAffairs/{id}": {
       "schema": "CurrentAffair",
       "description": "Article feed."
     },
-    "/pdfs/{id}": {
-      "schema": "PDFResource",
-      "description": "Study documents."
-    },
-    "/dailyQuizzes/{id}": {
-      "schema": "DailyQuiz",
-      "description": "Daily mini-assessments."
-    },
-    "/bookmarks/{id}": {
-      "schema": "Bookmark",
-      "description": "User saved items."
+    "/mocks/{id}": {
+      "schema": "MockTest",
+      "description": "Exam simulations."
     }
   }
 }
