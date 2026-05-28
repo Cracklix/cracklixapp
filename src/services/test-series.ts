@@ -32,6 +32,15 @@ export async function getTestsBySubject(subjectId: string): Promise<MockTest[]> 
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as MockTest));
 }
 
+export async function getTestsBySeries(seriesId: string, category?: string): Promise<MockTest[]> {
+  let q = query(collection(db, 'mocks'), where('seriesId', '==', seriesId), where('status', '==', 'published'));
+  if (category && category !== 'all') {
+    q = query(collection(db, 'mocks'), where('seriesId', '==', seriesId), where('category', '==', category), where('status', '==', 'published'));
+  }
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as MockTest));
+}
+
 /**
  * RECOVERY/REAL DATA FALLBACKS
  */
@@ -60,4 +69,11 @@ export const DEFAULT_SERIES: TestSeries[] = [
     isActive: true,
     createdAt: Date.now()
   }
+];
+
+export const MOCK_SUBJECTS: ExamSubject[] = [
+  { id: 'subj_1', seriesId: 'psssb-clerk-2024', name: 'General Awareness', totalTests: 45, freeTests: 2, difficulty: 'Medium', weightage: 25 },
+  { id: 'subj_2', seriesId: 'psssb-clerk-2024', name: 'Punjabi Grammar', totalTests: 30, freeTests: 1, difficulty: 'Easy', weightage: 20 },
+  { id: 'subj_3', seriesId: 'psssb-clerk-2024', name: 'Quantitative Aptitude', totalTests: 50, freeTests: 1, difficulty: 'Hard', weightage: 30 },
+  { id: 'subj_4', seriesId: 'psssb-clerk-2024', name: 'Reasoning', totalTests: 40, freeTests: 1, difficulty: 'Medium', weightage: 25 },
 ];

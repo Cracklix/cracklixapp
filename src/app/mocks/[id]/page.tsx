@@ -28,7 +28,9 @@ import {
   Maximize2,
   AlertTriangle,
   RotateCcw,
-  Cloud
+  Cloud,
+  ChevronLeft,
+  Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer } from "@/types";
@@ -36,7 +38,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
-export default function TestbookStyleAdvancedCBT() {
+/**
+ * ELITE EXAM ENGINE v15.0 (Testbook Standard)
+ * Features side-by-side bilingual support, palette drawer, and atomic auto-save.
+ */
+export default function AdvancedCBTPlayer() {
   const { user, profile } = useAuth();
   const router = useRouter();
   const params = useParams();
@@ -54,9 +60,6 @@ export default function TestbookStyleAdvancedCBT() {
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTabActive, setIsTabActive] = useState(true);
-
-  // Auto-Save sync to Firestore every 30 seconds
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
   const initializeSession = useCallback(async () => {
     if (!user || !mockId) return;
@@ -143,71 +146,79 @@ export default function TestbookStyleAdvancedCBT() {
           <div className="w-20 h-20 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary w-6 h-6 fill-current animate-pulse" />
        </div>
-       <p className="text-zinc-500 font-black uppercase tracking-[0.4em] text-[10px]">Synchronizing CBT Nodes...</p>
+       <p className="text-zinc-500 font-black uppercase tracking-[0.4em] text-[10px]">Initializing High-Fidelity Simulation...</p>
     </div>
   );
 
   if (phase === 'instructions') return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-body text-slate-900">
-       <header className="h-16 px-8 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+    <div className="min-h-screen bg-slate-100 flex flex-col font-body text-slate-900">
+       <header className="h-[70px] px-8 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
              <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10">
                 <ArrowLeft size={18} />
              </Button>
-             <span className="font-bold text-lg tracking-tight">Test Instructions</span>
+             <span className="font-black text-xl tracking-tighter uppercase">Instructions Registry</span>
           </div>
-          <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 px-3 py-1 font-bold">MODE: CBT-PRO</Badge>
+          <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-200 px-3 py-1 font-bold">CBT CORE v15.0</Badge>
        </header>
        
-       <main className="flex-1 overflow-y-auto p-6 md:p-12 flex justify-center">
-          <div className="max-w-4xl w-full bg-white border border-slate-200 rounded-[32px] p-8 md:p-16 shadow-sm space-y-12">
+       <main className="flex-1 overflow-y-auto p-6 md:p-12 flex justify-center no-scrollbar">
+          <div className="max-w-4xl w-full bg-white border border-slate-200 rounded-[48px] p-8 md:p-16 shadow-sm space-y-12">
              <div className="text-center space-y-6">
-                <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none uppercase">{mock?.title}</h1>
-                <div className="flex flex-wrap justify-center gap-6 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none uppercase text-slate-900">{mock?.title}</h1>
+                <div className="flex flex-wrap justify-center gap-10 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                    <span className="flex items-center gap-2"><Monitor size={14} className="text-primary" /> {questions.length} Items</span>
                    <span className="flex items-center gap-2"><Timer size={14} className="text-primary" /> {mock?.duration} Mins</span>
-                   <span className="flex items-center gap-2"><AlertTriangle size={14} className="text-red-500" /> -{mock?.negativeMarking} Negative</span>
+                   <span className="flex items-center gap-2"><AlertTriangle size={14} className="text-red-500" /> Negative Scheme Active</span>
                 </div>
              </div>
 
-             <div className="space-y-6">
-                <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs border-b border-slate-100 pb-3">Operational Guidelines</h3>
-                <ul className="space-y-4 text-sm text-slate-600 leading-relaxed">
-                   <li className="flex gap-4">
-                      <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
-                      <p>Simulation will auto-submit exactly at <strong>{mock?.duration} minutes</strong>. Please monitor the global clock in the header.</p>
-                   </li>
-                   <li className="flex gap-4">
-                      <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
-                      <p>Bilingual mode enables side-by-side English and Punjabi (Raavi) viewing. You can switch layouts at any time.</p>
-                   </li>
-                   <li className="flex gap-4">
-                      <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
-                      <p><strong>Anti-Cheat Enabled:</strong> Switching tabs or minimizing the browser will be logged and may invalidate your state rank.</p>
-                   </li>
-                </ul>
+             <div className="space-y-8">
+                <h3 className="font-black text-slate-900 uppercase tracking-widest text-xs border-b border-slate-100 pb-4">Standard Operational Protocol</h3>
+                <div className="grid gap-6">
+                   {[
+                     "Simulation will auto-submit exactly at the 00:00 mark. Monitor the global clock.",
+                     "Bilingual Engine enabled: Switch between EN and PA independently.",
+                     "Anti-Cheat Log: Tab switching or browser minimization is logged instantly.",
+                     "Every response is cloud-synced every 15 seconds for artifact integrity."
+                   ].map((text, i) => (
+                     <div key={i} className="flex gap-5 items-start">
+                        <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">{i+1}</div>
+                        <p className="text-sm text-slate-600 leading-relaxed font-medium">{text}</p>
+                     </div>
+                   ))}
+                </div>
              </div>
 
-             <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/10 space-y-6">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] text-center">Select Interface Language</p>
+             <div className="p-10 rounded-[40px] bg-primary/5 border border-primary/10 space-y-8">
+                <div className="text-center space-y-2">
+                   <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Initialize Translation Layer</p>
+                   <p className="text-[10px] text-slate-400 uppercase tracking-widest">Preferred primary language for assessment</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   {['English', 'Punjabi', 'Bilingual'].map(l => (
+                   {[
+                     { id: 'en', label: 'English Core' },
+                     { id: 'pa', label: 'ਪੰਜਾਬੀ (Raavi)' },
+                     { id: 'bilingual', label: 'Dual Bilingual' }
+                   ].map(l => (
                      <button
-                       key={l}
-                       onClick={() => setActiveLang(l.toLowerCase() as any)}
+                       key={l.id}
+                       onClick={() => setActiveLang(l.id as any)}
                        className={cn(
-                         "h-14 rounded-2xl font-black text-xs uppercase tracking-widest border transition-all",
-                         activeLang === l.toLowerCase() ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-white border-slate-200 text-slate-400 hover:border-primary/40"
+                         "h-16 rounded-[24px] font-black text-xs uppercase tracking-widest border-2 transition-all duration-300",
+                         activeLang === l.id 
+                            ? "bg-primary text-white border-primary shadow-2xl shadow-primary/20 scale-105" 
+                            : "bg-white border-slate-100 text-slate-400 hover:border-primary/20"
                        )}
                      >
-                       {l}
+                       {l.label}
                      </button>
                    ))}
                 </div>
              </div>
 
-             <Button onClick={() => setPhase('engine')} className="w-full h-18 rounded-[24px] bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-black blue-glow">
-                I AM READY TO BEGIN
+             <Button onClick={() => setPhase('engine')} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-black shadow-2xl blue-glow active:scale-[0.98] transition-all">
+                AGREE & START ASSESSMENT
              </Button>
           </div>
        </main>
@@ -215,33 +226,33 @@ export default function TestbookStyleAdvancedCBT() {
   );
 
   return (
-    <div className="h-screen bg-slate-100 flex flex-col overflow-hidden font-body text-slate-900 select-none">
-       {/* CBT Header */}
-       <header className="h-[75px] px-6 bg-slate-900 text-white flex items-center justify-between shrink-0 z-50 shadow-2xl">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden font-body text-slate-900 select-none">
+       {/* CBT Header v15.0 */}
+       <header className="h-[70px] px-8 bg-slate-900 text-white flex items-center justify-between shrink-0 z-50 shadow-2xl">
           <div className="flex items-center gap-6">
-             <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="h-10 w-10 rounded-xl bg-white/5 lg:hidden">
-                <Menu size={20} />
+             <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="h-10 w-10 rounded-xl bg-white/5 border border-white/5">
+                <Menu size={18} />
              </Button>
-             <div className="flex flex-col">
-                <span className="font-black text-sm uppercase tracking-tight truncate max-w-[300px]">{mock?.title}</span>
-                <div className="flex items-center gap-2">
+             <div className="flex flex-col border-l border-white/10 pl-6">
+                <span className="font-black text-sm uppercase tracking-tight truncate max-w-[280px]">{mock?.title}</span>
+                <div className="flex items-center gap-3">
                    <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black px-2 py-0.5 uppercase">{mock?.exam}</Badge>
-                   <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cloud Synced
+                   <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-[0.2em] flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> SYNCED
                    </span>
                 </div>
              </div>
           </div>
 
-          <div className="flex items-center gap-10">
-             <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-xl">
+          <div className="flex items-center gap-12">
+             <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-[14px] border border-white/5">
                 {['en', 'pa', 'bilingual'].map(l => (
                   <button
                     key={l}
                     onClick={() => setActiveLang(l as any)}
                     className={cn(
-                      "px-5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all",
-                      activeLang === l ? "bg-primary text-white shadow-lg" : "text-white/40 hover:text-white/60"
+                      "px-6 py-2 rounded-xl text-[9px] font-black uppercase transition-all duration-300",
+                      activeLang === l ? "bg-primary text-white shadow-lg" : "text-white/30 hover:text-white/50"
                     )}
                   >
                     {l === 'pa' ? 'ਪੰਜਾਬੀ' : l.toUpperCase()}
@@ -249,47 +260,59 @@ export default function TestbookStyleAdvancedCBT() {
                 ))}
              </div>
 
-             <div className="flex items-center gap-6">
-                <div className="text-right hidden sm:block">
-                   <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Candidate</p>
-                   <p className="text-xs font-bold">{profile?.name}</p>
-                </div>
+             <div className="flex items-center gap-8">
                 <Timer duration={mock?.duration || 60} onFinish={submitTest} />
-                <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-10 px-8 rounded-xl font-black text-xs uppercase shadow-lg">SUBMIT</Button>
+                <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-10 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl">SUBMIT ASSESSMENT</Button>
              </div>
           </div>
        </header>
 
-       {/* Main Workspace */}
+       {/* Simulation Workspace */}
        <div className="flex-1 flex overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-slate-50 relative">
-             {!isTabActive && (
-               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4">
-                  <ShieldCheck size={18} />
-                  <span className="text-xs font-black uppercase tracking-widest">Cheating Hazard: Tab switch detected.</span>
-               </div>
-             )}
-
-             <div className="max-w-6xl mx-auto space-y-6">
-                {questions[current] && (
-                  <QuestionCard 
-                    question={questions[current]} 
-                    selected={answers[current]?.selectedOption || null} 
-                    onSelect={handleSelect}
-                    activeLanguage={activeLang as any}
-                    sideBySide={activeLang === 'bilingual'}
-                  />
-                )}
+          <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-[#f8fafc] relative">
+             <div className="max-w-7xl mx-auto">
+                <AnimatePresence mode="wait">
+                   {questions[current] && (
+                     <motion.div
+                       key={questions[current].id}
+                       initial={{ opacity: 0, x: 20 }}
+                       animate={{ opacity: 1, x: 0 }}
+                       exit={{ opacity: 0, x: -20 }}
+                       transition={{ duration: 0.3, ease: "easeOut" }}
+                     >
+                        <QuestionCard 
+                          question={questions[current]} 
+                          selected={answers[current]?.selectedOption || null} 
+                          onSelect={handleSelect}
+                          activeLanguage={activeLang as any}
+                          sideBySide={activeLang === 'bilingual'}
+                        />
+                     </motion.div>
+                   )}
+                </AnimatePresence>
              </div>
           </main>
 
-          {/* Desktop Palette */}
-          <aside className="w-[380px] bg-white border-l border-slate-200 hidden lg:flex flex-col shrink-0">
-             <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-10">
-                <div className="space-y-4">
+          {/* Desktop Matrix Palette */}
+          <aside className="w-[400px] bg-white border-l border-slate-200 hidden lg:flex flex-col shrink-0 shadow-2xl">
+             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-full border-2 border-slate-100 p-0.5">
+                      <img src={`https://picsum.photos/seed/${user?.uid}/100`} className="w-full h-full rounded-full object-cover" alt="" />
+                   </div>
+                   <div>
+                      <p className="text-xs font-black text-slate-900 uppercase">{profile?.name}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Candidate ID: {user?.uid.substring(0,8)}</p>
+                   </div>
+                </div>
+                <Button variant="ghost" size="icon" className="rounded-xl border border-slate-100"><Settings size={16} className="text-slate-400" /></Button>
+             </div>
+
+             <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-12">
+                <div className="space-y-6">
                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">
                       <span>Grid Navigation</span>
-                      <Badge variant="outline" className="border-slate-100">{questions.length} Items</Badge>
+                      <Badge variant="outline" className="border-slate-100 text-[8px] font-black">{questions.length} ITEMS</Badge>
                    </div>
                    <div className="grid grid-cols-5 gap-3">
                       {questions.map((_, i) => {
@@ -297,16 +320,17 @@ export default function TestbookStyleAdvancedCBT() {
                         const isCurrent = current === i;
                         const status = ans?.status || 'NOT_VISITED';
 
-                        let bg = "bg-slate-100 text-slate-400";
-                        if (status === 'ANSWERED') bg = "bg-emerald-500 text-white shadow-lg";
-                        if (status === 'MARKED_FOR_REVIEW') bg = "bg-purple-600 text-white shadow-lg";
+                        let bg = "bg-slate-100 text-slate-400 border-slate-200";
+                        if (status === 'ANSWERED') bg = "bg-emerald-500 text-white border-emerald-600 shadow-lg shadow-emerald-900/20";
+                        if (status === 'MARKED_FOR_REVIEW') bg = "bg-purple-600 text-white border-purple-700 shadow-lg shadow-purple-900/20";
+                        if (status === 'ANSWERED_AND_MARKED') bg = "bg-purple-600 text-white border-purple-700 ring-2 ring-emerald-500 ring-offset-2";
 
                         return (
                           <button
                             key={i}
                             onClick={() => setCurrent(i)}
                             className={cn(
-                              "h-10 w-full rounded-xl font-black text-xs transition-all",
+                              "h-12 w-full rounded-xl font-black text-[11px] transition-all border flex items-center justify-center relative",
                               bg,
                               isCurrent && "ring-2 ring-primary ring-offset-2 scale-110 z-10"
                             )}
@@ -318,46 +342,50 @@ export default function TestbookStyleAdvancedCBT() {
                    </div>
                 </div>
 
-                <div className="pt-10 border-t border-slate-100 space-y-6">
-                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Summary</h4>
-                   <div className="grid grid-cols-2 gap-4">
-                      {[
-                        { label: 'Answered', color: 'bg-emerald-500' },
-                        { label: 'Review', color: 'bg-purple-600' },
-                        { label: 'Not Visited', color: 'bg-slate-100' },
-                        { label: 'Remaining', color: 'border border-slate-100' },
-                      ].map(item => (
-                        <div key={item.label} className="flex items-center gap-3">
-                           <div className={cn("w-3 h-3 rounded-sm", item.color)} />
-                           <span className="text-[10px] font-bold text-slate-500 uppercase">{item.label}</span>
+                <div className="pt-10 border-t border-slate-100 grid grid-cols-2 gap-y-6 gap-x-10">
+                   {[
+                     { label: 'Answered', color: 'bg-emerald-500', count: Object.values(answers).filter(a => a.status === 'ANSWERED').length },
+                     { label: 'Review', color: 'bg-purple-600', count: Object.values(answers).filter(a => a.status.includes('MARKED')).length },
+                     { label: 'Not Visited', color: 'bg-slate-200', count: questions.length - Object.keys(answers).length },
+                     { label: 'Remaining', color: 'border border-slate-200', count: questions.length - Object.values(answers).filter(a => a.status === 'ANSWERED').length },
+                   ].map(item => (
+                     <div key={item.label} className="flex items-center gap-3">
+                        <div className={cn("w-3 h-3 rounded shadow-sm", item.color)} />
+                        <div>
+                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
+                           <p className="text-xs font-black text-slate-800">{item.count}</p>
                         </div>
-                      ))}
-                   </div>
+                     </div>
+                   ))}
                 </div>
              </div>
              
              <div className="p-8 bg-slate-50 border-t border-slate-200">
-                <div className="flex items-center gap-3 text-emerald-600 opacity-60">
-                   <Cloud size={14} className="animate-pulse" />
-                   <p className="text-[9px] font-black uppercase tracking-widest">Live Auto-Save Sync Active</p>
+                <div className="flex items-center gap-3 text-emerald-600">
+                   <Cloud size={16} className="animate-pulse" />
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em]">Neural Artifact Sync: ACTIVE</p>
                 </div>
              </div>
           </aside>
        </div>
 
-       {/* CBT Footer */}
-       <footer className="h-[80px] px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
+       {/* CBT Footer v15.0 */}
+       <footer className="h-[85px] px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50 shadow-2xl">
           <div className="flex gap-4">
-             <Button variant="outline" onClick={markForReview} className="h-12 px-8 rounded-xl border-slate-200 text-purple-600 hover:bg-purple-50 font-black text-xs uppercase">MARK FOR REVIEW & NEXT</Button>
-             <Button onClick={() => setAnswers(prev => { const n = {...prev}; delete n[current]; return n; })} variant="ghost" className="h-12 px-8 rounded-xl text-slate-400 hover:text-red-500 font-black text-xs uppercase">CLEAR RESPONSE</Button>
+             <Button variant="outline" onClick={markForReview} className="h-14 px-8 rounded-2xl border-slate-200 text-purple-600 hover:bg-purple-50 font-black text-[11px] uppercase tracking-widest transition-all active:scale-95">MARK FOR REVIEW & NEXT</Button>
+             <Button onClick={() => setAnswers(prev => { const n = {...prev}; delete n[current]; return n; })} variant="ghost" className="h-14 px-8 rounded-2xl text-slate-400 hover:text-red-500 font-black text-[11px] uppercase tracking-widest">CLEAR RESPONSE</Button>
           </div>
-          <div className="flex gap-4">
-             <Button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} variant="outline" className="h-12 px-10 rounded-xl border-slate-200 font-black text-xs uppercase">PREVIOUS</Button>
-             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-12 px-20 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-widest shadow-xl">SAVE & NEXT</Button>
+          <div className="flex gap-4 items-center">
+             <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="flex items-center gap-2 px-6 h-14 rounded-2xl text-slate-500 font-black text-[11px] uppercase hover:bg-slate-50 disabled:opacity-30">
+                <ChevronLeft size={20} /> PREVIOUS
+             </button>
+             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-14 px-24 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl blue-glow active:scale-95 transition-all">
+                SAVE & NEXT
+             </Button>
           </div>
        </footer>
 
-       {/* Mobile Palette Drawer */}
+       {/* Palette Drawer (Mobile) */}
        <PaletteDrawer 
          open={paletteOpen} 
          onClose={() => setPaletteOpen(false)} 
@@ -367,33 +395,35 @@ export default function TestbookStyleAdvancedCBT() {
          setCurrent={setCurrent} 
        />
 
-       {/* Final Submit Modal */}
+       {/* Submission Modal */}
        <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
-         <DialogContent className="bg-white text-slate-900 max-w-md rounded-[32px] p-10 border-none shadow-2xl">
-            <DialogHeader>
-               <div className="w-16 h-16 rounded-[24px] bg-emerald-500/10 flex items-center justify-center mb-6">
-                  <CheckCircle2 className="text-emerald-500 w-8 h-8" />
+         <DialogContent className="bg-white text-slate-900 max-w-md rounded-[48px] p-10 border-none shadow-2xl overflow-hidden">
+            <DialogHeader className="text-center space-y-6">
+               <div className="w-20 h-20 rounded-[32px] bg-emerald-500/10 flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle2 className="text-emerald-500 w-10 h-10" />
                </div>
-               <DialogTitle className="text-2xl font-black uppercase tracking-tight leading-none">Complete Simulation?</DialogTitle>
-               <DialogDescription className="text-slate-500 text-sm mt-3">
-                  Your progress is locked and synced. Submitting will end the test and generate your performance audit.
-               </DialogDescription>
+               <div className="space-y-2">
+                 <DialogTitle className="text-3xl font-black uppercase tracking-tighter leading-none">Terminate Simulation?</DialogTitle>
+                 <DialogDescription className="text-slate-400 font-medium text-sm">
+                    Your artifacts are synced to the registry. Submitting will end the test and initialize your performance audit.
+                 </DialogDescription>
+               </div>
             </DialogHeader>
 
-            <div className="py-8 grid grid-cols-2 gap-4">
-               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Attempted</p>
-                  <p className="text-2xl font-black text-slate-800">{Object.keys(answers).length}</p>
+            <div className="py-10 grid grid-cols-2 gap-4">
+               <div className="p-6 rounded-[28px] bg-slate-50 border border-slate-100 text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Attempted</p>
+                  <p className="text-3xl font-black text-slate-800">{Object.keys(answers).length}</p>
                </div>
-               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Marked</p>
-                  <p className="text-2xl font-black text-slate-800">{Object.values(answers).filter(a => a.status.includes('MARKED')).length}</p>
+               <div className="p-6 rounded-[28px] bg-slate-50 border border-slate-100 text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Review</p>
+                  <p className="text-3xl font-black text-purple-600">{Object.values(answers).filter(a => a.status.includes('MARKED')).length}</p>
                </div>
             </div>
 
-            <DialogFooter className="gap-3">
-               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-14 rounded-2xl flex-1 border-slate-200 font-bold uppercase text-[10px]">RESUME TEST</Button>
-               <Button onClick={submitTest} disabled={isSubmitting} className="h-14 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px]">
+            <DialogFooter className="gap-3 flex flex-col md:flex-row">
+               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-16 rounded-2xl flex-1 border-slate-200 font-black uppercase text-[11px] tracking-widest">RESUME TEST</Button>
+               <Button onClick={submitTest} disabled={isSubmitting} className="h-16 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[11px] tracking-widest blue-glow">
                   {isSubmitting ? <Loader2 className="animate-spin" /> : "FINAL SUBMIT"}
                </Button>
             </DialogFooter>

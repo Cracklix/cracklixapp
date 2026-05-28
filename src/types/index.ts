@@ -37,6 +37,8 @@ export interface QuestionContent {
   explanation?: string;
 }
 
+export type QuestionType = 'MCQ' | 'MULTI_SELECT' | 'NUMERICAL' | 'MATCH_FOLLOWING';
+
 export interface Question {
   id: string;
   en: QuestionContent;
@@ -47,9 +49,7 @@ export interface Question {
   chapter?: string;
   topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  bloomLevel?: 'knowledge' | 'understanding' | 'application' | 'analysis';
-  examId?: string;
-  testId?: string;
+  questionType: QuestionType;
   marks: number;
   negativeMarks: number;
   status: 'draft' | 'published';
@@ -68,8 +68,7 @@ export interface TestSeries {
   thumbnail: string;
   totalTests: number;
   freeTests: number;
-  languages: string[]; // ["EN", "PA"]
-  price?: number;
+  languages: string[]; // ["English", "Punjabi", "Bilingual"]
   isActive: boolean;
   createdAt: number;
 }
@@ -78,16 +77,17 @@ export interface ExamSubject {
   id: string;
   seriesId: string;
   name: string;
-  icon: string;
+  icon?: string;
   totalTests: number;
   freeTests: number;
   difficulty: string;
   weightage?: number;
+  progress?: number;
 }
 
 export type MockStatus = 'draft' | 'published' | 'live' | 'archived';
-export type MockAccessType = 'free' | 'pass_plus' | 'premium';
-export type MockCategory = 'full' | 'sectional' | 'subject' | 'chapter' | 'quiz' | 'live_test' | 'pyq' | 'marathon' | 'revision';
+export type MockAccessType = 'free' | 'pass_plus' | 'premium' | 'elite';
+export type MockCategory = 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
 
 export interface MockTest {
   id: string;
