@@ -1,4 +1,4 @@
-"use client";
+["use client";
 
 import { useState, useEffect } from "react";
 import AdminSidebar from "@/components/admin/sidebar";
@@ -413,12 +413,12 @@ export default function MockFactoryPage() {
 
                           <div className="flex flex-col sm:flex-row items-center justify-between px-4 gap-4">
                              <div className="flex gap-4">
-                                <Button variant="ghost" size="sm" onClick={selectAllVisible} className="h-8 rounded-lg text-primary font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 border border-primary/20">
+                                <button onClick={selectAllVisible} className="h-8 rounded-lg text-primary font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 border border-primary/20 px-3">
                                    Select All Unused
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={clearSelection} className="h-8 rounded-lg text-zinc-500 font-black text-[9px] uppercase tracking-widest hover:bg-white/5">
+                                </button>
+                                <button onClick={clearSelection} className="h-8 rounded-lg text-zinc-500 font-black text-[9px] uppercase tracking-widest hover:bg-white/5 px-3">
                                    Clear All
-                                </Button>
+                                </button>
                              </div>
                              <p className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.2em]">{filteredBank.length} Signal Artifacts</p>
                           </div>
@@ -479,30 +479,32 @@ export default function MockFactoryPage() {
                              </table>
                           </div>
 
-                          <div className="flex flex-col sm:flex-row items-center justify-between bg-primary/5 p-6 rounded-[32px] border border-primary/10 gap-6">
-                             <div className="flex items-center gap-4 shrink-0">
+                          {/* Fixed overlap staging area */}
+                          <div className="flex flex-wrap items-center justify-between bg-primary/5 p-5 rounded-[28px] border border-primary/10 gap-4">
+                             <div className="flex items-center gap-3 shrink-0">
                                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
                                    <ListPlus className="text-white w-5 h-5" />
                                 </div>
-                                <div>
-                                   <p className="text-[10px] font-black text-primary uppercase tracking-tighter">Manual Staging Active</p>
-                                   <p className="text-lg font-black text-white">{selectedQuestionIds.size} Unique Artifacts</p>
+                                <div className="min-w-0">
+                                   <p className="text-[9px] font-black text-primary uppercase tracking-tighter truncate">Staging Active</p>
+                                   <p className="text-base font-black text-white truncate">{selectedQuestionIds.size} Unique Items</p>
                                 </div>
                              </div>
-                             <div className="flex flex-wrap sm:flex-nowrap gap-4 w-full sm:w-auto justify-end">
+                             
+                             <div className="flex items-center gap-2 ml-auto">
                                 <Button 
-                                  variant="outline" 
+                                  variant="ghost" 
                                   onClick={clearSelection} 
-                                  className="h-14 px-8 rounded-2xl border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive flex-1 sm:flex-none"
+                                  className="h-11 px-4 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10"
                                 >
                                   Discard
                                 </Button>
                                 <Button 
                                   onClick={handleManualMock} 
                                   disabled={loading || selectedQuestionIds.size === 0} 
-                                  className="h-14 px-6 md:px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] md:text-sm uppercase tracking-widest blue-glow whitespace-normal text-center leading-tight flex-1 sm:flex-none min-w-0"
+                                  className="h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-widest blue-glow whitespace-nowrap"
                                 >
-                                    {loading ? <Loader2 className="animate-spin mr-2 shrink-0" /> : "Initialize Unique Mock"}
+                                    {loading ? <Loader2 className="animate-spin mr-2 shrink-0" /> : "Initialize Mock"}
                                 </Button>
                              </div>
                           </div>
@@ -844,3 +846,4 @@ function Crown(props: any) {
     </svg>
   )
 }
+"]
