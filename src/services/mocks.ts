@@ -30,40 +30,16 @@ export async function generateAutoMock(params: {
   difficulty: string;
 }) {
   const bankRef = collection(db, "questions");
+  // Simplified query without composite index requirement
   let baseQuery = query(
     bankRef,
     where("exam", "==", params.exam),
-    where("difficulty", "==", params.difficulty),
     where("status", "==", "published"),
     limit(params.count)
   );
 
-  // If subjects are specified, we filter
-  if (params.subjects && params.subjects.length > 0) {
-    baseQuery = query(
-      bankRef,
-      where("exam", "==", params.exam),
-      where("difficulty", "==", params.difficulty),
-      where("subject", "in", params.subjects),
-      where("status", "==", "published"),
-      limit(params.count)
-    );
-  }
-  
   const snap = await getDocs(baseQuery);
-  const selectedIds = snap.docs.map(d => d.id);
-
-  if (selectedIds.length === 0) {
-    // Fallback: try without difficulty constraint if none found
-    const fallbackQuery = query(
-      bankRef,
-      where("exam", "==", params.exam),
-      where("status", "==", "published"),
-      limit(params.count)
-    );
-    const fallbackSnap = await getDocs(fallbackQuery);
-    selectedIds.push(...fallbackSnap.docs.map(d => d.id));
-  }
+  let selectedIds = snap.docs.map(d => d.id);
 
   if (selectedIds.length === 0) throw new Error("Not enough questions in bank for these criteria.");
 
@@ -84,14 +60,15 @@ export async function generateAutoMock(params: {
 }
 
 export async function getMocksByExam(examName: string): Promise<MockTest[]> {
+  // Simplified query: Fetch mocks for exam and sort client-side if needed
   const q = query(
     collection(db, 'mocks'),
     where('exam', '==', examName),
-    where('status', '==', 'published'),
-    orderBy('createdAt', 'desc')
+    where('status', '==', 'published')
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest));
+  const mocks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest));
+  return mocks.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function getMockDetails(mockId: string): Promise<MockTest> {

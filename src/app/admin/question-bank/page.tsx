@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useEffect, useState, Suspense } from 'react';
-import { collection, query, orderBy, limit, getDocs, where, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, limit, getDocs, where, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
@@ -20,7 +21,8 @@ import {
   XCircle,
   FileSearch,
   Filter,
-  ShieldCheck
+  ShieldCheck,
+  MoreVertical
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -51,10 +53,10 @@ function QuestionBankContent() {
   async function loadQuestions() {
     setLoading(true);
     try {
+      // Index-free query: Remove orderBy when using where filters to prevent FirebaseError
       let q = query(
         collection(db, "questions"), 
         where("status", "==", view),
-        orderBy("createdAt", "desc"), 
         limit(100)
       );
       
@@ -68,7 +70,10 @@ function QuestionBankContent() {
       }
       
       const snap = await getDocs(q);
-      setQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      // Sort client-side to maintain latest-first view without needing composite indexes
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      docs.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      setQuestions(docs);
     } catch (e: any) {
       console.error("Firestore Load Error:", e);
     } finally {
