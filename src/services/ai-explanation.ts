@@ -1,25 +1,25 @@
+
 'use client';
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import { geminiModel } from '@/lib/gemini';
 
 /**
  * Service to generate high-yield explanations for mock questions.
+ * Optimized for National Level competitive exams.
  */
-export async function getQuestionExplanation(question: string, correctAnswer: string, subject: string) {
+export async function getQuestionExplanation(question: string, correctAnswer: string, subject: string, examType?: string) {
   const prompt = `
-    You are an expert CRACKLIX Tutor. Explain this question for a student preparing for Punjab Govt Exams.
+    You are an expert CRACKLIX National Tutor. Explain this question for a candidate preparing for ${examType || 'Competitive Exams'}.
     
     Subject: ${subject}
     Question: ${question}
     Correct Answer: ${correctAnswer}
     
     Provide:
-    1. The core concept behind the question.
-    2. A step-by-step logical breakdown.
-    3. A "Short Trick" or mnemonic if applicable for faster solving.
-    4. Why common alternative choices might be wrong.
+    1. The core concept behind the question (Theoretical basis).
+    2. A step-by-step logical breakdown (The standard path).
+    3. An "Elite Speed Trick" or mnemonic (For the top 1% candidates).
+    4. Related PYQ Context (Mention if this pattern appeared in recent years).
     
     Format with clear Markdown.
   `;
@@ -31,12 +31,15 @@ export async function getQuestionExplanation(question: string, correctAnswer: st
 /**
  * Service to predict exam readiness based on performance data.
  */
-export async function predictExamReadiness(analytics: any) {
+export async function predictExamReadiness(analytics: any, exam: string = 'General') {
   const prompt = `
-    Analyze the following performance metrics and predict the student's exam readiness for Punjab State Exams.
+    Analyze the following performance metrics for the ${exam} exam.
     Data: ${JSON.stringify(analytics)}
     
-    Give a score (0-100) and 3 tactical areas for improvement.
+    Provide:
+    1. A Selection Probability Score (0-100).
+    2. 3 tactical focus areas.
+    3. A motivational brief from the "Elite Panel".
   `;
 
   const result = await geminiModel.generateContent(prompt);

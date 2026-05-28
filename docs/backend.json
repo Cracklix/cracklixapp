@@ -15,13 +15,15 @@
         "coins": { "type": "number" },
         "referralCode": { "type": "string" },
         "referredBy": { "type": "string" },
+        "state": { "type": "string", "description": "User's target state for exams." },
+        "targetExam": { "type": "string", "description": "Primary exam category (SSC, UPSC, etc.)" },
         "createdAt": { "type": "number" }
       },
       "required": ["uid", "name", "email", "role"]
     },
     "JobAlert": {
       "title": "Job Alert",
-      "description": "Punjab government vacancy notification.",
+      "description": "National and State government vacancy notification.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
@@ -30,12 +32,13 @@
         "lastDate": { "type": "number" },
         "applyUrl": { "type": "string" },
         "category": { "type": "string" },
+        "location": { "type": "string", "description": "State or Central" },
         "status": { "type": "string", "enum": ["active", "closed"] }
       }
     },
     "Referral": {
       "title": "Referral Record",
-      "description": "Tracks successful invites.",
+      "description": "Tracks successful invites and commissions.",
       "type": "object",
       "properties": {
         "referrerId": { "type": "string" },
@@ -55,6 +58,19 @@
         "status": { "type": "string", "enum": ["open", "resolved"] },
         "createdAt": { "type": "number" }
       }
+    },
+    "RankPrediction": {
+      "title": "AI Rank Prediction",
+      "description": "AI-generated prediction of student success.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "exam": { "type": "string" },
+        "probability": { "type": "number" },
+        "predictedRank": { "type": "string" },
+        "weakAreas": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "number" }
+      }
     }
   },
   "auth": {
@@ -63,11 +79,11 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "User profiles and rankings."
+      "description": "Global user profiles."
     },
     "/jobAlerts/{alertId}": {
       "schema": "JobAlert",
-      "description": "Punjab vacancy updates."
+      "description": "National vacancy updates."
     },
     "/referrals/{id}": {
       "schema": "Referral",
@@ -77,9 +93,13 @@
       "schema": "SupportTicket",
       "description": "Customer support logs."
     },
-    "/userWallets/{userId}": {
+    "/rankPredictions/{userId}": {
+      "schema": "RankPrediction",
+      "description": "AI Rank Insight data."
+    },
+    "/systemMetrics/global": {
       "schema": "object",
-      "description": "Coin balances and transaction logs."
+      "description": "SaaS level platform metrics."
     }
   }
 }
