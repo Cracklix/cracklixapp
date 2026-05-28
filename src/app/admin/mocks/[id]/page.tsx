@@ -216,7 +216,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                     <p className="text-xl font-medium text-zinc-300 leading-relaxed italic">{q.pa?.question || "No native translation."}</p>
                                     <div className="grid gap-3">
                                         {q.pa?.options.map((opt, idx) => (
-                                            <div key={idx} className="p-4 rounded-2xl text-sm bg-black/20 border border-white/5 text-zinc-500 italic">
+                                            <div key={idx} className="p-4 rounded-2xl text-sm bg-black/40 border border-white/5 text-zinc-500 italic">
                                                 {opt || "Empty"}
                                             </div>
                                         ))}
