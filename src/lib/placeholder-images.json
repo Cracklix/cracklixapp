@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "founder-portrait",
+      "description": "Professional portrait of Arsh Grewal, Founder of CRACKLIX",
+      "imageUrl": "https://picsum.photos/seed/65/400/400",
+      "imageHint": "professional man"
+    }
+  ]
 }

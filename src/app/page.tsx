@@ -21,11 +21,14 @@ import {
 import GlassCard from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const SUPPORT_EMAIL = "cracklixhelp@gmail.com";
 const SUPPORT_PHONE = "+91 9888188602";
 
 export default function LandingPage() {
+  const founderImg = PlaceHolderImages.find(img => img.id === 'founder-portrait');
+
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -210,7 +213,14 @@ export default function LandingPage() {
                   <div className="bg-[#050816] rounded-[59px] overflow-hidden p-12 space-y-12 border border-white/5">
                      <div className="flex justify-between items-center">
                         <div className="w-20 h-20 rounded-full border-4 border-primary/20 overflow-hidden">
-                           <img src="https://picsum.photos/seed/arsh/200" className="w-full h-full object-cover" alt="Founder" />
+                           <img 
+                            src={founderImg?.imageUrl} 
+                            data-ai-hint={founderImg?.imageHint}
+                            width={200}
+                            height={200}
+                            className="w-full h-full object-cover" 
+                            alt="Founder" 
+                           />
                         </div>
                         <Badge className="bg-primary text-white border-none font-black text-[9px] px-3 py-1">VERIFIED FOUNDER</Badge>
                      </div>

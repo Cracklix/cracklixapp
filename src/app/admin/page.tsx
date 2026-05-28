@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,8 +23,10 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function AdminPage() {
+  const founderImg = PlaceHolderImages.find(img => img.id === 'founder-portrait');
   const [stats, setStats] = useState({
     users: 0,
     revenue: 0,
@@ -146,7 +149,13 @@ export default function AdminPage() {
                     <div className="relative z-10 space-y-6">
                        <div className="flex items-center gap-4">
                           <div className="w-16 h-16 rounded-full border-2 border-primary/40 overflow-hidden shrink-0">
-                             <img src="https://picsum.photos/seed/arsh/100" className="w-full h-full object-cover" />
+                             <img 
+                              src={founderImg?.imageUrl} 
+                              data-ai-hint={founderImg?.imageHint}
+                              width={100}
+                              height={100}
+                              className="w-full h-full object-cover" 
+                             />
                           </div>
                           <div>
                              <h4 className="font-black text-lg">ARSH GREWAL</h4>
