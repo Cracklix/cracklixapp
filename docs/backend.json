@@ -32,14 +32,19 @@
         "correctAnswer": { "type": "string" },
         "explanation_en": { "type": "string" },
         "explanation_pa": { "type": "string" },
-        "subject": { "type": "string" },
+        "subject": { 
+          "type": "string", 
+          "enum": ["Punjab GK", "Quant", "Reasoning", "English", "Punjabi", "Computer", "Current Affairs", "General Science", "History", "Polity", "Geography", "Agriculture", "Static GK", "Law/Constitution", "Environment"] 
+        },
         "topic": { "type": "string" },
         "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
         "exam": { "type": "string" },
         "pyq": { "type": "boolean" },
         "year": { "type": "number" },
         "source": { "type": "string" },
+        "qualityScore": { "type": "number" },
         "usageCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "published"] },
         "createdAt": { "type": "number" }
       }
     },
@@ -56,6 +61,7 @@
         "isLive": { "type": "boolean" },
         "published": { "type": "boolean" },
         "questionIds": { "type": "array" },
+        "aiGenerated": { "type": "boolean" },
         "createdAt": { "type": "number" }
       }
     }
@@ -70,7 +76,7 @@
     },
     "/questions/{qId}": {
       "schema": "Question",
-      "description": "Central bilingual question bank."
+      "description": "Central bilingual question bank repository."
     },
     "/mocks/{mockId}": {
       "schema": "MockTest",
@@ -79,6 +85,30 @@
     "/community_messages/{msgId}": {
       "schema": "CommunityMessage",
       "description": "Real-time discussion streams."
+    },
+    "/community_groups/{groupId}": {
+      "schema": "CommunityGroup",
+      "description": "Exam-wise group definitions."
+    },
+    "/aiChats/{chatId}": {
+      "schema": "AiChatLog",
+      "description": "Student interaction logs with AI Tutor."
+    },
+    "/aiUsage/{usageId}": {
+      "schema": "AiUsageLimit",
+      "description": "Daily token tracking for Gemini limit enforcement."
+    },
+    "/leaderboards/{userId}": {
+      "schema": "LeaderboardEntry",
+      "description": "State and district rankings."
+    },
+    "/jobAlerts/{jobId}": {
+      "schema": "JobAlert",
+      "description": "Official recruitment board notices."
+    },
+    "/notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "User specific push alerts."
     }
   }
 }

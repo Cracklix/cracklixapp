@@ -14,7 +14,7 @@ import {
   limit
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { MockTest, Question } from '@/types';
+import { MockTest, Question, Subject } from '@/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -24,20 +24,42 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 
 export async function generateAutoMock(params: {
   exam: string;
-  subjects: string[];
+  subjects?: Subject[];
   count: number;
   difficulty: string;
 }) {
   const bankRef = collection(db, "questions");
-  const q = query(
+  let baseQuery = query(
     bankRef,
     where("exam", "==", params.exam),
     where("difficulty", "==", params.difficulty),
     limit(params.count)
   );
+
+  // If subjects are specified, we filter (Note: complex queries may need indexing)
+  if (params.subjects && params.subjects.length > 0) {
+    baseQuery = query(
+      bankRef,
+      where("exam", "==", params.exam),
+      where("difficulty", "==", params.difficulty),
+      where("subject", "in", params.subjects),
+      limit(params.count)
+    );
+  }
   
-  const snap = await getDocs(q);
+  const snap = await getDocs(baseQuery);
   const selectedIds = snap.docs.map(d => d.id);
+
+  if (selectedIds.length === 0) {
+    // Fallback: try without difficulty constraint if none found
+    const fallbackQuery = query(
+      bankRef,
+      where("exam", "==", params.exam),
+      limit(params.count)
+    );
+    const fallbackSnap = await getDocs(fallbackQuery);
+    selectedIds.push(...fallbackSnap.docs.map(d => d.id));
+  }
 
   if (selectedIds.length === 0) throw new Error("Not enough questions in bank for these criteria.");
 
@@ -78,10 +100,15 @@ export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const questionIds = mockSnap.data()?.questionIds || [];
   
   const questions: Question[] = [];
-  for (const id of questionIds) {
-    const qSnap = await getDoc(doc(db, "questions", id));
-    if (qSnap.exists()) questions.push({ id: qSnap.id, ...qSnap.data() } as Question);
-  }
+  // Use Promise.all for faster fetching of IDs
+  const fetches = questionIds.map((id: string) => getDoc(doc(db, "questions", id)));
+  const snapshots = await Promise.all(fetches);
+  
+  snapshots.forEach(qSnap => {
+    if (qSnap.exists()) {
+      questions.push({ id: qSnap.id, ...qSnap.data() } as Question);
+    }
+  });
   
   return questions;
 }

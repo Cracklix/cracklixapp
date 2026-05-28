@@ -5,6 +5,30 @@
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
 
+export type Subject = 
+  | 'Punjab GK'
+  | 'Quant'
+  | 'Reasoning'
+  | 'English'
+  | 'Punjabi'
+  | 'Computer'
+  | 'Current Affairs'
+  | 'General Science'
+  | 'History'
+  | 'Polity'
+  | 'Geography'
+  | 'Agriculture'
+  | 'Static GK'
+  | 'Law/Constitution'
+  | 'Environment';
+
+export const SUBJECTS: Subject[] = [
+  'Punjab GK', 'Quant', 'Reasoning', 'English', 'Punjabi', 
+  'Computer', 'Current Affairs', 'General Science', 'History', 
+  'Polity', 'Geography', 'Agriculture', 'Static GK', 
+  'Law/Constitution', 'Environment'
+];
+
 export interface UserProfile {
   uid: string;
   name: string;
@@ -22,7 +46,7 @@ export interface UserProfile {
 export interface BookmarkItem {
   id: string;
   text: string;
-  subject: string;
+  subject: Subject;
   type: 'question' | 'article';
   savedAt: number;
 }
@@ -51,7 +75,7 @@ export interface Question {
   options_en: string[];
   options_pa: string[];
   correctAnswer: string;
-  subject: string;
+  subject: Subject;
   topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
   marks: number;
@@ -61,6 +85,7 @@ export interface Question {
   explanation_pa?: string;
   qualityScore?: number;
   status?: 'draft' | 'published';
+  usageCount?: number;
   createdAt?: number;
 }
 
@@ -74,6 +99,7 @@ export interface MockTest {
   premium: boolean;
   published: boolean;
   aiGenerated?: boolean;
+  questionIds?: string[];
   createdAt: number;
 }
 
