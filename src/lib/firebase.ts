@@ -23,10 +23,10 @@ const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 // Initialize Analytics conditionally (client-side only)
-let analytics;
+let analytics: any;
 if (typeof window !== 'undefined') {
   isSupported().then(yes => {
-    if (isActive) analytics = getAnalytics(app);
+    if (yes) analytics = getAnalytics(app);
   });
 }
 
