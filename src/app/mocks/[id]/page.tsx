@@ -41,6 +41,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { AttemptAnswer, QuestionStatus } from "@/types";
 import { increment } from "firebase/firestore";
+import { Badge } from "@/components/ui/badge";
 
 export default function MockPage() {
   const { user, profile } = useAuth();

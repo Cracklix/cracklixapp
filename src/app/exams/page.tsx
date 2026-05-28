@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePremium } from '@/hooks/usePremium';
 import { useAuth } from '@/lib/auth-context';
+import { cn } from '@/lib/utils';
 
 export default function ExamsPage() {
   const { user } = useAuth();
@@ -37,12 +38,11 @@ export default function ExamsPage() {
   // Filter States
   const [search, setSearch] = useState("");
   const [examFilter, setExamFilter] = useState("All");
-  const [typeFilter, setTypeFilter] = useState("All");
   const [accessFilter, setAccessFilter] = useState("All");
   const [sortBy, setSortBy] = useState("latest");
 
   useEffect(() => {
-    // Only fetch mocks with status 'published' - standard visibility rule
+    // Only fetch mocks with status 'published'
     const q = query(
       collection(db, "mocks"),
       where("status", "==", "published")
@@ -50,7 +50,6 @@ export default function ExamsPage() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest));
-      // Clientside filtering for live/expiry
       setMocks(data.filter(m => !m.expiresAt || m.expiresAt > Date.now()));
       setLoading(false);
     }, (error) => {
@@ -65,11 +64,10 @@ export default function ExamsPage() {
     .filter(m => {
       const matchesSearch = m.title.toLowerCase().includes(search.toLowerCase());
       const matchesExam = examFilter === "All" || m.exam === examFilter;
-      const matchesType = typeFilter === "All" || m.type === typeFilter;
       const matchesAccess = accessFilter === "All" || 
                             (accessFilter === "Free" && m.accessType === 'free') ||
                             (accessFilter === "PASS+" && m.accessType === 'pass_plus');
-      return matchesSearch && matchesExam && matchesType && matchesAccess;
+      return matchesSearch && matchesExam && matchesAccess;
     })
     .sort((a, b) => {
       if (sortBy === "latest") return (b.publishedAt || b.createdAt || 0) - (a.publishedAt || a.createdAt || 0);
@@ -80,7 +78,6 @@ export default function ExamsPage() {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto pb-32 space-y-12">
-        {/* Header Hero Section */}
         <header className="space-y-10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div className="space-y-3">
@@ -107,7 +104,6 @@ export default function ExamsPage() {
             </div>
           </div>
 
-          {/* Strategic Search & Sort Toolbar */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-zinc-950/40 p-4 rounded-[32px] border border-white/5 backdrop-blur-xl">
              <div className="lg:col-span-4 relative group">
                 <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-600 group-focus-within:text-primary transition-colors" />
@@ -130,8 +126,6 @@ export default function ExamsPage() {
                       <SelectItem value="duration">Longest First</SelectItem>
                    </SelectContent>
                 </Select>
-
-                <div className="h-8 w-px bg-white/5 hidden lg:block mx-2" />
 
                 <Select value={accessFilter} onValueChange={setAccessFilter}>
                    <SelectTrigger className="w-[120px] h-12 bg-zinc-900 border-white/5 rounded-2xl font-bold text-[10px] uppercase tracking-widest">
@@ -157,12 +151,12 @@ export default function ExamsPage() {
                   </SelectContent>
                 </Select>
 
-                { (examFilter !== "All" || typeFilter !== "All" || search !== "" || accessFilter !== "All") && (
+                { (examFilter !== "All" || search !== "" || accessFilter !== "All") && (
                   <Button 
                     variant="ghost" 
                     size="icon"
                     className="h-12 w-12 rounded-2xl text-zinc-500 hover:text-white hover:bg-white/5"
-                    onClick={() => { setExamFilter("All"); setTypeFilter("All"); setAccessFilter("All"); setSearch(""); }}
+                    onClick={() => { setExamFilter("All"); setAccessFilter("All"); setSearch(""); }}
                   >
                      <ListFilter className="w-5 h-5" />
                   </Button>
@@ -195,9 +189,6 @@ export default function ExamsPage() {
              </div>
              <h3 className="text-2xl font-black uppercase text-zinc-600 tracking-tighter">Sector Quiet</h3>
              <p className="text-zinc-700 mt-2 font-medium italic">The Board is currently finalizing the next batch of simulations. Check the schedule.</p>
-             <Button variant="outline" className="mt-10 rounded-xl border-white/10 text-[10px] font-black uppercase tracking-widest" onClick={() => window.location.reload()}>
-                Refresh Stream
-             </Button>
           </div>
         )}
       </div>

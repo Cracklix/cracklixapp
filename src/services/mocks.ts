@@ -163,21 +163,17 @@ export async function publishMock(mockId: string) {
  */
 
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
-  // 1. Admin Override
   const userSnap = await getDoc(doc(db, 'users', userId));
   const role = userSnap.data()?.role;
   if (role === 'admin' || role === 'superadmin') return { allowed: true };
 
-  // 2. Access Type Check
   if (mock.accessType === 'free') return { allowed: true };
 
-  // 3. Premium/Pass Check
   const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
-  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().endDate < Date.now()) {
+  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
     return { allowed: false, reason: `Requires ${mock.accessType.replace('_', ' ').toUpperCase()}` };
   }
 
-  // 4. Attempt Limit Check
   const attemptsQ = query(collection(db, 'attempts'), where('userId', '==', userId), where('mockId', '==', mock.id), where('status', '==', 'completed'));
   const attemptsSnap = await getDocs(attemptsQ);
   const maxAttempts = mock.maxAttempts || (mock.type === 'full' ? 1 : 5);
@@ -195,9 +191,7 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
   
   const existing = await getDoc(attemptRef);
   if (existing.exists() && existing.data().status === 'completed') {
-    // If it's a re-take (and allowed), we'd usually create a new unique ID
-    // For MVP, we stick to unique user_mock ID for session consistency
-    throw new Error('Simulation already finalized.');
+    return attemptId;
   }
 
   if (existing.exists()) return attemptId;
