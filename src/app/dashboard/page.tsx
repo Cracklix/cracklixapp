@@ -45,10 +45,10 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-10 pb-24">
-        {/* Punjab Welcome Section */}
-        <div className="flex flex-col lg:flex-row gap-10 items-start">
-          <div className="flex-1 w-full">
+      <div className="space-y-8 pb-24">
+        {/* Welcome Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-8">
              {profile && (
                <HeroCard
                  name={profile.name}
@@ -61,52 +61,53 @@ export default function DashboardPage() {
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="w-full lg:w-[400px]"
+            className="lg:col-span-4"
           >
-             <Card className="rounded-[40px] cracklix-glass overflow-hidden border-primary/20 bg-primary/5">
-                <CardContent className="p-8">
-                  <div className="flex justify-between items-start mb-8">
+             <Card className="rounded-[32px] bg-primary/10 border-primary/20 overflow-hidden relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
+                <CardContent className="p-8 relative">
+                  <div className="flex justify-between items-start mb-6">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 mb-1">{t('punjab_rank')}</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 mb-1">{t('punjab_rank')}</p>
                       <h3 className="text-3xl font-black">#842</h3>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center blue-glow">
+                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center blue-glow">
                        <Globe className="text-white w-6 h-6" />
                     </div>
                   </div>
-                  <div className="space-y-4">
-                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                  <div className="space-y-3">
+                     <div className="flex justify-between text-[10px] font-bold uppercase">
                        <span className="text-zinc-500">Percentile</span>
                        <span className="text-white">92.4%</span>
                      </div>
-                     <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-accent w-[92%] cyan-glow" />
+                     <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                        <div className="h-full bg-accent w-[92%]" />
                      </div>
                   </div>
-                  <div className="mt-8 p-4 rounded-2xl bg-black/20 border border-white/5 flex items-center justify-between">
+                  <div className="mt-6 p-4 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
                      <span className="text-[10px] font-bold text-zinc-500 uppercase">District: Ludhiana</span>
-                     <Badge variant="outline" className="text-[9px] border-accent/20 text-accent">#42 Local</Badge>
+                     <Badge variant="outline" className="text-[9px] border-accent/20 text-accent font-black">#42 Local</Badge>
                   </div>
                 </CardContent>
              </Card>
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8 space-y-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-8">
             
             <ReadinessPredictor />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-               <Card className="rounded-[40px] cracklix-glass overflow-hidden border-none relative group cursor-pointer h-64">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent group-hover:from-primary/30 transition-all duration-500" />
-                  <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                    <BrainCircuit size={240} />
+               <Card className="rounded-[32px] cracklix-glass overflow-hidden border-white/5 relative group cursor-pointer h-60">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent group-hover:from-primary/10 transition-all duration-500" />
+                  <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-105 transition-transform duration-700">
+                    <BrainCircuit size={200} />
                   </div>
                   <CardHeader className="p-8 relative">
-                    <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-4 px-3 py-1 font-black uppercase tracking-widest text-[10px]">PUNJAB CORE v4</Badge>
-                    <CardTitle className="text-3xl font-black tracking-tight">{isClient ? t('ai_command_center') : 'AI COMMAND CENTER'}</CardTitle>
-                    <CardDescription className="text-zinc-500 mt-2 font-medium">Bilingual AI Mentorship</CardDescription>
+                    <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-3 px-3 py-1 font-black uppercase text-[9px]">PUNJAB CORE v4</Badge>
+                    <CardTitle className="text-2xl font-black tracking-tight">{isClient ? t('ai_command_center') : 'AI COMMAND CENTER'}</CardTitle>
+                    <CardDescription className="text-zinc-500 mt-1 font-medium">Bilingual AI Mentorship</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8 pt-0 relative">
                      <Link href="/ai-lab">
@@ -124,11 +125,11 @@ export default function DashboardPage() {
                   ].map((tool, i) => (
                     <Link key={i} href={tool.href}>
                       <motion.div 
-                        whileHover={{ y: -5, backgroundColor: "rgba(255,255,255,0.05)" }}
-                        className="h-full p-6 rounded-[32px] bg-white/[0.02] border border-white/5 flex flex-col items-center justify-center gap-4 transition-all"
+                        whileHover={{ y: -4, backgroundColor: "rgba(255,255,255,0.04)" }}
+                        className="h-full p-4 rounded-[24px] bg-white/[0.02] border border-white/5 flex flex-col items-center justify-center gap-3 transition-all"
                       >
-                         <tool.icon className={cn("w-7 h-7", tool.color)} />
-                         <span className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-500 text-center">{tool.label}</span>
+                         <tool.icon className={cn("w-6 h-6", tool.color)} />
+                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">{tool.label}</span>
                       </motion.div>
                     </Link>
                   ))}
@@ -137,61 +138,60 @@ export default function DashboardPage() {
 
             <DailyQuiz />
 
-            {/* Growth Community Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <Card className="rounded-[40px] bg-emerald-500/10 border-emerald-500/20 p-8 flex flex-col justify-between">
+               <Card className="rounded-[32px] bg-[#111827] border-white/5 p-8 flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                      <MessageCircle className="text-white w-6 h-6" />
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                      <MessageCircle className="text-emerald-500 w-6 h-6" />
                     </div>
-                    <Badge className="bg-emerald-500 text-white font-bold text-[9px]">LIVE</Badge>
+                    <Badge className="bg-emerald-500/20 text-emerald-500 font-bold text-[9px] border-none">TELEGRAM</Badge>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-2">Telegram Community</h3>
-                    <p className="text-xs text-zinc-500 mb-6">Daily Punjab current affairs PDFs and MCQ challenges.</p>
+                    <h3 className="text-lg font-bold mb-1">Aspirant Community</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">12,450 Members Active</p>
                     <Button variant="outline" className="w-full rounded-xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all font-bold">
-                      Join 12k+ Aspirants
+                      Join Discussions
                     </Button>
                   </div>
                </Card>
 
-               <Card className="rounded-[40px] bg-primary/10 border-primary/20 p-8 flex flex-col justify-between">
+               <Card className="rounded-[32px] bg-[#111827] border-white/5 p-8 flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                      <Users className="text-white w-6 h-6" />
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Users className="text-primary w-6 h-6" />
                     </div>
-                    <Badge className="bg-primary text-white font-bold text-[9px]">NEW</Badge>
+                    <Badge className="bg-primary/20 text-primary font-bold text-[9px] border-none">ALERTS</Badge>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-2">WhatsApp Channel</h3>
-                    <p className="text-xs text-zinc-500 mb-6">Instant exam notifications and job alert broadcasts.</p>
+                    <h3 className="text-lg font-bold mb-1">WhatsApp Channel</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Instant Exam Updates</p>
                     <Button variant="outline" className="w-full rounded-xl border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-bold">
-                      Subscribe Alerts
+                      Subscribe Now
                     </Button>
                   </div>
                </Card>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <DailyTargets />
-              <Card className="rounded-[40px] cracklix-glass flex flex-col justify-between p-10 bg-accent/5">
+              <Card className="rounded-[32px] cracklix-glass flex flex-col justify-between p-10 bg-[#111827]">
                 <div>
-                  <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-8 cyan-glow">
-                    <BookOpen className="text-accent w-7 h-7" />
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-8">
+                    <BookOpen className="text-accent w-6 h-6" />
                   </div>
-                  <h3 className="text-3xl font-black mb-3">Punjab<br />Mastery</h3>
-                  <p className="text-sm text-zinc-500 leading-relaxed max-w-[220px]">Targeted preparation for PPSC & PSSSB board exams.</p>
+                  <h3 className="text-2xl font-black mb-3 leading-tight uppercase">Punjab<br />Mastery</h3>
+                  <p className="text-xs text-zinc-500 leading-relaxed font-bold">Targeted preparation for PPSC & PSSSB board exams.</p>
                 </div>
                 <Link href="/exams">
-                  <Button variant="outline" className="w-full rounded-2xl h-14 border-accent/20 text-accent font-black tracking-tight mt-8 hover:bg-accent hover:text-black transition-all">
-                    {isClient ? t('all_exams') : 'Punjab Govt Exams'}
+                  <Button variant="outline" className="w-full rounded-xl h-12 border-accent/20 text-accent font-black tracking-widest mt-8 hover:bg-accent hover:text-black transition-all">
+                    {isClient ? t('all_exams').toUpperCase() : 'PUNJAB GOVT EXAMS'}
                   </Button>
                 </Link>
               </Card>
             </div>
           </div>
 
-          <div className="lg:col-span-4 space-y-10">
+          <div className="lg:col-span-4 space-y-8">
             <StudyTimer />
             <NotificationPanel />
             <LiveActivity />

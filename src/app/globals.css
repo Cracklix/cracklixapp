@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 230 35% 5%;
+    --background: 222 47% 6%;
     --foreground: 210 20% 98%;
-    --card: 230 35% 7%;
+    --card: 222 47% 8%;
     --card-foreground: 210 20% 98%;
-    --popover: 230 35% 7%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 20% 98%;
-    --primary: 217 91% 60%;
+    --primary: 221 83% 53%;
     --primary-foreground: 210 20% 98%;
-    --secondary: 230 35% 10%;
+    --secondary: 222 47% 12%;
     --secondary-foreground: 210 20% 98%;
-    --muted: 230 35% 10%;
+    --muted: 222 47% 12%;
     --muted-foreground: 215 15% 65%;
-    --accent: 180 100% 50%;
-    --accent-foreground: 230 35% 5%;
+    --accent: 199 89% 60%;
+    --accent-foreground: 222 47% 6%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
-    --border: 230 35% 12%;
-    --input: 230 35% 12%;
-    --ring: 217 91% 60%;
-    --radius: 1.75rem;
+    --border: 222 47% 14%;
+    --input: 222 47% 14%;
+    --ring: 221 83% 53%;
+    --radius: 1rem;
   }
 }
 
@@ -35,26 +35,26 @@
     @apply bg-background text-foreground selection:bg-primary/30;
     font-feature-settings: "rlig" 1, "calt" 1;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(217, 91%, 60%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(180, 100%, 50%, 0.03) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(221, 83%, 53%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(199, 89%, 60%, 0.03) 0px, transparent 50%);
   }
 }
 
 .cracklix-glass {
-  @apply bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)];
+  @apply bg-white/[0.02] backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
 }
 
 .blue-glow {
-  box-shadow: 0 0 50px -10px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 30px -5px rgba(37, 99, 235, 0.3);
 }
 
 .cyan-glow {
-  box-shadow: 0 0 50px -10px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 30px -5px rgba(56, 189, 248, 0.2);
 }
 
 @keyframes float {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
+  50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 }
 

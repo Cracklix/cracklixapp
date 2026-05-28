@@ -1,4 +1,3 @@
-
 'use client';
 
 import { motion } from 'framer-motion';
@@ -9,36 +8,37 @@ export default function HeroCard({ name, streak, xp }: { name: string; streak: n
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-primary to-accent p-8 rounded-[32px] text-white shadow-2xl shadow-primary/20 relative overflow-hidden"
+      className="bg-[#0f172a] border border-white/5 p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden h-full flex flex-col justify-between"
     >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+      <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full -mr-24 -mt-24 blur-3xl" />
       
-      <h1 className="text-3xl font-bold tracking-tight">
-        Welcome back, {name.split(' ')[0]}
-      </h1>
+      <div className="relative">
+        <h1 className="text-3xl font-black tracking-tight leading-tight">
+          WELCOME BACK,<br /> {name.toUpperCase()}
+        </h1>
+        <p className="mt-3 text-zinc-500 text-sm font-bold uppercase tracking-widest">
+          Punjab Recruitment Cycle: ACTIVE
+        </p>
+      </div>
 
-      <p className="mt-2 text-white/80 font-medium">
-        Continue your Punjab Govt exam preparation.
-      </p>
-
-      <div className="flex gap-8 mt-8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <Flame className="w-6 h-6 text-orange-300 fill-current" />
+      <div className="flex gap-10 mt-8 relative">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+            <Flame className="w-6 h-6 text-orange-500 fill-current" />
           </div>
           <div>
-            <p className="text-xs text-white/70 uppercase tracking-widest font-bold">Streak</p>
-            <h2 className="text-2xl font-bold">{streak} Days</h2>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">Streak</p>
+            <h2 className="text-2xl font-black">{streak} Days</h2>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <Zap className="w-6 h-6 text-yellow-300 fill-current" />
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+            <Zap className="w-6 h-6 text-primary fill-current" />
           </div>
           <div>
-            <p className="text-xs text-white/70 uppercase tracking-widest font-bold">XP</p>
-            <h2 className="text-2xl font-bold">{xp}</h2>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">XP Status</p>
+            <h2 className="text-2xl font-black">{xp.toLocaleString()}</h2>
           </div>
         </div>
       </div>
