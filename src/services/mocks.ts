@@ -24,7 +24,7 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Testbook Standard)
- * Enhanced v5: High-Integrity Porting, Deduplication, and Robust Loading.
+ * Enhanced v6: Pattern-Aware Injection, Sovereign Subcollections, and Index-Free Loading.
  */
 
 // 1. REGISTRY OPERATIONS
@@ -63,7 +63,7 @@ export async function updateMock(mockId: string, updates: Partial<MockTest>) {
 }
 
 export async function publishMock(mockId: string, publish: boolean) {
-  return updateMock(mockId, { status: publish ? 'published' : 'draft' });
+  return updateMock(mockId, { status: publish ? 'published' : 'draft', publishedAt: publish ? Date.now() : null });
 }
 
 export async function duplicateMock(mockId: string) {
@@ -87,7 +87,6 @@ export async function duplicateMock(mockId: string) {
     const batch = writeBatch(db);
     questions.forEach((q, i) => {
       const { id: oldId, ...qData } = q;
-      // We generate new IDs for the cloned sub-artifacts to ensure sovereign integrity
       const newQRef = doc(collection(db, 'mocks', newMockRef.id, 'questions'));
       batch.set(newQRef, { 
         ...qData, 
@@ -108,7 +107,6 @@ export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
   
-  // Recursively delete subcollection questions
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
   
@@ -118,14 +116,11 @@ export async function deleteMock(mockId: string) {
 
 // 2. ARTIFACT MANAGEMENT (Sovereign Subcollection Pattern)
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
-  // Robust Loading: We remove the orderBy here to prevent 'Missing Index' errors 
-  // that can return an empty array silently. We sort in memory.
+  // Index-Free Loading: Handle sorting in memory for maximum stability
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const snap = await getDocs(colRef);
   
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
-  
-  // Memory Sort for CBT engine stability
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
@@ -242,7 +237,8 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
   await setDoc(rankRef, {
     xp: increment(xpGain),
     lastAttempt: Date.now(),
-    accuracy: analytics.accuracy
+    accuracy: analytics.accuracy,
+    name: (await getDoc(doc(db, 'users', userId))).data()?.name || 'Aspirant'
   }, { merge: true });
 }
 
