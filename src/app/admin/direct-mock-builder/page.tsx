@@ -98,7 +98,7 @@ export default function DirectMockBuilderPage() {
 
             <div className="grid lg:grid-cols-12 gap-10">
                <div className="lg:col-span-8 space-y-8">
-                  <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-12 space-y-10 relative overflow-hidden">
+                  <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-8 md:p-12 space-y-10 relative overflow-hidden">
                      <div className="absolute top-0 right-0 p-16 opacity-5 pointer-events-none">
                         <Zap size={200} />
                      </div>
@@ -109,7 +109,7 @@ export default function DirectMockBuilderPage() {
                               <p className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.3em] px-4">Test Identity</p>
                               <Input 
                                 placeholder="e.g. Daily Punjab GK Express #42" 
-                                value={title}
+                                value={title} 
                                 onChange={(e) => setTitle(e.target.value)}
                                 className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold"
                               />
@@ -118,7 +118,7 @@ export default function DirectMockBuilderPage() {
                               <p className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.3em] px-4">Exam Cluster</p>
                               <Input 
                                 placeholder="e.g. Punjab Police SI" 
-                                value={exam}
+                                value={exam} 
                                 onChange={(e) => setExam(e.target.value)}
                                 className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold"
                               />
@@ -138,7 +138,7 @@ A. Option 1
 B. Option 2..."
                              value={content}
                              onChange={(e) => setContent(e.target.value)}
-                             className="min-h-[450px] bg-black/40 border-white/5 rounded-[32px] p-8 text-sm leading-relaxed"
+                             className="min-h-[450px] bg-black/40 border-white/5 rounded-[32px] p-8 text-sm leading-relaxed overflow-y-auto break-words resize-none whitespace-pre-wrap"
                            />
                         </div>
                      </div>
@@ -146,10 +146,10 @@ B. Option 2..."
                      <Button 
                         onClick={handleExpressDeploy}
                         disabled={loading}
-                        className="w-full h-24 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-3xl font-black shadow-2xl transition-transform active:scale-95 shadow-emerald-900/20"
+                        className="w-full min-h-[96px] h-auto p-6 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl md:text-3xl font-black shadow-2xl transition-transform active:scale-95 shadow-emerald-900/20 whitespace-normal break-words leading-tight text-center flex items-center justify-center"
                      >
-                        {loading ? <Loader2 className="animate-spin mr-3" /> : <Rocket className="mr-3" />}
-                        DEPLOY EXPRESS MOCK
+                        {loading ? <Loader2 className="animate-spin mr-4 shrink-0" /> : <Rocket className="mr-4 shrink-0" />}
+                        <span>DEPLOY EXPRESS MOCK</span>
                      </Button>
                   </Card>
                </div>
@@ -169,7 +169,7 @@ B. Option 2..."
                         ].map((p, i) => (
                            <li key={i} className="flex gap-3 text-xs text-zinc-500 font-medium">
                               <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                              {p}
+                              <span className="break-words">{p}</span>
                            </li>
                         ))}
                      </ul>
@@ -180,7 +180,7 @@ B. Option 2..."
                         <AlertCircle className="text-primary w-5 h-5" />
                         <h4 className="font-bold">Pro Tip</h4>
                      </div>
-                     <p className="text-xs text-zinc-400 leading-relaxed italic">
+                     <p className="text-xs text-zinc-400 leading-relaxed italic break-words">
                         "If pasting from ChatGPT, ensure 'Correct Answer' is clearly mentioned at the end of each question for 100% accuracy."
                      </p>
                   </Card>

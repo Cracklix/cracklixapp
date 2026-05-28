@@ -114,16 +114,16 @@ export default function QuestionsAdminPage() {
                             placeholder="Paste text from PDF or OCR output here. Gemini will handle the formatting and bilingual splitting."
                             value={rawText}
                             onChange={(e) => setRawText(e.target.value)}
-                            className="min-h-[400px] bg-zinc-800/30 border-white/5 rounded-3xl p-6 text-sm leading-relaxed"
+                            className="min-h-[400px] bg-zinc-800/30 border-white/5 rounded-3xl p-6 text-sm leading-relaxed overflow-y-auto break-words resize-none whitespace-pre-wrap"
                           />
                         </div>
                         <Button 
                           onClick={handleAiParse}
                           disabled={parsing || !rawText.trim()}
-                          className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 font-black text-lg shadow-xl blue-glow"
+                          className="w-full min-h-[64px] h-auto py-4 px-6 rounded-2xl bg-primary hover:bg-primary/90 font-black text-lg shadow-xl blue-glow whitespace-normal break-words leading-tight"
                         >
-                          {parsing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 w-5 h-5" />}
-                          {parsing ? "Synthesizing..." : "Execute AI Extraction"}
+                          {parsing ? <Loader2 className="animate-spin mr-2 shrink-0" /> : <Sparkles className="mr-2 w-5 h-5 shrink-0" />}
+                          <span className="flex-1 text-center">{parsing ? "Synthesizing Data..." : "Execute AI Extraction"}</span>
                         </Button>
                       </div>
                     </Card>
@@ -142,7 +142,7 @@ export default function QuestionsAdminPage() {
 
                      {!parsing && parsedQuestions.length > 0 ? (
                        <div className="space-y-8">
-                          <div className="flex justify-between items-center bg-zinc-900/50 border border-white/5 p-6 px-10 rounded-[32px]">
+                          <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-900/50 border border-white/5 p-6 px-10 rounded-[32px]">
                             <div className="flex items-center gap-6">
                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
                                   <CheckCircle2 className="text-emerald-500 w-6 h-6" />
@@ -152,9 +152,13 @@ export default function QuestionsAdminPage() {
                                   <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{parsedQuestions.length} Questions Ready for Bank</p>
                                </div>
                             </div>
-                            <Button onClick={saveAllToBank} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 h-14 px-10 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl">
-                              {saving ? <Loader2 className="animate-spin mr-2" /> : <Database className="mr-2 w-4 h-4" />}
-                              Commit to Question Bank
+                            <Button 
+                              onClick={saveAllToBank} 
+                              disabled={saving} 
+                              className="bg-emerald-600 hover:bg-emerald-700 min-h-[56px] h-auto py-3 px-10 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl whitespace-normal break-words leading-tight text-center"
+                            >
+                              {saving ? <Loader2 className="animate-spin mr-2 shrink-0" /> : <Database className="mr-2 w-4 h-4 shrink-0" />}
+                              <span>Commit to Question Bank</span>
                             </Button>
                           </div>
 
@@ -162,7 +166,7 @@ export default function QuestionsAdminPage() {
                             {parsedQuestions.map((q, i) => (
                               <Card key={i} className="rounded-[40px] bg-zinc-900/30 border-white/5 overflow-hidden group hover:border-primary/20 transition-all">
                                 <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex gap-4">
                                       <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black px-4 py-1 uppercase text-[10px]">{q.subject}</Badge>
                                       <Badge variant="outline" className="text-zinc-500 font-black px-3 py-1 uppercase text-[10px]">{q.difficulty}</Badge>
                                     </div>
@@ -176,10 +180,10 @@ export default function QuestionsAdminPage() {
                                          <Languages className="w-3 h-3 text-blue-500" />
                                          <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">English Context</span>
                                       </div>
-                                      <p className="font-bold text-lg leading-relaxed text-white">{q.question_en}</p>
+                                      <p className="font-bold text-lg leading-relaxed text-white break-words">{q.question_en}</p>
                                       <div className="grid grid-cols-1 gap-3">
                                           {q.options_en.map((o: string, idx: number) => (
-                                            <div key={idx} className={`p-4 rounded-xl text-sm transition-all border ${o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-white/[0.02] border-white/5 text-zinc-500"}`}>
+                                            <div key={idx} className={`p-4 rounded-xl text-sm transition-all border break-words ${o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-white/[0.02] border-white/5 text-zinc-500"}`}>
                                                {String.fromCharCode(65+idx)}. {o}
                                             </div>
                                           ))}
@@ -190,10 +194,10 @@ export default function QuestionsAdminPage() {
                                          <Languages className="w-3 h-3 text-primary" />
                                          <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">Punjabi Raavi Context</span>
                                       </div>
-                                      <p className="font-medium text-lg leading-relaxed text-zinc-300">{q.question_pa}</p>
+                                      <p className="font-medium text-lg leading-relaxed text-zinc-300 break-words">{q.question_pa}</p>
                                       <div className="grid grid-cols-1 gap-3">
                                           {q.options_pa.map((o: string, idx: number) => (
-                                            <div key={idx} className="p-4 rounded-xl text-sm bg-white/[0.02] border border-white/5 text-zinc-400">
+                                            <div key={idx} className="p-4 rounded-xl text-sm bg-white/[0.02] border border-white/5 text-zinc-400 break-words">
                                                {o}
                                             </div>
                                           ))}
@@ -202,7 +206,7 @@ export default function QuestionsAdminPage() {
                                 </div>
                                 <div className="p-8 px-10 bg-white/[0.02] border-t border-white/5">
                                    <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-2">Academic Explanation</p>
-                                   <p className="text-xs text-zinc-500 leading-relaxed italic">{q.explanation_en}</p>
+                                   <p className="text-xs text-zinc-500 leading-relaxed italic break-words">{q.explanation_en}</p>
                                 </div>
                               </Card>
                             ))}
@@ -213,7 +217,7 @@ export default function QuestionsAdminPage() {
                           <div className="w-24 h-24 rounded-[32px] bg-zinc-900 flex items-center justify-center mx-auto mb-8">
                              <FileText className="w-12 h-12 text-zinc-800" />
                           </div>
-                          <h3 className="text-2xl font-bold text-zinc-600">No Ingestion Stream Active</h3>
+                          <h3 className="text-2xl font-bold text-zinc-600 uppercase tracking-tighter">No Ingestion Stream Active</h3>
                           <p className="text-zinc-700 mt-2 font-medium">Paste raw study data in the left panel to begin atomic extraction.</p>
                        </div>
                      )}

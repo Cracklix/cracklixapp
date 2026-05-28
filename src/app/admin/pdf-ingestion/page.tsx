@@ -54,7 +54,6 @@ export default function UniversalPdfIngestion() {
   const [estimatedTime, setEstimatedTime] = useState<string>("");
   
   const [drafts, setDrafts] = useState<any[]>([]);
-  const [diSets, setDiSets] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const addLog = (msg: string) => {
@@ -100,7 +99,6 @@ export default function UniversalPdfIngestion() {
     setLoading(true);
     setStep('processing');
     setDrafts([]);
-    setDiSets([]);
     setProgress(0);
     const startTime = Date.now();
     addLog("Initializing v2 Parallel Ingestion Engine...");
@@ -254,25 +252,26 @@ export default function UniversalPdfIngestion() {
             {step === 'idle' && (
               <div className="grid lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-8">
-                  <Card className="rounded-[64px] bg-zinc-900/40 border-white/5 p-24 flex flex-col items-center justify-center text-center border-dashed border-2 relative group min-h-[600px]">
+                  <Card className="rounded-[64px] bg-zinc-900/40 border-white/5 p-12 md:p-24 flex flex-col items-center justify-center text-center border-dashed border-2 relative group min-h-[600px] overflow-hidden">
                     <div className="w-32 h-32 rounded-[48px] bg-primary/10 flex items-center justify-center mb-10 transition-transform group-hover:scale-110">
                         <FileUp className="text-primary w-14 h-14" />
                     </div>
-                    <h2 className="text-5xl font-black mb-6 uppercase tracking-tighter">Initialize Stream</h2>
-                    <p className="text-zinc-500 max-w-lg mb-16 text-xl leading-relaxed">Fast-Parse Mode automatically extracts data from digital PDFs. Scanned artifacts use high-resolution Vision OCR.</p>
+                    <h2 className="text-3xl md:text-5xl font-black mb-6 uppercase tracking-tighter">Initialize Stream</h2>
+                    <p className="text-zinc-500 max-w-lg mb-16 text-lg md:text-xl leading-relaxed">Fast-Parse Mode automatically extracts data from digital PDFs. Scanned artifacts use high-resolution Vision OCR.</p>
                     
                     <div className="flex flex-col items-center gap-8 w-full max-w-lg">
-                        <label className="w-full cursor-pointer p-8 rounded-[32px] bg-zinc-800/40 border border-white/5 flex items-center justify-center gap-6 font-bold hover:bg-zinc-800 transition-all text-lg">
+                        <label className="w-full cursor-pointer p-6 md:p-8 rounded-[32px] bg-zinc-800/40 border border-white/5 flex items-center justify-center gap-6 font-bold hover:bg-zinc-800 transition-all text-base md:text-lg overflow-hidden">
                           <input type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
-                          <LayoutGrid className="text-zinc-500 w-6 md:w-6" />
-                          <span className="truncate">{file ? file.name : "Select High-Volume PDF"}</span>
+                          <LayoutGrid className="text-zinc-500 w-6 h-6 shrink-0" />
+                          <span className="truncate flex-1 text-left">{file ? file.name : "Select High-Volume PDF"}</span>
                         </label>
                         <Button 
                           disabled={!file || loading} 
                           onClick={executeEnterprisePipeline}
-                          className="w-full min-h-[80px] p-8 rounded-[32px] bg-primary hover:bg-primary/90 text-3xl font-black shadow-2xl blue-glow"
+                          className="w-full min-h-[80px] h-auto p-6 md:p-8 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl md:text-3xl font-black shadow-2xl blue-glow whitespace-normal break-words leading-tight text-center flex items-center justify-center"
                         >
-                          Launch v2 Ingestion
+                          {loading ? <Loader2 className="animate-spin mr-4 shrink-0" /> : <Zap className="mr-4 shrink-0" />}
+                          <span>Launch v2 Ingestion</span>
                         </Button>
                     </div>
                   </Card>
@@ -283,7 +282,7 @@ export default function UniversalPdfIngestion() {
                     <h3 className="text-xs font-black uppercase text-zinc-500 tracking-widest mb-10 flex items-center gap-2">
                        <Clock className="w-4 h-4" /> Signal Logs
                     </h3>
-                    <div className="space-y-4 font-mono text-[10px] text-zinc-500 flex-1 h-[400px] overflow-y-auto no-scrollbar">
+                    <div className="space-y-4 font-mono text-[10px] text-zinc-500 flex-1 h-[400px] overflow-y-auto no-scrollbar break-words">
                        {log.map((entry, idx) => (
                          <div key={idx} className="pb-3 border-b border-white/[0.03] animate-in fade-in slide-in-from-left-2">{entry}</div>
                        ))}
@@ -305,7 +304,7 @@ export default function UniversalPdfIngestion() {
                         </div>
                     </div>
                     <div className="space-y-4">
-                       <h3 className="text-4xl font-black uppercase tracking-tighter">Parallel Extraction Active</h3>
+                       <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Parallel Extraction Active</h3>
                        <p className="text-zinc-500 font-medium text-lg italic">Processing segments 1-3. Automatic subject mapping and classification engaged.</p>
                     </div>
                  </div>
@@ -322,25 +321,26 @@ export default function UniversalPdfIngestion() {
 
             {step === 'review' && (
               <div className="space-y-12 pb-32">
-                 <div className="bg-emerald-500/10 border border-emerald-500/20 p-12 rounded-[56px] flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
+                 <div className="bg-emerald-500/10 border border-emerald-500/20 p-8 md:p-12 rounded-[56px] flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
                        <CheckCircle size={300} />
                     </div>
                     <div className="flex items-center gap-10 relative z-10">
-                       <div className="w-24 h-24 rounded-[32px] bg-emerald-500 flex items-center justify-center shadow-2xl blue-glow">
-                          <CheckCircle2 className="text-white w-12 h-12" />
+                       <div className="w-16 h-16 md:w-24 md:h-24 rounded-[32px] bg-emerald-500 flex items-center justify-center shadow-2xl blue-glow shrink-0">
+                          <CheckCircle2 className="text-white w-8 h-8 md:w-12 md:h-12" />
                        </div>
                        <div>
-                          <h4 className="text-5xl font-black uppercase tracking-tighter">Analysis Terminal</h4>
+                          <h4 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">Analysis Terminal</h4>
                           <p className="text-emerald-500/60 font-bold uppercase text-sm tracking-widest mt-2">
                              {drafts.length} Artifacts Extracted • Quality: High
                           </p>
                        </div>
                     </div>
-                    <div className="flex gap-4 w-full md:w-auto relative z-10">
-                       <Button variant="outline" className="h-20 px-10 rounded-[28px] border-white/10 font-bold hover:bg-destructive/10 text-lg" onClick={() => setStep('idle')}>Discard Job</Button>
-                       <Button onClick={commitAllToBank} disabled={loading} className="h-20 px-16 rounded-[28px] bg-emerald-600 hover:bg-emerald-700 font-black text-2xl blue-glow">
-                          Commit to Production
+                    <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto relative z-10">
+                       <Button variant="outline" className="h-16 md:h-20 px-10 rounded-[28px] border-white/10 font-bold hover:bg-destructive/10 text-lg" onClick={() => setStep('idle')}>Discard Job</Button>
+                       <Button onClick={commitAllToBank} disabled={loading} className="h-16 md:h-20 px-16 rounded-[28px] bg-emerald-600 hover:bg-emerald-700 font-black text-xl md:text-2xl blue-glow whitespace-normal break-words leading-tight text-center flex items-center justify-center">
+                          {loading ? <Loader2 className="animate-spin mr-3 shrink-0" /> : <Database className="mr-3 shrink-0" />}
+                          <span>Commit to Production</span>
                        </Button>
                     </div>
                  </div>
@@ -360,10 +360,10 @@ export default function UniversalPdfIngestion() {
                          <div className="p-12 grid grid-cols-1 lg:grid-cols-2 gap-16">
                             <div className="space-y-6">
                                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">English Payload</p>
-                               <p className="text-2xl font-bold leading-relaxed">{q.question_en}</p>
+                               <p className="text-2xl font-bold leading-relaxed break-words">{q.question_en}</p>
                                <div className="grid gap-3">
                                   {q.options_en?.map((o: string, idx: number) => (
-                                    <div key={idx} className={`p-5 rounded-2xl text-sm border ${o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500"}`}>
+                                    <div key={idx} className={`p-5 rounded-2xl text-sm border break-words ${o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500"}`}>
                                        {String.fromCharCode(65 + idx)}. {o}
                                     </div>
                                   ))}
@@ -372,10 +372,10 @@ export default function UniversalPdfIngestion() {
                             {q.question_pa && (
                                 <div className="space-y-6 border-l border-white/5 pl-16">
                                    <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Punjabi Signal</p>
-                                   <p className="text-2xl font-medium text-zinc-300 leading-relaxed">{q.question_pa}</p>
+                                   <p className="text-2xl font-medium text-zinc-300 leading-relaxed break-words">{q.question_pa}</p>
                                    <div className="grid gap-3">
                                       {q.options_pa?.map((o: string, idx: number) => (
-                                        <div key={idx} className="p-5 rounded-2xl text-sm bg-black/20 border border-white/5 text-zinc-400">{o}</div>
+                                        <div key={idx} className="p-5 rounded-2xl text-sm bg-black/20 border border-white/5 text-zinc-400 break-words">{o}</div>
                                       ))}
                                    </div>
                                 </div>
