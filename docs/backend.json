@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -18,16 +19,50 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "MockTest": {
-      "title": "Mock Test",
-      "description": "CBT simulation structure.",
+    "ExamMaster": {
+      "title": "Master Exam Definition",
+      "description": "Comprehensive details for a specific Punjab government exam.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "exam": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "department": { "type": "string" },
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "negativeMarking": { "type": "number" },
         "duration": { "type": "number" },
-        "totalQuestions": { "type": "number" },
-        "premium": { "type": "boolean" }
+        "totalMarks": { "type": "number" },
+        "subjects": { "type": "array", "items": { "type": "string" } },
+        "eligibility": { "type": "string" },
+        "salary": { "type": "string" },
+        "icon": { "type": "string" }
+      }
+    },
+    "Syllabus": {
+      "title": "Exam Syllabus",
+      "description": "Mapping of topics to subjects for a specific exam.",
+      "type": "object",
+      "properties": {
+        "examId": { "type": "string" },
+        "subject": { "type": "string" },
+        "topics": { "type": "array", "items": { "type": "string" } },
+        "weightage": { "type": "number" }
+      }
+    },
+    "PYQ": {
+      "title": "Previous Year Question",
+      "description": "Authentic questions from previous Punjab govt exams.",
+      "type": "object",
+      "properties": {
+        "exam": { "type": "string" },
+        "year": { "type": "number" },
+        "question_en": { "type": "string" },
+        "question_pa": { "type": "string" },
+        "options_en": { "type": "array", "items": { "type": "string" } },
+        "options_pa": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "number" },
+        "subject": { "type": "string" },
+        "topic": { "type": "string" },
+        "explanation": { "type": "string" }
       }
     },
     "DailyTarget": {
@@ -53,9 +88,17 @@
       "schema": "UserProfile",
       "description": "User profiles and settings."
     },
-    "/mocks/{mockId}": {
-      "schema": "MockTest",
-      "description": "Test definitions."
+    "/exams/{examId}": {
+      "schema": "ExamMaster",
+      "description": "Master list of Punjab Government exams."
+    },
+    "/syllabus/{syllabusId}": {
+      "schema": "Syllabus",
+      "description": "Subject-wise syllabus breakdown."
+    },
+    "/pyqs/{pyqId}": {
+      "schema": "PYQ",
+      "description": "Previous year questions bank."
     },
     "/dailyTargets/{userId}": {
       "schema": "DailyTarget",

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -33,6 +34,28 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
 
+    // Academic Infrastructure
+    match /exams/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /syllabus/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /pyqs/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /subjects/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /topics/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // AI & Tutoring
     match /aiChats/{id} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
@@ -43,7 +66,7 @@ service cloud.firestore {
       allow write: if isAuthenticated() && id.startsWith(request.auth.uid);
     }
 
-    // Content: Mocks, Questions, Exams, Daily Quizzes
+    // Content: Mocks, Questions, Daily Quizzes
     match /mocks/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -57,10 +80,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /questions/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    match /exams/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
@@ -105,26 +124,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Support & Feedback
-    match /supportTickets/{id} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated();
-    }
-
-    // Live Classes
-    match /liveClasses/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    match /classChats/{id} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-    }
-    match /attendance/{id} {
-      allow read: if isAdmin();
-      allow create: if isAuthenticated();
-    }
-
     // System
     match /premiumAccess/{userId} {
       allow read: if isOwner(userId) || isAdmin();
@@ -135,12 +134,6 @@ service cloud.firestore {
       match /transactions/{id} {
         allow read: if isOwner(userId) || isAdmin();
       }
-    }
-    match /payments/{id} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-    match /subscriptions/{id} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
     match /mistakeNotebook/{id} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
@@ -164,6 +157,26 @@ service cloud.firestore {
          allow read: if isAuthenticated();
          allow write: if isAuthenticated();
        }
+    }
+    match /jobAlerts/{id} {
+       allow read: if isAuthenticated();
+       allow write: if isAdmin();
+    }
+    match /supportTickets/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+    }
+    match /liveClasses/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /classChats/{id} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+    match /attendance/{id} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
     }
   }
 }

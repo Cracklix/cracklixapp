@@ -1,17 +1,23 @@
 
 'use client';
 
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export interface ExamCategory {
   id: string;
   name: string;
+  slug: string;
   icon: string;
   category: string; // 'Punjab'
+  department: string;
   totalMocks: number;
   activeStudents: number;
   premium: boolean;
+  negativeMarking?: number;
+  duration?: number;
+  totalMarks?: number;
+  subjects?: string[];
   createdAt: number;
 }
 
@@ -33,6 +39,14 @@ export async function getAllExams() {
     id: doc.id,
     ...doc.data(),
   })) as ExamCategory[];
+}
+
+export async function getExamBySlug(slug: string): Promise<ExamCategory | null> {
+  const q = query(collection(db, 'exams'), where('slug', '==', slug), limit(1));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() } as ExamCategory;
 }
 
 export async function getPunjabExams() {
