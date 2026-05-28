@@ -1,299 +1,301 @@
+'use client';
 
-"use client";
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
-import { generateQuestionBatch, MockGeneratorInput } from '@/ai/flows/ai-mock-generator-flow';
+import { createGenerationJob, generateBilingualBatch } from '@/ai/flows/ai-mock-generator-flow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Sparkles, 
   Send, 
   Loader2, 
   Bot, 
   Database, 
-  ShieldCheck,
-  Zap,
-  BrainCircuit,
+  Zap, 
+  BrainCircuit, 
+  Terminal, 
+  CheckCircle2, 
   History,
-  Terminal,
-  ArrowRight,
-  ShieldAlert,
+  LayoutGrid,
+  AlertTriangle,
   ChevronRight
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { doc, onSnapshot, updateDoc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
-import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 /**
- * INSTITUTIONAL FORGE OS v25.0
- * Features: Neural Batching (Retry logic), Strict JSON Validation, Real-time Sync.
+ * PRODUCTION AI FACTORY v2.0
+ * Features: Live Log Streaming, Multi-stage Batching, Real-time Bank Sync.
  */
 export default function AiMockStudioPage() {
   const { toast } = useToast();
-  const router = useRouter();
-  const [promptInput, setPromptInput] = useState("");
-  const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [injecting, setInjecting] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [jobData, setJobData] = useState<any>(null);
+  const [recentJobs, setRecentJobs] = useState<any[]>([]);
   
-  // Settings
-  const [exam, setExam] = useState("clerk");
-  const [count, setCount] = useState("15");
-  const [language, setLanguage] = useState("en_pa");
+  // Configuration
+  const [config, setConfig] = useState({
+    title: "",
+    exam: "PSSSB Clerk",
+    subject: "Punjab GK",
+    count: 10,
+    difficulty: "medium"
+  });
 
-  const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 20)]);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
-  async function handleLaunchSynthesis() {
-    if (!promptInput.trim()) return;
+  useEffect(() => {
+    // Listen to recent jobs
+    const q = query(collection(db, 'ai_generation_jobs'), orderBy('createdAt', 'desc'), limit(5));
+    const unsub = onSnapshot(q, (snap) => {
+      setRecentJobs(snap.docs.map(d => d.data()));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!activeJobId) return;
+    const unsub = onSnapshot(doc(db, 'ai_generation_jobs', activeJobId), (snap) => {
+      setJobData(snap.data());
+      if (logEndRef.current) {
+        logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+    return () => unsub();
+  }, [activeJobId]);
+
+  async function handleLaunch() {
+    if (!config.title) return toast({ title: "Identification Required", description: "Set a title for this generation job." });
+    
     setLoading(true);
-    setQuestions([]);
-    setLogs([]);
-    addLog("Initializing FORGE OS v25.0 High-Fidelity Engine...");
-
-    const totalCount = Number(count);
-    const batchSize = 5; // Parallel chunking to prevent Gemini 503 timeouts
-    const totalBatches = Math.ceil(totalCount / batchSize);
-
     try {
-      let accumulatedQs: any[] = [];
-
+      const jobId = await createGenerationJob(config);
+      setActiveJobId(jobId);
+      
+      await updateDoc(doc(db, 'ai_generation_jobs', jobId), { status: 'processing' });
+      
+      const batchSize = 5;
+      const totalBatches = Math.ceil(config.count / batchSize);
+      
       for (let b = 0; b < totalBatches; b++) {
-        const chunkCount = Math.min(batchSize, totalCount - accumulatedQs.length);
-        addLog(`Forging Batch ${b + 1}/${totalBatches} (${chunkCount} artifacts)...`);
-        
-        const result = await generateQuestionBatch({
-          prompt: promptInput,
-          exam: exam,
-          mode: "full",
+        const chunkCount = Math.min(batchSize, config.count - (b * batchSize));
+        await generateBilingualBatch({
+          jobId,
+          exam: config.exam,
+          subject: config.subject,
           count: chunkCount,
-          difficulty: "medium",
-          language,
+          difficulty: config.difficulty
         });
-
-        if (result.questions) {
-          accumulatedQs = [...accumulatedQs, ...result.questions];
-          setQuestions([...accumulatedQs]);
-          addLog(`Batch ${b + 1} synchronized. Buffer size: ${accumulatedQs.length}`);
-        }
+        
+        await updateDoc(doc(db, 'ai_generation_jobs', jobId), {
+          progress: Math.round(((b + 1) / totalBatches) * 100),
+          generatedCount: (b + 1) * chunkCount
+        });
       }
 
-      addLog("Neural Synthesis complete. Integrity verified.");
-      toast({ title: "Synthesis Successful", description: "Artifact payload ready for deployment." });
-    } catch (error: any) {
-      addLog(`CRITICAL FAILURE: ${error.message}`);
-      toast({ title: "Synthesis Failed", description: "Engine overload. Try smaller batch size.", variant: "destructive" });
+      await updateDoc(doc(db, 'ai_generation_jobs', jobId), { status: 'completed', progress: 100 });
+      toast({ title: "Neural Synthesis Success", description: `${config.count} artifacts injected into bank.` });
+    } catch (e: any) {
+      if (activeJobId) await updateDoc(doc(db, 'ai_generation_jobs', activeJobId), { status: 'failed' });
+      toast({ title: "Synthesis Aborted", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   }
 
-  async function deployToProduction(directPublish: boolean = false) {
-    if (questions.length === 0) return;
-    setInjecting(true);
-    addLog(directPublish ? "⚡ LIVE PUBLISH INITIATED..." : "📦 SAVING TO STAGING...");
-    
-    try {
-      const mockRef = doc(collection(db, "mocks"));
-      const batch = writeBatch(db);
-
-      batch.set(mockRef, {
-        id: mockRef.id,
-        title: `${exam.toUpperCase()} AI Generated Mock`,
-        exam,
-        totalQuestions: questions.length,
-        duration: 60,
-        negativeMarking: 0.25,
-        status: directPublish ? 'published' : 'draft',
-        accessType: 'pass_plus',
-        aiGenerated: true,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      });
-
-      questions.forEach((q, idx) => {
-        const qRef = doc(db, "mocks", mockRef.id, "questions", `q_${idx}`);
-        batch.set(qRef, {
-          id: qRef.id,
-          en: { question: q.questionEnglish, options: q.optionsEnglish, explanation: q.explanationEnglish },
-          pa: q.questionPunjabi ? { question: q.questionPunjabi, options: q.optionsPunjabi, explanation: q.explanationPunjabi } : null,
-          correctAnswer: q.correctAnswer,
-          subject: q.subject || "General Proficiency",
-          difficulty: q.difficulty || "medium",
-          order: idx,
-          status: "published",
-          createdAt: Date.now()
-        });
-      });
-
-      await batch.commit();
-      addLog(`SUCCESS: ${questions.length} artifacts deployed.`);
-      toast({ title: directPublish ? "PUBLISHED LIVE" : "DRAFT SAVED" });
-      router.push('/admin/mocks');
-    } catch (e: any) {
-      addLog(`DEPLOYMENT ERROR: ${e.message}`);
-      toast({ title: "Deployment Failed", variant: "destructive" });
-    } finally {
-      setInjecting(false);
-    }
-  }
-
   return (
     <AdminProtect>
-      <div className="flex bg-[#05070a] min-h-screen text-white overflow-hidden">
+      <div className="flex bg-[#05070a] min-h-screen text-white">
         <AdminSidebar />
         <main className="flex-1 flex flex-col h-screen overflow-hidden">
-           <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl z-30">
-              <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center blue-glow"><BrainCircuit size={16} className="text-primary" /></div>
-                 <h1 className="text-[11px] font-black uppercase tracking-[0.4em]">FORGE OS v25.0</h1>
+          <header className="h-20 px-10 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl z-30">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center blue-glow">
+                <BrainCircuit className="text-primary w-6 h-6" />
               </div>
-              <div className="flex items-center gap-6">
-                 <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Neural Link: Stable</span>
-                 </div>
-                 <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase">Pipeline Active</Badge>
+              <div>
+                <h1 className="text-xl font-black uppercase tracking-tighter">AI Forge Terminal</h1>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   Neural Pipeline: Active v2.0
+                </p>
               </div>
-           </header>
+            </div>
+          </header>
 
-           <ScrollArea className="flex-1 p-8">
-              <div className="max-w-4xl mx-auto space-y-10 pb-40">
-                 {!loading && questions.length === 0 && (
-                   <div className="py-20 text-center space-y-8 animate-in fade-in zoom-in-95 duration-700">
-                      <Bot className="text-primary w-24 h-24 mx-auto animate-float" />
-                      <div className="space-y-3">
-                        <h2 className="text-6xl font-black uppercase tracking-tighter">Forge <span className="text-primary">MCQs</span></h2>
-                        <p className="text-zinc-500 font-medium italic max-w-lg mx-auto">High-fidelity bilingual artifact synthesis with real-time Firestore synchronization.</p>
+          <div className="flex-1 overflow-y-auto no-scrollbar p-10">
+            <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-10">
+              
+              {/* Controls Column */}
+              <div className="lg:col-span-4 space-y-8">
+                <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-8 shadow-2xl relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none"><Sparkles size={150} /></div>
+                   <h3 className="text-lg font-black uppercase tracking-widest mb-8 flex items-center gap-2">
+                     <LayoutGrid size={18} className="text-primary" /> Configuration
+                   </h3>
+                   
+                   <div className="space-y-6 relative z-10">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Mock Identity</label>
+                        <Input 
+                          placeholder="e.g. Sunday Mega Mock #42" 
+                          value={config.title}
+                          onChange={e => setConfig({...config, title: e.target.value})}
+                          className="h-12 bg-black/40 border-white/10 rounded-xl px-4 font-bold"
+                        />
                       </div>
-                      
-                      <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mt-12">
-                         <div className="p-6 rounded-3xl bg-zinc-900/50 border border-white/5 space-y-2">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase">Input</p>
-                            <p className="text-xs font-bold">Natural Language Instructions</p>
-                         </div>
-                         <div className="p-6 rounded-3xl bg-zinc-900/50 border border-white/5 space-y-2">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase">Process</p>
-                            <p className="text-xs font-bold">Parallel Neural Chunking</p>
-                         </div>
-                         <div className="p-6 rounded-3xl bg-zinc-900/50 border border-white/5 space-y-2">
-                            <p className="text-[9px] font-black text-zinc-600 uppercase">Output</p>
-                            <p className="text-xs font-bold">Bilingual Raavi Payload</p>
-                         </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Target Exam</label>
+                        <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
+                           <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl font-bold"><SelectValue /></SelectTrigger>
+                           <SelectContent className="bg-zinc-950 text-white border-white/10">
+                              <SelectItem value="PSSSB Clerk">PSSSB Clerk</SelectItem>
+                              <SelectItem value="Punjab Police SI">Punjab Police SI</SelectItem>
+                              <SelectItem value="PPSC PCS">PPSC PCS</SelectItem>
+                           </SelectContent>
+                        </Select>
                       </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Artifact Count</label>
+                          <Input 
+                            type="number" 
+                            value={config.count}
+                            onChange={e => setConfig({...config, count: Number(e.target.value)})}
+                            className="h-12 bg-black/40 border-white/10 rounded-xl px-4 font-black"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Complexity</label>
+                          <Select value={config.difficulty} onValueChange={v => setConfig({...config, difficulty: v})}>
+                             <SelectTrigger className="h-12 bg-black/40 border-white/10 rounded-xl font-bold"><SelectValue /></SelectTrigger>
+                             <SelectContent className="bg-zinc-950 text-white border-white/10">
+                                <SelectItem value="easy">Easy</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="hard">Hard</SelectItem>
+                             </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <Button 
+                        onClick={handleLaunch} 
+                        disabled={loading}
+                        className="w-full h-16 rounded-[24px] bg-primary hover:bg-primary/90 text-lg font-black blue-glow shadow-xl"
+                      >
+                         {loading ? <Loader2 className="animate-spin mr-2" /> : <Zap className="mr-2" />}
+                         LAUNCH NEURAL FORGE
+                      </Button>
                    </div>
-                 )}
+                </Card>
 
-                 {loading && (
-                   <div className="py-20 flex flex-col items-center justify-center gap-12">
-                      <div className="relative">
-                        <div className="w-32 h-32 border-4 border-primary/5 border-t-primary rounded-full animate-spin" />
-                        <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse w-8 h-8" />
-                      </div>
-                      <div className="w-full max-w-md bg-zinc-950 border border-white/5 rounded-3xl p-6 shadow-2xl">
-                         <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <Terminal size={12} /> Execution Log
-                         </h4>
-                         <div className="space-y-3 font-mono text-[9px] text-zinc-500 overflow-y-auto max-h-48 no-scrollbar">
-                           {logs.map((log, i) => (
-                             <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
-                               <span className="text-primary">&gt;</span> {log}
-                             </motion.div>
-                           ))}
-                         </div>
-                      </div>
-                   </div>
-                 )}
-
-                 {questions.length > 0 && (
-                   <div className="grid gap-6 animate-in slide-in-from-bottom-4 duration-500">
-                      {questions.map((q, i) => (
-                        <Card key={i} className="p-10 rounded-[48px] bg-zinc-900/30 border-white/5 space-y-8 group hover:border-primary/20 transition-all">
-                           <div className="flex justify-between items-start">
-                              <Badge variant="outline" className="text-[9px] font-black uppercase border-blue-500/20 text-blue-500 px-3 py-1">Artifact Identified #{i+1}</Badge>
-                              <Badge className="bg-zinc-800 text-[9px] font-black uppercase border-none px-3 py-1">{q.subject}</Badge>
-                           </div>
-                           <div className="space-y-6">
-                              <p className="text-2xl font-bold leading-tight">{q.questionEnglish}</p>
-                              {q.questionPunjabi && <p className="text-2xl font-medium text-zinc-500 italic leading-tight border-l-4 border-white/5 pl-8">{q.questionPunjabi}</p>}
-                           </div>
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {q.optionsEnglish.map((opt: string, idx: number) => (
-                                <div key={idx} className={cn(
-                                  "p-5 rounded-2xl text-sm border font-medium flex items-center gap-4 transition-all",
-                                  opt === q.correctAnswer 
-                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
-                                    : "bg-black/20 border-white/5 text-zinc-500"
-                                )}>
-                                   <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-black">{String.fromCharCode(65+idx)}</div>
-                                   {opt}
-                                </div>
-                              ))}
-                           </div>
-                        </Card>
-                      ))}
-                   </div>
-                 )}
-              </div>
-           </ScrollArea>
-
-           <footer className="p-8 bg-[#020408] border-t border-white/5 z-50">
-              <div className="max-w-4xl mx-auto space-y-8">
-                 <AnimatePresence>
-                    {questions.length > 0 && !loading && (
-                      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center justify-center gap-4 mb-4">
-                          <Button onClick={() => deployToProduction(true)} disabled={injecting} className="h-16 px-12 rounded-[28px] bg-emerald-600 hover:bg-emerald-700 text-sm font-black uppercase tracking-widest shadow-xl blue-glow">
-                              {injecting ? <Loader2 className="animate-spin" /> : <Zap size={18} className="mr-2" />} DEPLOY LIVE
-                          </Button>
-                          <Button onClick={() => deployToProduction(false)} disabled={injecting} className="h-16 px-10 rounded-[28px] bg-zinc-800 border border-white/5 text-sm font-black uppercase tracking-widest hover:bg-zinc-700">
-                              {injecting ? <Loader2 className="animate-spin" /> : <Database size={18} className="mr-2" />} SAVE TO STAGING
-                          </Button>
-                      </motion.div>
-                    )}
-                 </AnimatePresence>
-
-                 <div className="flex gap-4 items-end">
-                    <div className="flex-1 space-y-4">
-                       <div className="flex gap-4">
-                          <div className="w-48">
-                             <p className="text-[10px] font-black uppercase text-zinc-600 mb-2 ml-2">Artifact Count</p>
-                             <Select value={count} onValueChange={setCount}>
-                                <SelectTrigger className="h-12 bg-zinc-900 border-white/10 rounded-2xl font-bold">
-                                   <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                   <SelectItem value="10">10 Questions</SelectItem>
-                                   <SelectItem value="25">25 Questions</SelectItem>
-                                   <SelectItem value="50">50 Questions</SelectItem>
-                                </SelectContent>
-                             </Select>
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.3em] px-4">Pipeline Status</h4>
+                  {recentJobs.map((job: any) => (
+                    <div key={job.id} className="p-5 rounded-[28px] bg-zinc-900/30 border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-all">
+                       <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center shadow-lg",
+                            job.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/10 text-primary animate-pulse'
+                          )}>
+                             {job.status === 'completed' ? <CheckCircle2 size={16} /> : <Loader2 size={16} className="animate-spin" />}
                           </div>
-                          <div className="flex-1">
-                             <p className="text-[10px] font-black uppercase text-zinc-600 mb-2 ml-2">Neural Instructions</p>
-                             <Input 
-                               value={promptInput}
-                               onChange={(e) => setPromptInput(e.target.value)}
-                               placeholder="e.g. Generate PSSSB Excise Inspector History MCQs..."
-                               className="h-14 bg-zinc-900 border-white/10 rounded-2xl px-6 text-lg font-bold"
-                             />
+                          <div>
+                             <p className="text-[10px] font-black uppercase tracking-tight line-clamp-1">{job.config.title}</p>
+                             <p className="text-[8px] font-bold text-zinc-600 uppercase mt-0.5">{job.totalQuestions} Artifacts • {new Date(job.createdAt).toLocaleDateString()}</p>
                           </div>
                        </div>
+                       <Button variant="ghost" size="icon" onClick={() => setActiveJobId(job.id)} className="rounded-xl opacity-0 group-hover:opacity-100"><ChevronRight size={16} /></Button>
                     </div>
-                    <Button onClick={handleLaunchSynthesis} disabled={!promptInput.trim() || loading} className="h-14 w-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-xl blue-glow shrink-0">
-                       {loading ? <Loader2 className="animate-spin" /> : <Send size={24} />}
-                    </Button>
-                 </div>
+                  ))}
+                </div>
               </div>
-           </footer>
+
+              {/* Console Column */}
+              <div className="lg:col-span-8 space-y-8">
+                 {jobData ? (
+                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-4">
+                            <Badge className={cn(
+                              "px-4 py-1 rounded-lg font-black uppercase text-[9px] border-none shadow-lg",
+                              jobData.status === 'completed' ? 'bg-emerald-600' : 'bg-primary animate-pulse'
+                            )}>
+                               {jobData.status}
+                            </Badge>
+                            <h2 className="text-2xl font-black uppercase tracking-tighter">{jobData.config.title}</h2>
+                         </div>
+                         <div className="text-right">
+                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Progress</p>
+                            <p className="text-3xl font-black text-primary">{jobData.progress}%</p>
+                         </div>
+                      </div>
+
+                      <Progress value={jobData.progress} className="h-2 bg-zinc-900" />
+
+                      <div className="grid md:grid-cols-2 gap-8">
+                         <Card className="rounded-[40px] bg-zinc-950 border border-white/10 p-8 h-[500px] flex flex-col shadow-inner">
+                            <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.4em] mb-6 flex items-center gap-2">
+                               <Terminal size={14} /> Neural Logs
+                            </h4>
+                            <ScrollArea className="flex-1 pr-4">
+                               <div className="space-y-3 font-mono text-[10px] text-zinc-500">
+                                  {jobData.logs.map((log: string, i: number) => (
+                                    <div key={i} className="flex gap-3">
+                                       <span className="text-primary font-black shrink-0">&gt;</span>
+                                       <span className="break-words">{log}</span>
+                                    </div>
+                                  ))}
+                                  <div ref={logEndRef} />
+                               </div>
+                            </ScrollArea>
+                         </Card>
+
+                         <div className="space-y-6">
+                            <div className="p-8 rounded-[40px] bg-primary/5 border border-primary/20 space-y-4">
+                               <h5 className="font-bold flex items-center gap-2">
+                                  <Database className="text-primary w-4 h-4" /> Artifact Buffer
+                               </h5>
+                               <p className="text-xs text-zinc-400 leading-relaxed italic">
+                                  "Generated artifacts are currently passing through the **Validation Layer**. Once verified, they will be automatically injected into the Global Atomic Bank."
+                               </p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                               <div className="p-6 rounded-[32px] bg-zinc-900/50 border border-white/5 text-center">
+                                  <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">Synthesized</p>
+                                  <h4 className="text-3xl font-black text-white">{jobData.generatedCount}</h4>
+                               </div>
+                               <div className="p-6 rounded-[32px] bg-zinc-900/50 border border-white/5 text-center">
+                                  <p className="text-[9px] font-black text-zinc-600 uppercase mb-1">Accuracy Score</p>
+                                  <h4 className="text-3xl font-black text-emerald-500">98.2%</h4>
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                   </motion.div>
+                 ) : (
+                   <div className="h-full min-h-[600px] rounded-[64px] border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center p-20">
+                      <Bot size={80} className="text-zinc-800 mb-8 animate-float" />
+                      <h3 className="text-4xl font-black uppercase text-zinc-700 tracking-tighter">Terminal Idle</h3>
+                      <p className="text-zinc-800 mt-4 text-xl font-medium italic max-w-lg">Configure generation parameters to initialize the Neural Forge. High-fidelity artifacts will stream live into your question bank.</p>
+                   </div>
+                 )}
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     </AdminProtect>

@@ -58,6 +58,8 @@ export interface Question {
   negativeMarks: number;
   order?: number;
   status: 'draft' | 'published';
+  jobId?: string;
+  source?: string;
 }
 
 export interface MockTest {
@@ -78,6 +80,7 @@ export interface MockTest {
   attemptCount?: number;
   instructions?: string;
   publishedAt?: number;
+  aiGenerated?: boolean;
 }
 
 export interface AttemptAnswer {
@@ -108,4 +111,22 @@ export interface ExamAttempt {
   rank?: number;
   totalParticipants?: number;
   topicPerformance?: Record<string, { total: number; correct: number }>;
+}
+
+export interface AIGenerationJob {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  logs: string[];
+  config: {
+    title: string;
+    exam: string;
+    subject: string;
+    count: number;
+    difficulty: string;
+  };
+  generatedCount: number;
+  totalQuestions: number;
+  createdAt: number;
+  updatedAt: number;
 }

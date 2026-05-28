@@ -1,91 +1,135 @@
 'use server';
 /**
- * Advanced AI Mock Generator Flow v12.0 (Production Core).
- * Optimized for stability, chunking, and strict JSON schema validation.
+ * CRACKLIX NEURAL ENGINE v2.0
+ * Advanced multi-stage question synthesis with bilingual validation.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { db } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
-const ArtifactSchema = z.object({
-  questionEnglish: z.string(),
-  questionPunjabi: z.string().optional(),
-  questionHindi: z.string().optional(),
-  
-  optionsEnglish: z.array(z.string()).length(4),
-  optionsPunjabi: z.array(z.string()).length(4).optional(),
-  optionsHindi: z.array(z.string()).length(4).optional(),
-  
+const QuestionArtifactSchema = z.object({
+  question_en: z.string(),
+  question_pa: z.string(),
+  options_en: z.array(z.string()).length(4),
+  options_pa: z.array(z.string()).length(4),
   correctAnswer: z.string().describe("The exact text of the correct option in English."),
-  
-  explanationEnglish: z.string(),
-  explanationPunjabi: z.string().optional(),
-  explanationHindi: z.string().optional(),
-  
+  explanation_en: z.string(),
+  explanation_pa: z.string(),
   subject: z.string(),
   topic: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  estimatedTimeSeconds: z.number().default(45),
-  marks: z.number().default(1),
-  negativeMarks: z.number().default(0.25),
 });
 
-const MockGeneratorInputSchema = z.object({
-  prompt: z.string(),
+const GeneratorInputSchema = z.object({
+  jobId: z.string(),
   exam: z.string(),
-  mode: z.string(),
-  count: z.number(),
+  subject: z.string(),
+  topic: z.string().optional(),
+  count: z.number().max(10),
   difficulty: z.string(),
-  language: z.string(),
+  language: z.string().default('en_pa'),
 });
 
-export type MockGeneratorInput = z.infer<typeof MockGeneratorInputSchema>;
-
-const MockBatchOutputSchema = z.object({
-  questions: z.array(ArtifactSchema),
-  context: z.string().optional(),
+const GeneratorOutputSchema = z.object({
+  questions: z.array(QuestionArtifactSchema),
+  confidenceScore: z.number(),
 });
 
 /**
- * Robust Batch Question Generator with Strict JSON Output.
- * This prompt is designed to minimize 'Service Unavailable' errors by being concise.
+ * Streams a log message to the Firestore job document.
  */
-export async function generateQuestionBatch(input: MockGeneratorInput): Promise<z.infer<typeof MockBatchOutputSchema>> {
+async function streamLog(jobId: string, message: string) {
+  await db.collection('ai_generation_jobs').doc(jobId).update({
+    logs: FieldValue.arrayUnion(`[${new Date().toLocaleTimeString()}] ${message}`),
+    lastLog: message,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function generateBilingualBatch(input: z.infer<typeof GeneratorInputSchema>) {
+  const { jobId, exam, subject, topic, count, difficulty } = input;
+
+  await streamLog(jobId, `Initializing synthesis for ${count} artifacts...`);
+
   const prompt = ai.definePrompt({
-    name: 'aiMockBatchGeneratorV12',
-    input: { schema: MockGeneratorInputSchema },
-    output: { schema: MockBatchOutputSchema },
-    prompt: `You are the CRACKLIX Neural Academic Architect v12. 
-Generate a focused batch of {{{count}}} high-fidelity recruitment artifacts for the {{{exam}}}.
+    name: `forge_v2_${jobId}`,
+    input: { schema: GeneratorInputSchema },
+    output: { schema: GeneratorOutputSchema },
+    prompt: `You are the CRACKLIX Neural Academic Architect v2.0.
+    Generate a high-fidelity batch of {{{count}}} MCQs for the {{{exam}}} exam.
 
-INSTRUCTIONS:
-1. SUBJECT AREA: {{{prompt}}}
-2. LANGUAGE: {{{language}}} (If 'en_pa', use English and Punjabi. Punjabi MUST be Raavi-compliant).
-3. COMPLEXITY: {{{difficulty}}}
-4. STRICTURE: Respond with ONLY a valid JSON object matching the schema. No markdown outside the JSON.
+    CRITICAL SPECIFICATIONS:
+    - SUBJECT: {{{subject}}}
+    - FOCUS AREA: {{{topic}}}
+    - COMPLEXITY: {{{difficulty}}}
+    - LANGUAGES: Mandatory English and Punjabi (Raavi Font/Unicode compliant).
+    
+    QUALITY PROTOCOL:
+    1. OPTIONS: Must be distinct and plausible.
+    2. CORRECT ANSWER: Must match the English option text exactly.
+    3. PUNJABI: Use formal, exam-standard Gurmukhi.
+    4. EXPLANATION: Step-by-step logical derivation.
 
-QUALITY PROTOCOL:
-- Options must be distinct.
-- Explanation must explain the logic step-by-step.
-- The 'correctAnswer' must match the text in 'optionsEnglish' exactly.`,
+    Respond ONLY with a valid JSON object matching the output schema.`,
   });
 
   try {
+    await streamLog(jobId, "Executing neural synthesis via Gemini 1.5 Pro...");
     const { output } = await prompt(input);
+
     if (!output || !output.questions) {
-      throw new Error("Batch synthesis failed to produce a valid artifact array.");
+      throw new Error("AI failed to produce structured artifacts.");
     }
-    return output;
+
+    await streamLog(jobId, `Synthesis complete. Validating ${output.questions.length} artifacts...`);
+
+    // Validation & Injection
+    const batch = db.batch();
+    const questionsCol = db.collection('questions');
+
+    output.questions.forEach((q, idx) => {
+      const qRef = questionsCol.doc();
+      const questionData = {
+        ...q,
+        id: qRef.id,
+        status: 'published',
+        source: 'AI_FORGE_V2',
+        jobId: jobId,
+        createdAt: Date.now(),
+        en: { question: q.question_en, options: q.options_en, explanation: q.explanation_en },
+        pa: { question: q.question_pa, options: q.options_pa, explanation: q.explanation_pa },
+      };
+      batch.set(qRef, questionData);
+    });
+
+    await batch.commit();
+    await streamLog(jobId, `Batch synchronized with Global Atomic Bank.`);
+
+    return output.questions;
   } catch (error: any) {
-    console.error("Genkit Flow Error:", error);
-    throw new Error(`AI Engine Overload: ${error.message}. Retrying via fallback chunker.`);
+    await streamLog(jobId, `CRITICAL ERROR: ${error.message}`);
+    throw error;
   }
 }
 
-export async function generateAILogic(input: MockGeneratorInput) {
-  // Safe wrapper for smaller batches
-  return await generateQuestionBatch({
-    ...input,
-    count: Math.min(input.count, 5) 
-  });
+export async function createGenerationJob(data: any) {
+  const jobRef = db.collection('ai_generation_jobs').doc();
+  const jobId = jobRef.id;
+
+  const job = {
+    id: jobId,
+    status: 'pending',
+    config: data,
+    progress: 0,
+    logs: [`[${new Date().toLocaleTimeString()}] Job queued in Neural Link.`],
+    totalQuestions: data.count,
+    generatedCount: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+
+  await jobRef.set(job);
+  return jobId;
 }
