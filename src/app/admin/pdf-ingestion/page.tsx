@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef } from 'react';
@@ -269,7 +268,7 @@ export default function UniversalPdfIngestion() {
                     <div className="space-y-2 font-mono text-[10px]">
                        {log.slice(-10).map((l, i) => (
                          <div key={i} className="text-zinc-500 flex gap-2">
-                           <span className="text-primary">></span> {l}
+                           <span className="text-primary">{" > "}</span> {l}
                          </div>
                        ))}
                     </div>
