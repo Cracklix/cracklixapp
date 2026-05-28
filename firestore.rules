@@ -2,13 +2,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Utility functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
+    // Auth Helpers
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
     function isAdmin() {
       return isAuthenticated() && 
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -16,25 +12,15 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin');
     }
 
-    // User Profiles & Operational Docs
+    // Production Rule Mapping
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isOwner(userId) || isAdmin();
     }
-    match /dailyTargets/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || isAdmin();
+    match /questions/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
-    match /readiness/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || isAdmin();
-    }
-    match /aiUsage/{id} {
-      allow read: if isAuthenticated() && (id.split('_')[0] == request.auth.uid || isAdmin());
-      allow write: if isAuthenticated() && (id.split('_')[0] == request.auth.uid || isAdmin());
-    }
-
-    // Global Academic Assets
     match /mocks/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -43,27 +29,23 @@ service cloud.firestore {
         allow write: if isAdmin();
       }
     }
-    match /questions/{id} {
+    match /attempts/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    match /community_channels/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-    match /pyqs/{id} {
+    match /community_messages/{id} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow create: if isAuthenticated();
+      allow delete: if isAdmin() || resource.data.senderId == request.auth.uid;
     }
-    match /currentAffairs/{id} {
+    match /notes/{id} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    match /jobAlerts/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-
-    // Competitive System
-    match /leaderboards/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated();
+      allow write: if isAdmin() || resource.data.uploadedBy == request.auth.uid;
     }
     match /liveRanks/{id} {
       allow read: if isAuthenticated();
@@ -73,25 +55,14 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-    match /attempts/{id} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-    }
-
-    // Support & Comms
     match /notifications/{id} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAdmin();
-    }
-    match /supportTickets/{id} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated();
+      allow write: if isAdmin();
     }
     
-    // Default fallback
+    // Default Security
     match /{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
   }
 }

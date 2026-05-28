@@ -17,13 +17,13 @@ import {
   Menu,
   Bell,
   Search,
-  Radio,
+  MessageSquare,
   ShoppingBag,
   Sparkles,
   Briefcase,
-  Gift,
   Keyboard,
-  Bookmark
+  Bookmark,
+  Languages
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -38,14 +38,14 @@ const SidebarItem = ({ href, icon: Icon, label, active, sidebarOpen }: { href: s
       whileHover={{ backgroundColor: "rgba(255,255,255,0.03)" }}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+        "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200",
         active 
-          ? "bg-primary text-white shadow-lg shadow-primary/20" 
-          : "text-zinc-500 hover:text-zinc-200"
+          ? "bg-primary text-white shadow-xl shadow-primary/20" 
+          : "text-zinc-500 hover:text-white"
       )}
     >
       <Icon className={cn("w-5 h-5", active ? "text-white" : "text-zinc-500")} />
-      {sidebarOpen && <span className="font-semibold text-sm tracking-tight">{label}</span>}
+      {sidebarOpen && <span className="font-bold text-sm tracking-tight">{label}</span>}
     </motion.div>
   </Link>
 );
@@ -63,26 +63,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#050816] text-white">
-         <div className="text-center space-y-4">
-           <motion.div 
-             animate={{ rotate: 360 }}
-             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-             className="w-10 h-10 border-2 border-primary/20 border-t-primary rounded-full mx-auto" 
-           />
-           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">Secure Stream</p>
-         </div>
-      </div>
-    );
-  }
-
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: t('home') },
-    { href: '/live', icon: Radio, label: 'Live Arena' },
+    { href: '/community', icon: MessageSquare, label: 'Community' },
     { href: '/exams', icon: BookOpen, label: t('mocks') },
-    { href: '/typing', icon: Keyboard, label: 'Typing Test' },
+    { href: '/typing', icon: Keyboard, label: 'Typing' },
     { href: '/bookmarks', icon: Bookmark, label: 'Saved' },
     { href: '/jobs', icon: Briefcase, label: t('jobs') },
     { href: '/marketplace', icon: ShoppingBag, label: t('market') },
@@ -90,23 +75,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/ai', icon: BrainCircuit, label: t('ai_coach') },
   ];
 
+  if (loading) return (
+    <div className="h-screen bg-black flex items-center justify-center">
+       <Loader2 className="w-10 h-10 text-primary animate-spin" />
+    </div>
+  );
+
   return (
-    <div className="flex h-screen bg-[#050816] overflow-hidden font-body">
+    <div className="flex h-screen bg-black overflow-hidden font-body">
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: sidebarOpen ? 280 : 80 }}
-        className={cn(
-          "hidden md:flex bg-[#0f172a] border-r border-white/5 flex-col transition-all duration-300",
-          !sidebarOpen && "items-center"
-        )}
+        animate={{ width: sidebarOpen ? 280 : 84 }}
+        className="hidden md:flex bg-zinc-950 border-r border-white/5 flex-col transition-all duration-300"
       >
         <div className="p-6">
           <Link href="/dashboard" className="flex items-center gap-3 mb-10 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 blue-glow">
+            <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center shrink-0 blue-glow">
               <Zap className="text-white w-5 h-5 fill-current" />
             </div>
-            {sidebarOpen && <span className="font-headline text-2xl font-black tracking-tighter whitespace-nowrap">CRACKLIX</span>}
+            {sidebarOpen && <span className="font-headline text-2xl font-black tracking-tighter">CRACKLIX</span>}
           </Link>
 
           <nav className="space-y-1">
@@ -122,73 +110,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="mt-auto p-6 space-y-4">
-          {sidebarOpen && (
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
-              <div className="flex justify-between items-center text-[10px] text-zinc-500 uppercase font-black">
-                <span>{profile?.coins || 0} Coins</span>
-                <span className="text-primary">{profile?.xp || 0} XP</span>
-              </div>
-              <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(profile?.xp || 0) % 100}%` }}
-                  className="h-full bg-primary" 
-                />
-              </div>
-            </div>
-          )}
-
           <SidebarItem href="/profile" icon={Settings} label="Settings" active={pathname === '/profile'} sidebarOpen={sidebarOpen} />
-          
           <button 
             onClick={logout}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-600 hover:text-destructive w-full transition-all duration-200"
+            className="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-zinc-600 hover:text-destructive w-full transition-all duration-200"
           >
             <LogOut className="w-5 h-5" />
-            {sidebarOpen && <span className="font-semibold text-sm">Sign Out</span>}
+            {sidebarOpen && <span className="font-bold text-sm">Sign Out</span>}
           </button>
         </div>
       </motion.aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-[#050816]/80 backdrop-blur-xl z-20">
+        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl z-20">
           <div className="flex items-center gap-6">
-            <Button variant="ghost" size="icon" className="md:flex hidden rounded-xl hover:bg-white/5" onClick={toggleSidebar}>
+            <Button variant="ghost" size="icon" className="md:flex hidden rounded-xl" onClick={toggleSidebar}>
               <Menu className="w-5 h-5 text-zinc-400" />
             </Button>
-            
             <div className="flex md:hidden items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                <Zap className="text-white w-4 h-4 fill-current" />
-              </div>
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0"><Zap className="text-white w-4 h-4 fill-current" /></div>
               <span className="font-headline text-lg font-black tracking-tighter">CRACKLIX</span>
-            </div>
-
-            <div className="hidden lg:flex items-center bg-white/5 rounded-xl px-4 py-2 border border-white/5 w-[300px] focus-within:border-primary/40 transition-colors">
-              <Search className="w-4 h-4 text-zinc-500 mr-2" />
-              <input 
-                type="text" 
-                placeholder={t('search_placeholder')} 
-                className="bg-transparent border-none outline-none text-xs w-full placeholder:text-zinc-600 font-medium"
-              />
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <LanguageSwitcher />
-            
-            <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-white/5">
-              <Bell className="w-5 h-5 text-zinc-400" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
-            </Button>
-
-            <div className="flex items-center gap-3 pl-4 border-l border-white/5">
+            <div className="flex items-center gap-4 pl-6 border-l border-white/5">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold">{profile?.name || 'Aspirant'}</p>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase">{profile?.streak || 0} {t('streak')} 🔥</p>
+                <p className="text-xs font-bold text-white">{profile?.name || 'Aspirant'}</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{profile?.xp || 0} XP Pool</p>
               </div>
-              <Avatar className="w-9 h-9 border border-white/10">
+              <Avatar className="w-10 h-10 border-2 border-white/5">
                 <AvatarImage src={`https://picsum.photos/seed/${profile?.uid}/100`} />
                 <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
               </Avatar>
@@ -197,22 +150,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
-          <div className="max-w-[1200px] mx-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
+          <div className="max-w-[1400px] mx-auto">
+            {children}
           </div>
           <div className="h-24 md:hidden" />
         </main>
       </div>
     </div>
   );
+}
+
+function Loader2(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  )
 }

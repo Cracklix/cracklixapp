@@ -13,48 +13,38 @@
         "xp": { "type": "number" },
         "streak": { "type": "number" },
         "coins": { "type": "number" },
-        "referralCode": { "type": "string" },
+        "district": { "type": "string" },
         "targetExam": { "type": "string" },
-        "createdAt": { "type": "number" }
-      },
-      "required": ["uid", "name", "email", "role"]
-    },
-    "MockAttempt": {
-      "title": "Mock Attempt",
-      "description": "Record of a student's performance in a mock test.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "mockId": { "type": "string" },
-        "score": { "type": "number" },
-        "accuracy": { "type": "number" },
-        "timeTaken": { "type": "number" },
-        "answers": { "type": "object" },
+        "isPro": { "type": "boolean" },
         "createdAt": { "type": "number" }
       }
     },
-    "LeaderboardEntry": {
-      "title": "Leaderboard Entry",
-      "description": "Real-time rank record.",
+    "CommunityMessage": {
+      "title": "Community Message",
+      "description": "Messages within exam-specific chat channels.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "name": { "type": "string" },
-        "xp": { "type": "number" },
-        "accuracy": { "type": "number" },
-        "streak": { "type": "number" },
-        "district": { "type": "string" }
+        "channelId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "createdAt": { "type": "number" }
       }
     },
-    "Subscription": {
-      "title": "Subscription",
-      "description": "PASS premium access record.",
+    "MockTest": {
+      "title": "Mock Test",
+      "description": "Academic mock test configuration.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "plan": { "type": "string" },
-        "status": { "type": "string" },
-        "endDate": { "type": "number" }
+        "title": { "type": "string" },
+        "exam": { "type": "string" },
+        "duration": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "negativeMarking": { "type": "number" },
+        "isLive": { "type": "boolean" },
+        "published": { "type": "boolean" }
       }
     }
   },
@@ -64,27 +54,31 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "User profiles and settings."
-    },
-    "/attempts/{attemptId}": {
-      "schema": "MockAttempt",
-      "description": "History of mock test attempts."
-    },
-    "/leaderboards/{userId}": {
-      "schema": "LeaderboardEntry",
-      "description": "Global and district rankings."
-    },
-    "/subscriptions/{userId}": {
-      "schema": "Subscription",
-      "description": "User premium access status."
-    },
-    "/mocks/{mockId}": {
-      "schema": "object",
-      "description": "Master list of available mocks."
+      "description": "User profiles and performance data."
     },
     "/questions/{qId}": {
       "schema": "object",
-      "description": "Academic question bank."
+      "description": "Global question bank."
+    },
+    "/mocks/{mockId}": {
+      "schema": "MockTest",
+      "description": "Standard mock tests."
+    },
+    "/attempts/{attemptId}": {
+      "schema": "object",
+      "description": "Student exam attempts."
+    },
+    "/community_channels/{channelId}": {
+      "schema": "object",
+      "description": "Exam-wise chat channels."
+    },
+    "/community_messages/{msgId}": {
+      "schema": "CommunityMessage",
+      "description": "Social learning chat stream."
+    },
+    "/notes/{noteId}": {
+      "schema": "object",
+      "description": "Crowdsourced study material."
     }
   }
 }
