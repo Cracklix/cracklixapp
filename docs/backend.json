@@ -12,68 +12,41 @@
         "role": { "type": "string", "enum": ["student", "admin"] },
         "xp": { "type": "number" },
         "streak": { "type": "number" },
+        "level": { "type": "number" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "missionsCompleted": { "type": "number" },
+        "lastActive": { "type": "number" },
         "createdAt": { "type": "number" }
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "Exam": {
-      "title": "Exam",
-      "description": "Government or entrance exam details.",
+    "LeaderboardEntry": {
+      "title": "Leaderboard Entry",
+      "description": "Snapshots for rankings.",
       "type": "object",
       "properties": {
+        "userId": { "type": "string" },
         "name": { "type": "string" },
-        "category": { "type": "string" },
-        "totalMocks": { "type": "number" },
-        "activeStudents": { "type": "number" },
-        "language": { "type": "array", "items": { "type": "string" } },
-        "icon": { "type": "string" },
-        "premium": { "type": "boolean" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "Mock": {
-      "title": "Mock",
-      "description": "A practice mock test.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
         "exam": { "type": "string" },
-        "duration": { "type": "number" },
-        "totalQuestions": { "type": "number" },
-        "negativeMarking": { "type": "number" },
-        "language": { "type": "array", "items": { "type": "string" } },
-        "premium": { "type": "boolean" },
-        "published": { "type": "boolean" },
-        "aiGenerated": { "type": "boolean" }
+        "district": { "type": "string" },
+        "xp": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "streak": { "type": "number" },
+        "updatedAt": { "type": "number" }
       }
     },
-    "Question": {
-      "title": "Question",
-      "description": "A single quiz question.",
-      "type": "object",
-      "properties": {
-        "question": { "type": "string" },
-        "options": { "type": "array", "items": { "type": "string" } },
-        "correctAnswer": { "type": "string" },
-        "subject": { "type": "string" },
-        "topic": { "type": "string" },
-        "difficulty": { "type": "string" },
-        "marks": { "type": "number" },
-        "pyq": { "type": "boolean" },
-        "year": { "type": "number" },
-        "qualityScore": { "type": "number" },
-        "weightage": { "type": "number" }
-      }
-    },
-    "Attempt": {
-      "title": "Attempt",
-      "description": "A user's attempt at a mock test.",
+    "MockAnalytics": {
+      "title": "Mock Analytics",
+      "description": "Detailed breakdown of a mock test attempt.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
         "mockId": { "type": "string" },
-        "answers": { "type": "object" },
-        "score": { "type": "number" },
+        "correct": { "type": "number" },
+        "wrong": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "weakTopics": { "type": "array", "items": { "type": "string" } },
+        "readiness": { "type": "string", "enum": ["Low", "Medium", "High"] },
         "createdAt": { "type": "number" }
       }
     }
@@ -86,37 +59,17 @@
       "schema": "UserProfile",
       "description": "Student profiles and statistics."
     },
-    "/exams/{examId}": {
-      "schema": "Exam",
-      "description": "Available exam categories and metadata."
+    "/leaderboards/{entryId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Aggregated ranking data."
     },
-    "/mocks/{mockId}": {
-      "schema": "Mock",
-      "description": "Mock tests."
+    "/analytics/{analyticsId}": {
+      "schema": "MockAnalytics",
+      "description": "Historical performance data per attempt."
     },
-    "/aiGeneratedMocks/{mockId}": {
-      "schema": "Mock",
-      "description": "AI-generated mock tests."
-    },
-    "/mocks/{mockId}/questions/{questionId}": {
-      "schema": "Question",
-      "description": "Questions within a mock test."
-    },
-    "/aiGeneratedMocks/{mockId}/questions/{questionId}": {
-      "schema": "Question",
-      "description": "Questions within an AI mock test."
-    },
-    "/attempts/{attemptId}": {
-      "schema": "Attempt",
-      "description": "User test attempts and scores."
-    },
-    "/recommendations/{recId}": {
+    "/streaks/{userId}": {
       "schema": "object",
-      "description": "AI-driven study recommendations."
-    },
-    "/pyqs/{pyqId}": {
-      "schema": "Question",
-      "description": "Previous Year Questions repository."
+      "description": "User login and activity streaks."
     }
   }
 }

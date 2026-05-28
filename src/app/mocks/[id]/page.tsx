@@ -6,7 +6,8 @@ import { getMock, getQuestions } from "@/services/mock";
 import QuestionCard from "@/components/mock/question-card";
 import QuestionPalette from "@/components/mock/question-palette";
 import Timer from "@/components/mock/timer";
-import { addDoc, collection } from "firebase/firestore";
+import { generateAnalytics } from "@/services/analytics-engine";
+import { addDoc, collection, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 export default function MockPage({ params }: { params: Promise<{ id: string }> }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -62,6 +63,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
     if (submitting) return;
     setSubmitting(true);
     
+    // Calculate Score
     let score = 0;
     questions.forEach((question, index) => {
       if (answers[index] === question.correctAnswer) {
@@ -71,7 +73,14 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
       }
     });
 
+    // Generate Advanced Analytics
+    const analytics = generateAnalytics({
+      questions,
+      answers,
+    });
+
     try {
+      // 1. Save Attempt
       await addDoc(collection(db, "attempts"), {
         userId: user?.uid,
         mockId: mock.id,
@@ -80,12 +89,29 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         createdAt: Date.now(),
       });
 
+      // 2. Save Performance Analytics
+      await addDoc(collection(db, "analytics"), {
+        userId: user?.uid,
+        mockId: mock.id,
+        ...analytics,
+        createdAt: Date.now(),
+      });
+
+      // 3. Update User Profile (XP and potentially Level)
+      if (user?.uid) {
+        const userRef = doc(db, "users", user.uid);
+        updateDoc(userRef, {
+          xp: increment(50), // Standard XP for mock attempt
+          lastActive: Date.now(),
+        });
+      }
+
       toast({
         title: "Test Submitted",
-        description: `Your attempt has been recorded. Score: ${score}`,
+        description: `Score: ${score} | Accuracy: ${analytics.accuracy}%`,
       });
       
-      router.push("/dashboard");
+      router.push("/mocks/result");
     } catch (error: any) {
       toast({
         title: "Submission Error",
@@ -110,7 +136,6 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <div className="min-h-screen bg-background text-white p-4 md:p-8 flex flex-col">
-      {/* Header */}
       <div className="max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pb-6 border-b border-white/5">
         <div>
           <h1 className="text-3xl font-bold font-headline">{mock.title}</h1>
@@ -124,7 +149,6 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
       </div>
 
       <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-4 gap-8 flex-1">
-        {/* Main Exam Area */}
         <div className="lg:col-span-3 space-y-8 flex flex-col justify-between">
           {questions[current] && (
             <QuestionCard
@@ -162,7 +186,6 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
           </div>
         </div>
 
-        {/* Sidebar Palette */}
         <div className="space-y-6">
           <div className="bg-card/60 backdrop-blur-md p-6 rounded-[32px] border border-white/5 h-fit sticky top-8">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
