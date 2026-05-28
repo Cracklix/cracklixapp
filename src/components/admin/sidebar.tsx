@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
-  FileText, 
   Users, 
   Zap,
   Newspaper,
@@ -13,7 +13,6 @@ import {
   Trophy,
   ShieldCheck,
   MessageSquare,
-  ShieldAlert,
   Database,
   Cpu,
   CreditCard,
@@ -22,7 +21,8 @@ import {
   FilePlus2,
   ListFilter,
   Terminal,
-  LifeBuoy
+  LifeBuoy,
+  Activity
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -39,34 +39,25 @@ export default function AdminSidebar() {
       ]
     },
     {
-      label: "Ingestion Hub",
-      items: [
-        { name: "PDF Ingestion", href: "/admin/pdf-ingestion", icon: FilePlus2 },
-        { name: "Power Ingest", href: "/admin/questions", icon: Cpu },
-      ]
-    },
-    {
       label: "Asset Factory",
       items: [
-        { name: "Atomic Bank", href: "/admin/question-bank", icon: Database },
-        { name: "Moderation Queue", href: "/admin/question-bank?view=draft", icon: ListFilter },
+        { name: "PDF Ingestion", href: "/admin/pdf-ingestion", icon: FilePlus2 },
         { name: "Simulation Factory", href: "/admin/mocks", icon: Rocket },
-        { name: "Direct Injector", href: "/admin/direct-mock-builder", icon: Zap },
+        { name: "Atomic Bank", href: "/admin/question-bank", icon: Database },
       ]
     },
     {
       label: "Specialized",
       items: [
-        { name: "Community Audit", href: "/admin/community", icon: MessageSquare },
         { name: "PYQ Archive", href: "/admin/pyqs", icon: History },
-        { name: "Daily Pulse", href: "/admin/current-affairs", icon: Newspaper },
         { name: "State Ranks", href: "/admin/leaderboards", icon: Trophy },
         { name: "AI Studio", href: "/admin/ai-assistant", icon: Zap },
       ]
     },
     {
-      label: "System",
+      label: "Monitoring",
       items: [
+        { name: "System Health", href: "/admin/system-health", icon: Activity },
         { name: "Gateway Config", href: "/admin/payment-settings", icon: Settings },
       ]
     }
@@ -80,8 +71,7 @@ export default function AdminSidebar() {
         </div>
         <div className="flex flex-col">
           <span className="font-headline text-lg font-bold text-white leading-none">CRACKLIX</span>
-          <span className="text-[9px] text-primary font-black uppercase tracking-widest mt-1 tracking-tighter">Command Center</span>
-          <span className="text-[6px] text-zinc-700 font-black uppercase tracking-[0.4em] mt-0.5 group-hover:text-primary/50 transition-colors">Arsh Grewal</span>
+          <span className="text-[9px] text-primary font-black uppercase mt-1 tracking-widest">Admin Control</span>
         </div>
       </div>
 
@@ -92,14 +82,14 @@ export default function AdminSidebar() {
             <nav className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || (pathname + pathname.split('?')[1] === item.href);
+                const isActive = pathname === item.href;
 
                 return (
                   <Link key={item.href} href={item.href}>
                     <div className={cn(
                       "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group mx-2",
                       isActive 
-                        ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                        ? "bg-primary text-white shadow-lg" 
                         : "text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300"
                     )}>
                       <Icon className={cn("w-4 h-4", isActive ? "text-white" : "group-hover:text-primary")} />
@@ -114,17 +104,10 @@ export default function AdminSidebar() {
       </div>
 
       <div className="mt-auto px-8 pt-8 space-y-4">
-        <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 flex flex-col gap-2">
-           <div className="flex items-center gap-2">
-              <Terminal size={12} className="text-primary" />
-              <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Founder Session</span>
-           </div>
-           <p className="text-[10px] font-bold text-zinc-400">Arsh Grewal</p>
-        </div>
         <Link href="/dashboard">
           <div className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-            <Zap className="w-4 h-4" />
-            <span>Exit Arena</span>
+            <Rocket className="w-4 h-4" />
+            <span>Exit Admin</span>
           </div>
         </Link>
       </div>
