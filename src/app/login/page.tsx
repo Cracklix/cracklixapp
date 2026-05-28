@@ -4,14 +4,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Zap, Mail, Lock, User, Github } from 'lucide-react';
+import { Zap, Mail, Lock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -46,7 +47,19 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const res = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Ensure Firestore profile is created
+      await setDoc(doc(db, "users", res.user.uid), {
+        uid: res.user.uid,
+        name: name || email.split('@')[0],
+        email,
+        role: "student",
+        xp: 0,
+        streak: 0,
+        createdAt: Date.now(),
+      });
+
       router.push('/dashboard');
     } catch (error: any) {
       toast({
@@ -62,7 +75,19 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const res = await signInWithPopup(auth, provider);
+      
+      // Initialize profile if it doesn't exist
+      await setDoc(doc(db, "users", res.user.uid), {
+        uid: res.user.uid,
+        name: res.user.displayName || 'Student',
+        email: res.user.email || '',
+        role: "student",
+        xp: 0,
+        streak: 0,
+        createdAt: Date.now(),
+      }, { merge: true });
+
       router.push('/dashboard');
     } catch (error: any) {
       toast({

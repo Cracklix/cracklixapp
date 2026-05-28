@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { useAuth, AuthProvider } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Toaster } from '@/components/ui/toaster';
 
 const SidebarItem = ({ href, icon: Icon, label, active }: { href: string, icon: any, label: string, active: boolean }) => (
   <Link href={href}>
@@ -40,7 +39,7 @@ const SidebarItem = ({ href, icon: Icon, label, active }: { href: string, icon: 
   </Link>
 );
 
-const AppLayoutInner = ({ children }: { children: React.ReactNode }) => {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -115,7 +114,7 @@ const AppLayoutInner = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
 
-          <SidebarItem href="/settings" icon={Settings} label="Settings" active={pathname === '/settings'} />
+          <SidebarItem href="/profile" icon={Settings} label="Profile" active={pathname === '/profile'} />
           
           <button 
             onClick={logout}
@@ -176,15 +175,6 @@ const AppLayoutInner = ({ children }: { children: React.ReactNode }) => {
           </AnimatePresence>
         </main>
       </div>
-      <Toaster />
     </div>
-  );
-};
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <AppLayoutInner>{children}</AppLayoutInner>
-    </AuthProvider>
   );
 }

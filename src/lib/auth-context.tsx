@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 export interface UserProfile {
   uid: string;
@@ -37,32 +37,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubProfile: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
+      // Clear any existing profile listener if the user changes or logs out
+      if (unsubProfile) {
+        unsubProfile();
+        unsubProfile = null;
+      }
+
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
-        // Use onSnapshot for real-time profile updates
-        const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+        unsubProfile = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as UserProfile);
-            setLoading(false);
-          } else {
-            // This case handles external signup where doc might not exist yet
-            // but usually handled by the signup page logic itself.
-            setLoading(false);
           }
+          setLoading(false);
+        }, (error) => {
+          console.error("Profile listener error:", error);
+          setLoading(false);
         });
-
-        return () => unsubProfile();
       } else {
         setProfile(null);
         setLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (unsubProfile) unsubProfile();
+    };
   }, []);
 
   const logout = async () => {
