@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -17,20 +16,58 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+export interface PlanAccess {
+  mocks: {
+    full: boolean;
+    sectional: boolean;
+    chapter: boolean;
+    live: boolean;
+    premium: boolean;
+    ai: boolean;
+  };
+  pyqs: {
+    basic: boolean;
+    premium: boolean;
+    solved: boolean;
+    ai_explanations: boolean;
+  };
+  community: {
+    general: boolean;
+    premium: boolean;
+    exam_channels: boolean;
+    voice: boolean;
+    media: boolean;
+  };
+  content: {
+    current_affairs: boolean;
+    pdfs: boolean;
+    typing: boolean;
+    ai_doubt_solver: boolean;
+  };
+  features: {
+    leaderboard: boolean;
+    rank_prediction: boolean;
+    analytics: boolean;
+    reattempt: boolean;
+  };
+}
+
 export interface Plan {
   id: string;
   name: string;
   price: number;
   duration: number;
-  features: string[];
+  features: string[]; // Display labels
   exams: string[];
   active: boolean;
-  tier: 'silver' | 'gold' | 'elite';
+  tier: 'silver' | 'gold' | 'elite' | 'vip' | 'custom';
+  access: PlanAccess;
+  limits: {
+    mockAttempts: number;
+    aiUsage: number;
+    downloads: number;
+  };
 }
-
-/**
- * PRODUCTION SERVICE: Subscriptions & Plans
- */
 
 export async function getActivePlans(): Promise<Plan[]> {
   const q = query(collection(db, "plans"), where("active", "==", true), orderBy("price", "asc"));
@@ -63,33 +100,25 @@ export function subscribeUserPass(userId: string, callback: (sub: any) => void) 
 
 /**
  * FEATURE GATING ENGINE
- * Checks if a user has access to a specific capability.
+ * Deep-checks if user has access to a specific sub-capability.
  */
-export async function hasFeatureAccess(userId: string, feature: string): Promise<boolean> {
-  // 1. Admins have all access
+export async function hasCapability(userId: string, section: keyof PlanAccess, feature: string): Promise<boolean> {
   const userSnap = await getDoc(doc(db, "users", userId));
-  if (userSnap.data()?.role === 'admin' || userSnap.data()?.role === 'superadmin') return true;
+  const userData = userSnap.data();
+  if (userData?.role === 'admin' || userData?.role === 'superadmin') return true;
 
-  // 2. Check active subscription
-  const q = query(
-    collection(db, "subscriptions"), 
-    where("userId", "==", userId),
-    where("status", "==", "active"),
-    limit(1)
-  );
+  const subSnap = await getDoc(doc(db, "premiumAccess", userId));
+  if (!subSnap.exists()) return false;
   
-  const snap = await getDocs(q);
-  if (snap.empty) return false;
+  const sub = subSnap.data();
+  if (sub.expiresAt < Date.now() || sub.status !== 'active') return false;
   
-  const sub = snap.docs[0].data();
-  if (sub.expiresAt < Date.now()) return false;
-  
-  return sub.features?.includes(feature) || sub.tier === 'elite';
+  // Elite tier has universal override
+  if (sub.tier === 'elite' || sub.tier === 'vip') return true;
+
+  return sub.access?.[section]?.[feature] || false;
 }
 
-/**
- * ADMIN: Grant access manually to a user.
- */
 export async function grantAccessManual(userId: string, plan: Plan) {
   const startDate = Date.now();
   const expiresAt = startDate + (plan.duration * 24 * 60 * 60 * 1000);
@@ -102,7 +131,8 @@ export async function grantAccessManual(userId: string, plan: Plan) {
     startDate,
     expiresAt,
     createdAt: startDate,
-    features: plan.features,
+    access: plan.access,
+    limits: plan.limits,
     tier: plan.tier,
     source: "admin_grant"
   };
@@ -115,8 +145,17 @@ export async function grantAccessManual(userId: string, plan: Plan) {
     expiresAt,
     updatedAt: startDate,
     subId: subRef.id,
-    tier: plan.tier
+    tier: plan.tier,
+    access: plan.access,
+    limits: plan.limits
   }, { merge: true });
 
   return subRef.id;
+}
+
+export async function revokeAccess(userId: string) {
+  await updateDoc(doc(db, "premiumAccess", userId), {
+    status: "revoked",
+    updatedAt: Date.now()
+  });
 }

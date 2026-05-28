@@ -1,9 +1,9 @@
-
 "use client";
 
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useState, useEffect } from "react";
+import { PlanAccess } from "@/services/subscriptions";
 
 export function usePremium(userId: string | undefined) {
   const [isPremium, setIsPremium] = useState(false);
@@ -33,12 +33,14 @@ export function usePremium(userId: string | undefined) {
     return () => unsub();
   }, [userId]);
 
-  const hasFeature = (featureName: string) => {
-    if (!isPremium) return false;
-    // Elite tier always has everything
-    if (premiumData?.tier === 'elite') return true;
-    return premiumData?.features?.includes(featureName);
+  const hasAccess = (section: keyof PlanAccess, feature: string) => {
+    if (!premiumData || premiumData.status !== 'active' || premiumData.expiresAt < Date.now()) return false;
+    
+    // Admin override is handled at service level, but for UI we check tier
+    if (premiumData.tier === 'elite' || premiumData.tier === 'vip') return true;
+    
+    return premiumData.access?.[section]?.[feature] || false;
   };
 
-  return { isPremium, premiumData, loading, hasFeature };
+  return { isPremium, premiumData, loading, hasAccess };
 }
