@@ -16,15 +16,21 @@ import Timer from "@/components/mock/timer";
 import { generateAnalytics } from "@/services/analytics-engine";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Info, CheckCircle2, AlertCircle, Database, Timer as TimerIcon, Lock } from "lucide-react";
+import { Loader2, ArrowLeft, Info, CheckCircle2, AlertCircle, Database, Timer as TimerIcon, Lock, Zap, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+type BootStep = {
+  id: string;
+  label: string;
+  status: 'pending' | 'loading' | 'success' | 'error';
+};
+
 /**
- * HIGH-INTEGRITY CBT PLAYER v12
- * Production-grade exam engine with strict access gating.
+ * HIGH-INTEGRITY CBT PLAYER v12.5
+ * Features a pre-load validation gate to prevent runtime crashes.
  */
 export default function TestbookStyleCBT() {
   const { user, profile } = useAuth();
@@ -33,7 +39,7 @@ export default function TestbookStyleCBT() {
   const mockId = params?.id as string;
   const { toast } = useToast();
   
-  const [phase, setPhase] = useState<'loading' | 'instructions' | 'engine' | 'result' | 'error' | 'locked'>('loading');
+  const [phase, setPhase] = useState<'booting' | 'instructions' | 'engine' | 'result' | 'error' | 'locked' | 'empty'>('booting');
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [mock, setMock] = useState<MockTest | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -42,16 +48,50 @@ export default function TestbookStyleCBT() {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [activeLang, setActiveLang] = useState<'en' | 'pa'>('en');
 
+  // Checklist for bootloader
+  const [bootSteps, setBootSteps] = useState<BootStep[]>([
+    { id: 'auth', label: 'Verifying Identity', status: 'loading' },
+    { id: 'mock', label: 'Accessing Mock Registry', status: 'pending' },
+    { id: 'questions', label: 'Syncing Question Artifacts', status: 'pending' },
+    { id: 'validate', label: 'Validating Neural Payload', status: 'pending' },
+  ]);
+
+  const updateStep = (id: string, status: BootStep['status']) => {
+    setBootSteps(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+  };
+
+  const validateAndRepair = (qs: any[]): Question[] => {
+    console.log("[CBT] Running Payload Validation...");
+    return qs.map(q => {
+      // Ensure EN structure exists
+      const en = q.en || { question: q.question_en || "Question data missing", options: q.options_en || ["A", "B", "C", "D"], explanation: q.explanation_en || "" };
+      
+      // Repair options if < 4
+      const options = en.options || [];
+      while (options.length < 4) options.push(`Option ${options.length + 1} Missing`);
+      
+      return {
+        ...q,
+        en: { ...en, options: options.slice(0, 4) },
+        correctAnswer: q.correctAnswer || options[0], // Fallback to first option if missing
+        subject: q.subject || "General",
+        difficulty: q.difficulty || "medium"
+      } as Question;
+    });
+  };
+
   useEffect(() => {
     if (!user || !mockId) return;
 
-    async function initialize() {
+    async function initializeMockSession(retries = 3) {
       try {
+        console.log(`[CBT] Initializing session for mock: ${mockId}`);
+        updateStep('auth', 'success');
+        updateStep('mock', 'loading');
+
         const mockData = await getMockDetails(mockId);
         if (!mockData) {
-          setErrorMsg("Simulation artifact not found in production registry.");
-          setPhase('error');
-          return;
+          throw new Error("Simulation artifact not found in production registry.");
         }
 
         // Tier Gating Enforcement
@@ -62,28 +102,46 @@ export default function TestbookStyleCBT() {
           return;
         }
 
+        setMock(mockData);
+        updateStep('mock', 'success');
+        updateStep('questions', 'loading');
+
         const qData = await getMockQuestions(mockId);
         if (!qData || qData.length === 0) {
-          setErrorMsg("No linked questions found for this simulation. Contact administrator.");
-          setPhase('error');
+          setPhase('empty');
           return;
         }
+
+        updateStep('questions', 'success');
+        updateStep('validate', 'loading');
+
+        // Neural Payload Validation & Repair
+        const validatedQuestions = validateAndRepair(qData);
+        setQuestions(validatedQuestions);
+        
+        updateStep('validate', 'success');
 
         // Session creation for CBT flow
         const id = await startAttempt(user!.uid, mockData);
         setAttemptId(id);
-        setMock(mockData);
-        setQuestions(qData);
-        setPhase('instructions');
+        
+        console.log("[CBT] Payload Validated. Entering Instructions Gate.");
+        setTimeout(() => setPhase('instructions'), 800);
+
       } catch (err: any) {
-        console.error("CBT Init Fatal:", err);
-        setErrorMsg("Failed to establish secure CBT session state.");
-        setPhase('error');
+        if (retries > 0) {
+          console.warn(`[CBT] Signal failure. Retrying... (${retries} left)`);
+          setTimeout(() => initializeMockSession(retries - 1), 1500);
+        } else {
+          console.error("CBT Init Fatal:", err);
+          setErrorMsg(err.message || "Failed to establish secure CBT session state.");
+          setPhase('error');
+        }
       }
     }
 
-    initialize();
-  }, [mockId, user?.uid, router, toast]);
+    initializeMockSession();
+  }, [mockId, user?.uid]);
 
   const handleSelect = (option: string) => {
     if (!attemptId || !questions[current]) return;
@@ -118,7 +176,7 @@ export default function TestbookStyleCBT() {
   const submitTest = useCallback(async () => {
     if (!user || !attemptId || !mock) return;
     try {
-      setPhase('loading');
+      setPhase('booting');
       const analytics = generateAnalytics({ questions, answers, mock });
       await finalizeAttempt(user.uid, attemptId, analytics);
       router.push("/mocks/result");
@@ -128,10 +186,55 @@ export default function TestbookStyleCBT() {
     }
   }, [user, questions, answers, mock, attemptId, router, toast]);
 
-  if (phase === 'loading') return (
-    <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
-      <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Establishing Secure Signal...</p>
+  if (phase === 'booting') return (
+    <div className="h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
+       <div className="max-w-md w-full space-y-12">
+          <div className="relative inline-block">
+             <div className="w-24 h-24 border-4 border-primary/10 border-t-primary rounded-full animate-spin" />
+             <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary w-8 h-8 fill-current animate-pulse" />
+          </div>
+          
+          <div className="space-y-2">
+             <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Initializing CBT Session</h2>
+             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em]">Cracklix High-Integrity Engine v12.5</p>
+          </div>
+
+          <div className="bg-zinc-900/50 border border-white/5 rounded-3xl p-6 text-left space-y-4">
+             {bootSteps.map(step => (
+               <div key={step.id} className="flex items-center justify-between">
+                  <span className={cn(
+                    "text-xs font-bold uppercase tracking-wider",
+                    step.status === 'loading' ? "text-primary animate-pulse" : 
+                    step.status === 'success' ? "text-emerald-500" : "text-zinc-600"
+                  )}>
+                    {step.label}
+                  </span>
+                  {step.status === 'loading' && <Loader2 size={14} className="animate-spin text-primary" />}
+                  {step.status === 'success' && <CheckCircle2 size={14} className="text-emerald-500" />}
+                  {step.status === 'pending' && <div className="w-3.5 h-3.5 rounded-full border-2 border-zinc-800" />}
+               </div>
+             ))}
+          </div>
+       </div>
+    </div>
+  );
+
+  if (phase === 'empty') return (
+    <div className="h-screen bg-[#050816] text-white flex flex-col items-center justify-center p-6 text-center">
+       <div className="max-w-md space-y-10">
+          <div className="w-24 h-24 rounded-[32px] bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto shadow-2xl">
+             <AlertCircle className="text-orange-500 w-10 h-10" />
+          </div>
+          <div className="space-y-4">
+             <Badge className="bg-orange-500/20 text-orange-500 border-none px-4 py-1.5 rounded-full font-black text-xs uppercase">No Questions Found</Badge>
+             <h2 className="text-4xl font-black uppercase tracking-tighter">Artifact Missing</h2>
+             <p className="text-zinc-500 font-medium leading-relaxed">No questions have been linked to this simulation. Access the Admin Editor to inject artifacts.</p>
+          </div>
+          <div className="flex flex-col gap-4">
+             <Button onClick={() => router.push(`/admin/mocks/${mockId}`)} className="h-16 w-full rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg blue-glow shadow-xl">Open Admin Editor</Button>
+             <Button variant="ghost" onClick={() => router.push('/exams')} className="text-zinc-600 uppercase font-black text-[10px] tracking-widest">Back to Arena</Button>
+          </div>
+       </div>
     </div>
   );
 
@@ -194,8 +297,9 @@ export default function TestbookStyleCBT() {
             ))}
          </div>
          <div className="bg-zinc-900/50 p-8 rounded-[40px] border border-white/5 text-left space-y-4">
-            <p className="text-sm font-bold flex items-center gap-3"><CheckCircle2 size={16} className="text-emerald-500" /> Auto-save is active for every response.</p>
-            <p className="text-sm font-bold flex items-center gap-3"><CheckCircle2 size={16} className="text-emerald-500" /> Switching tabs will trigger a security signal.</p>
+            <p className="text-sm font-bold flex items-center gap-3 text-zinc-300"><CheckCircle2 size={16} className="text-emerald-500" /> Auto-save is active for every response.</p>
+            <p className="text-sm font-bold flex items-center gap-3 text-zinc-300"><CheckCircle2 size={16} className="text-emerald-500" /> Switching tabs will trigger a security signal.</p>
+            <p className="text-sm font-bold flex items-center gap-3 text-zinc-300"><CheckCircle2 size={16} className="text-emerald-500" /> Total 4 choices provided per question.</p>
          </div>
          <Button onClick={() => setPhase('engine')} className="w-full h-20 rounded-3xl bg-primary hover:bg-primary/90 text-2xl font-black shadow-2xl blue-glow">START SIMULATION</Button>
       </div>

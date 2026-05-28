@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -79,10 +78,14 @@ export async function deleteMock(mockId: string) {
  */
 
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
+  // Ensure we fetch from the subcollection within the mock document
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const snap = await getDocs(colRef);
   
-  if (snap.empty) return [];
+  if (snap.empty) {
+    console.warn(`[MockService] Subcollection 'questions' is empty for mock ${mockId}`);
+    return [];
+  }
 
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -199,4 +202,3 @@ export async function checkMockAccess(userId: string, mock: MockTest): Promise<{
 
   return { allowed: false, reason: "Insufficient Access Tier." };
 }
-
