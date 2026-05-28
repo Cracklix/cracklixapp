@@ -47,6 +47,7 @@ export type QuestionStatus = 'NOT_VISITED' | 'NOT_ANSWERED' | 'ANSWERED' | 'MARK
 
 export interface Question {
   id: string;
+  mockId?: string; // Linked to a specific mock if not in global bank
   question_en: string;
   question_pa?: string;
   question_hi?: string;
@@ -56,8 +57,10 @@ export interface Question {
   correctAnswer: string;
   subject: Subject;
   topic?: string;
+  chapter?: string;
   difficulty: 'easy' | 'medium' | 'hard';
   marks: number;
+  negativeMarks?: number;
   pyq: boolean;
   year?: number;
   explanation_en?: string;
@@ -66,13 +69,11 @@ export interface Question {
   qualityScore?: number;
   status: 'draft' | 'published' | 'rejected';
   usageCount?: number;
-  usedInMocks?: string[];
-  lastUsedAt?: number;
-  lastMockId?: string;
+  order?: number;
   isMath?: boolean;
-  source?: string;
-  ocrConfidence?: number;
+  imageUrl?: string;
   createdAt?: number;
+  updatedAt?: number;
 }
 
 export type MockStatus = 'draft' | 'published' | 'scheduled' | 'live' | 'expired' | 'archived';
@@ -85,22 +86,17 @@ export interface MockTest {
   type: 'full' | 'sectional' | 'chapter';
   duration: number;
   totalQuestions: number;
+  totalMarks: number;
   negativeMarking: number;
-  premium: boolean; 
   accessType: MockAccessType;
   status: MockStatus;
-  questionIds: string[];
+  questionIds: string[]; // Still used for order reference
   createdAt: number;
+  updatedAt: number;
   publishedAt?: number;
-  scheduledAt?: number;
-  expiresAt?: number;
   liveAt?: number;
-  updatedAt?: number;
-  createdBy?: string;
-  marksPerQuestion?: number;
-  instructions?: string;
   difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
-  maxAttempts?: number;
+  instructions?: string;
 }
 
 export interface ExamAttempt {
