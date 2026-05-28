@@ -244,7 +244,7 @@ export default function ProfessionalCBTEngine() {
                onClick={togglePause} 
                className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10"
              >
-                {phase === 'paused' ? <Play size={14} /> : <Pause size={14} />}
+                {phase === 'paused' ? <Pause size={14} /> : <Pause size={14} />}
              </Button>
 
              <Button 
