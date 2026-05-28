@@ -2,15 +2,18 @@
 'use client';
 
 import { UserProfile } from '@/lib/auth-context';
+import { User } from 'firebase/auth';
 
 /**
- * Checks if a user profile has administrative privileges.
- * @param profile The user profile to check.
+ * Checks if a user has administrative privileges.
+ * Prioritizes the hardcoded developer email and then checks Firestore roles.
  */
-export function checkIsAdmin(profile: UserProfile | null): boolean {
-  if (!profile) return false;
+export function checkIsAdmin(user: User | null, profile: UserProfile | null): boolean {
+  // 1. Check Auth User directly (Most secure for hardcoded access)
+  if (user?.email === 'arshdeepgrewal1122@gmail.com') return true;
   
-  // Super Admin / Developer Access for specified identity
+  // 2. Fallback to Firestore profile role
+  if (!profile) return false;
   if (profile.email === 'arshdeepgrewal1122@gmail.com') return true;
   
   return profile.role === 'admin' || (profile.role as any) === 'superadmin';

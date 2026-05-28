@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/language-switcher';
+import { checkIsAdmin } from '@/hooks/useAdmin';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,7 +91,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.email === 'arshdeepgrewal1122@gmail.com';
+  const isAdmin = checkIsAdmin(user, profile);
 
   return (
     <div className="flex h-screen bg-black overflow-hidden font-body">
@@ -111,13 +112,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <nav className="space-y-1">
             {isAdmin && (
                <Link href="/admin">
-                 <div className={cn(
-                   "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-6",
+                 <motion.div 
+                   whileHover={{ scale: 1.02 }}
+                   whileTap={{ scale: 0.98 }}
+                   className={cn(
+                   "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-6 shadow-[0_0_15px_-5px_rgba(16,185,129,0.3)]",
                    !sidebarOpen && "justify-center"
                  )}>
                    <ShieldAlert className="w-5 h-5" />
-                   {sidebarOpen && <span className="font-bold text-sm">Admin Panel</span>}
-                 </div>
+                   {sidebarOpen && <span className="font-bold text-sm">Admin Command</span>}
+                 </motion.div>
                </Link>
             )}
 
@@ -168,15 +172,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="w-10 h-10 border-2 border-white/5 cursor-pointer hover:border-primary/50 transition-colors">
-                    <AvatarImage src={`https://picsum.photos/seed/${profile?.uid}/100`} />
-                    <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={`https://picsum.photos/seed/${profile?.uid || user?.uid}/100`} />
+                    <AvatarFallback>{profile?.name?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-zinc-950 border-white/10 text-white rounded-2xl shadow-2xl p-2" align="end">
                   <DropdownMenuLabel className="px-4 py-3">
-                    <p className="text-sm font-bold truncate">{profile?.name}</p>
+                    <p className="text-sm font-bold truncate">{profile?.name || 'Aspirant'}</p>
                     <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
                   </DropdownMenuLabel>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator className="bg-white/5" />
+                      <DropdownMenuItem onClick={() => router.push('/admin')} className="rounded-xl cursor-pointer py-3 text-emerald-500 focus:bg-emerald-500/10 focus:text-emerald-500">
+                        <ShieldAlert className="mr-2 h-4 w-4" />
+                        <span className="font-bold">Admin Panel</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator className="bg-white/5" />
                   <DropdownMenuItem onClick={() => router.push('/profile')} className="rounded-xl cursor-pointer py-3 focus:bg-white/5">
                     <UserIcon className="mr-2 h-4 w-4 text-zinc-500" />
