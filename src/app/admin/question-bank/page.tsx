@@ -1,34 +1,41 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
 import { 
   Database, 
   Search, 
-  Filter, 
   MoreVertical, 
   ArrowUpRight, 
-  CheckCircle2, 
   Languages, 
   Zap,
   BarChart3,
   BookOpen,
-  Loader2
+  Loader2,
+  Trash2,
+  Sparkles,
+  RefreshCw,
+  Copy
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SUBJECTS, Subject } from '@/types';
+import { SUBJECTS } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { generateVariants } from '@/ai/flows/ai-similar-question-flow';
 
 export default function QuestionBankPage() {
+  const { toast } = useToast();
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState<string>("All");
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadQuestions();
@@ -50,6 +57,41 @@ export default function QuestionBankPage() {
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm("Are you sure?")) return;
+    await deleteDoc(doc(db, "questions", id));
+    setQuestions(prev => prev.filter(q => q.id !== id));
+    toast({ title: "Asset Deleted", variant: "destructive" });
+  }
+
+  async function handleGenerateVariants(refQ: any) {
+    setGeneratingId(refQ.id);
+    try {
+      const result = await generateVariants({
+        referenceQuestion: refQ,
+        count: 2
+      });
+
+      const batch = result.variants.map(v => 
+        addDoc(collection(db, "questions"), {
+          ...v,
+          status: "published",
+          usageCount: 0,
+          createdAt: Date.now(),
+          aiGenerated: true,
+          source: `VARIANT_OF_${refQ.id}`
+        })
+      );
+      await Promise.all(batch);
+      toast({ title: "Expansion Successful", description: "Generated 2 concepts similar to selected asset." });
+      loadQuestions();
+    } catch (e: any) {
+      toast({ title: "Generation Error", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingId(null);
+    }
+  }
+
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen">
@@ -64,7 +106,7 @@ export default function QuestionBankPage() {
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter leading-none">Atomic Bank</h1>
                  </div>
-                 <p className="text-zinc-500 font-medium">The central bilingual repository for the CRACKLIX engine.</p>
+                 <p className="text-zinc-500 font-medium">The central asset repository for the CRACKLIX engine.</p>
               </div>
               <div className="flex gap-4 w-full md:w-auto">
                  <div className="relative flex-1 md:w-80">
@@ -76,21 +118,24 @@ export default function QuestionBankPage() {
                        <SelectValue placeholder="Filter Subject" />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-950 border-white/10 text-white max-h-[400px]">
-                       <SelectItem value="All">All 15 Subjects</SelectItem>
+                       <SelectItem value="All">All Subjects</SelectItem>
                        {SUBJECTS.map(s => (
                          <SelectItem key={s} value={s}>{s}</SelectItem>
                        ))}
                     </SelectContent>
                  </Select>
+                 <Button variant="outline" className="h-14 w-14 rounded-2xl border-white/5 bg-zinc-900" onClick={loadQuestions}>
+                    <RefreshCw className={loading ? "animate-spin" : ""} />
+                 </Button>
               </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                {[
-                 { label: "Atomic Items", val: "12,450", icon: Zap, color: "text-primary" },
-                 { label: "Bilingual Score", val: "100%", icon: Languages, color: "text-emerald-500" },
-                 { label: "Subjects Indexed", val: "15/15", icon: BookOpen, color: "text-accent" },
-                 { label: "Avg. Quality", val: "94.2%", icon: BarChart3, color: "text-purple-500" },
+                 { label: "Atomic Items", val: questions.length + "+", icon: Zap, color: "text-primary" },
+                 { label: "Bilingual Coverage", val: "100%", icon: Languages, color: "text-emerald-500" },
+                 { label: "AI Assisted", val: "42%", icon: Sparkles, color: "text-accent" },
+                 { label: "Avg. Quality", val: "94%", icon: BarChart3, color: "text-purple-500" },
                ].map(stat => (
                  <Card key={stat.label} className="rounded-[32px] bg-zinc-900/50 border-white/5 p-8 group hover:bg-zinc-900 transition-all">
                     <div className="flex justify-between items-start mb-6">
@@ -108,10 +153,10 @@ export default function QuestionBankPage() {
                   <table className="w-full text-left border-collapse">
                      <thead className="bg-zinc-900/50 text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">
                         <tr>
-                           <th className="px-10 py-8 border-b border-white/5">ID / Context</th>
-                           <th className="px-10 py-8 border-b border-white/5">Question Body (Bilingual)</th>
-                           <th className="px-10 py-8 border-b border-white/5">Meta Strategy</th>
-                           <th className="px-10 py-8 border-b border-white/5">Audit Status</th>
+                           <th className="px-10 py-8 border-b border-white/5">Context</th>
+                           <th className="px-10 py-8 border-b border-white/5">Question Body</th>
+                           <th className="px-10 py-8 border-b border-white/5">Metadata</th>
+                           <th className="px-10 py-8 border-b border-white/5">Quality</th>
                            <th className="px-10 py-8 border-b border-white/5 text-right">Actions</th>
                         </tr>
                      </thead>
@@ -126,38 +171,47 @@ export default function QuestionBankPage() {
                         ) : questions.length > 0 ? questions.map(q => (
                           <tr key={q.id} className="hover:bg-white/[0.02] transition-colors group">
                              <td className="px-10 py-8 align-top">
-                                <p className="text-xs font-mono text-zinc-600 mb-2">#{q.id.substring(0, 8)}</p>
-                                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase px-3 py-1">{q.subject}</Badge>
+                                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase px-3 py-1 mb-2 block w-fit">{q.subject}</Badge>
+                                {q.aiGenerated && <Badge className="bg-accent/10 text-accent border-none text-[8px] font-black uppercase px-2 py-0.5">AI Gen</Badge>}
                              </td>
                              <td className="px-10 py-8 max-w-xl align-top">
                                 <p className="text-sm font-bold text-white line-clamp-2 leading-relaxed">{q.question_en}</p>
                                 <p className="text-xs text-zinc-500 line-clamp-1 mt-2 italic font-medium">{q.question_pa}</p>
                              </td>
                              <td className="px-10 py-8 align-top">
-                                <div className="flex gap-2 mb-3">
+                                <div className="flex flex-wrap gap-2 mb-3">
                                    <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5">{q.difficulty}</Badge>
                                    <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5">{q.usageCount || 0} Uses</Badge>
                                 </div>
-                                <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">Added: {new Date(q.createdAt).toLocaleDateString()}</p>
+                                <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">#{q.id.substring(0, 8)}</p>
                              </td>
                              <td className="px-10 py-8 align-top">
-                                <div className="flex items-center gap-2">
-                                   <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                                   <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">INDEXED</span>
+                                <div className="flex items-center gap-3">
+                                   <div className={`w-2 h-2 rounded-full ${q.qualityScore > 80 ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
+                                   <span className="text-[10px] font-black uppercase tracking-widest">{q.qualityScore || 90}% Score</span>
                                 </div>
                              </td>
                              <td className="px-10 py-8 text-right align-top">
-                                <Button variant="ghost" size="icon" className="rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-white/5">
-                                   <MoreVertical className="w-5 h-5 text-zinc-500" />
-                                </Button>
+                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                   <Button 
+                                     variant="ghost" 
+                                     size="icon" 
+                                     className="rounded-xl hover:bg-primary/10 text-primary"
+                                     disabled={generatingId === q.id}
+                                     onClick={() => handleGenerateVariants(q)}
+                                   >
+                                      {generatingId === q.id ? <Loader2 className="animate-spin w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                                   </Button>
+                                   <Button variant="ghost" size="icon" className="rounded-xl hover:bg-destructive/10 text-destructive" onClick={() => handleDelete(q.id)}>
+                                      <Trash2 className="w-4 h-4" />
+                                   </Button>
+                                </div>
                              </td>
                           </tr>
                         )) : (
-                          <tr><td colSpan={5} className="p-40 text-center">
-                             <div className="space-y-4 opacity-30">
-                                <Database className="w-16 h-16 mx-auto mb-4" />
-                                <p className="text-zinc-600 font-black uppercase tracking-widest">No atomic assets for this subject.</p>
-                             </div>
+                          <tr><td colSpan={5} className="p-40 text-center opacity-30">
+                             <Database className="w-16 h-16 mx-auto mb-4" />
+                             <p className="text-zinc-600 font-black uppercase tracking-widest">Vault is currently empty.</p>
                           </td></tr>
                         )}
                      </tbody>

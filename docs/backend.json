@@ -46,7 +46,8 @@
         "qualityScore": { "type": "number" },
         "usageCount": { "type": "number" },
         "status": { "type": "string", "enum": ["draft", "published"] },
-        "createdAt": { "type": "number" }
+        "createdAt": { "type": "number" },
+        "aiGenerated": { "type": "boolean" }
       }
     },
     "MockTest": {
@@ -79,6 +80,10 @@
       "schema": "Question",
       "description": "Central bilingual question bank repository."
     },
+    "/question_drafts/{qId}": {
+      "schema": "Question",
+      "description": "Moderation queue for OCR and AI generated content."
+    },
     "/mocks/{mockId}": {
       "schema": "MockTest",
       "description": "Standardized mock tests referencing question IDs."
@@ -87,14 +92,6 @@
       "schema": "CommunityMessage",
       "description": "Real-time discussion streams."
     },
-    "/community_groups/{groupId}": {
-      "schema": "CommunityGroup",
-      "description": "Exam-wise group definitions."
-    },
-    "/aiChats/{chatId}": {
-      "schema": "AiChatLog",
-      "description": "Student interaction logs with AI Tutor."
-    },
     "/aiUsage/{usageId}": {
       "schema": "AiUsageLimit",
       "description": "Daily token tracking for Gemini limit enforcement."
@@ -102,14 +99,6 @@
     "/leaderboards/{userId}": {
       "schema": "LeaderboardEntry",
       "description": "State and district rankings."
-    },
-    "/jobAlerts/{jobId}": {
-      "schema": "JobAlert",
-      "description": "Official recruitment board notices."
-    },
-    "/notifications/{notifId}": {
-      "schema": "Notification",
-      "description": "User specific push alerts."
     }
   }
 }
