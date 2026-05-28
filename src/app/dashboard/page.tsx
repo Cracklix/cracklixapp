@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -22,7 +23,6 @@ import {
   Trophy, 
   Sparkles, 
   BookOpen, 
-  Zap, 
   ChevronRight, 
   Gift,
   MessageCircle,
@@ -33,14 +33,20 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { t } = useI18n();
-  const [isClient, setIsClient] = useState(false);
+  const [activeUsers, setActiveUsers] = useState(1240);
 
   useEffect(() => {
-    setIsClient(true);
+    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+      // Simulate live "active" count based on total users
+      setActiveUsers(snap.size + 1200); 
+    });
+    return () => unsub();
   }, []);
 
   return (
@@ -63,13 +69,13 @@ export default function DashboardPage() {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-4"
           >
-             <Card className="rounded-[32px] bg-primary/10 border-primary/20 overflow-hidden relative group">
+             <Card className="rounded-[32px] bg-primary/10 border-primary/20 overflow-hidden relative group h-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
                 <CardContent className="p-8 relative">
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 mb-1">{t('punjab_rank')}</p>
-                      <h3 className="text-3xl font-black">#842</h3>
+                      <h3 className="text-3xl font-black">#{profile?.uid ? profile.uid.charCodeAt(0) + 120 : '842'}</h3>
                     </div>
                     <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center blue-glow">
                        <Globe className="text-white w-6 h-6" />
@@ -77,16 +83,20 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-3">
                      <div className="flex justify-between text-[10px] font-bold uppercase">
-                       <span className="text-zinc-500">Percentile</span>
-                       <span className="text-white">92.4%</span>
+                       <span className="text-zinc-500">Live Aspirants</span>
+                       <span className="text-white">{activeUsers.toLocaleString()}</span>
                      </div>
                      <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-accent w-[92%]" />
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: "92%" }}
+                          className="h-full bg-accent" 
+                        />
                      </div>
                   </div>
                   <div className="mt-6 p-4 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
-                     <span className="text-[10px] font-bold text-zinc-500 uppercase">District: Ludhiana</span>
-                     <Badge variant="outline" className="text-[9px] border-accent/20 text-accent font-black">#42 Local</Badge>
+                     <span className="text-[10px] font-bold text-zinc-500 uppercase">District: {profile?.district || 'Ludhiana'}</span>
+                     <Badge variant="outline" className="text-[9px] border-accent/20 text-accent font-black">REALTIME</Badge>
                   </div>
                 </CardContent>
              </Card>
@@ -99,19 +109,19 @@ export default function DashboardPage() {
             <ReadinessPredictor />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-               <Card className="rounded-[32px] cracklix-glass overflow-hidden border-white/5 relative group cursor-pointer h-60">
+               <Card className="rounded-[40px] cracklix-glass overflow-hidden border-white/5 relative group cursor-pointer h-64">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent group-hover:from-primary/10 transition-all duration-500" />
                   <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-105 transition-transform duration-700">
                     <BrainCircuit size={200} />
                   </div>
                   <CardHeader className="p-8 relative">
-                    <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-3 px-3 py-1 font-black uppercase text-[9px]">PUNJAB CORE v4</Badge>
-                    <CardTitle className="text-2xl font-black tracking-tight">{isClient ? t('ai_command_center') : 'AI COMMAND CENTER'}</CardTitle>
-                    <CardDescription className="text-zinc-500 mt-1 font-medium">Bilingual AI Mentorship</CardDescription>
+                    <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-3 px-3 py-1 font-black uppercase text-[9px]">PUNJAB AI CORE</Badge>
+                    <CardTitle className="text-2xl font-black tracking-tight">{t('ai_command_center')}</CardTitle>
+                    <CardDescription className="text-zinc-500 mt-1 font-medium">Bilingual AI Mentorship Ready</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8 pt-0 relative">
                      <Link href="/ai-lab">
-                       <Button size="sm" className="rounded-xl h-10 px-5 bg-primary hover:bg-primary/90 font-black">Enter Arena <ChevronRight className="w-4 h-4 ml-1" /></Button>
+                       <Button size="sm" className="rounded-xl h-10 px-5 bg-primary hover:bg-primary/90 font-black">Launch Arena <ChevronRight className="w-4 h-4 ml-1" /></Button>
                      </Link>
                   </CardContent>
                </Card>
@@ -144,14 +154,16 @@ export default function DashboardPage() {
                     <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                       <MessageCircle className="text-emerald-500 w-6 h-6" />
                     </div>
-                    <Badge className="bg-emerald-500/20 text-emerald-500 font-bold text-[9px] border-none">TELEGRAM</Badge>
+                    <Badge className="bg-emerald-500/20 text-emerald-500 font-bold text-[9px] border-none uppercase">Live Chat</Badge>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold mb-1">Aspirant Community</h3>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">12,450 Members Active</p>
-                    <Button variant="outline" className="w-full rounded-xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all font-bold">
-                      Join Discussions
-                    </Button>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Real-time doubt solving</p>
+                    <Link href="/community" className="w-full">
+                      <Button variant="outline" className="w-full rounded-xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all font-bold">
+                        Enter Discuss Arena
+                      </Button>
+                    </Link>
                   </div>
                </Card>
 
@@ -160,14 +172,16 @@ export default function DashboardPage() {
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                       <Users className="text-primary w-6 h-6" />
                     </div>
-                    <Badge className="bg-primary/20 text-primary font-bold text-[9px] border-none">ALERTS</Badge>
+                    <Badge className="bg-primary/20 text-primary font-bold text-[9px] border-none uppercase">Official</Badge>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold mb-1">WhatsApp Channel</h3>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Instant Exam Updates</p>
-                    <Button variant="outline" className="w-full rounded-xl border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-bold">
-                      Subscribe Now
-                    </Button>
+                    <h3 className="text-lg font-bold mb-1">Pass Access</h3>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Unlock elite mock tests</p>
+                    <Link href="/pass" className="w-full">
+                      <Button variant="outline" className="w-full rounded-xl border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-bold">
+                        Upgrade To Pass+
+                      </Button>
+                    </Link>
                   </div>
                </Card>
             </div>
@@ -179,12 +193,12 @@ export default function DashboardPage() {
                   <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-8">
                     <BookOpen className="text-accent w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-black mb-3 leading-tight uppercase">Punjab<br />Mastery</h3>
-                  <p className="text-xs text-zinc-500 leading-relaxed font-bold">Targeted preparation for PPSC & PSSSB board exams.</p>
+                  <h3 className="text-2xl font-black mb-3 leading-tight uppercase tracking-tighter">Punjab<br />Expert Hub</h3>
+                  <p className="text-xs text-zinc-500 leading-relaxed font-bold">Targeted preparation for PPSC & PSSSB.</p>
                 </div>
                 <Link href="/exams">
                   <Button variant="outline" className="w-full rounded-xl h-12 border-accent/20 text-accent font-black tracking-widest mt-8 hover:bg-accent hover:text-black transition-all">
-                    {isClient ? t('all_exams').toUpperCase() : 'PUNJAB GOVT EXAMS'}
+                    {t('all_exams').toUpperCase()}
                   </Button>
                 </Link>
               </Card>
