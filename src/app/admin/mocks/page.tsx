@@ -25,18 +25,18 @@ import {
   ExternalLink,
   MoreVertical,
   BookOpen,
-  Target
+  Target,
+  ListPlus,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SUBJECTS, Subject, Question, MockTest } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { addDoc, collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
+import { addDoc, collection, query, where, getDocs, limit, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { parseQuestionsAi } from "@/ai/flows/ai-question-parser-flow";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ export default function MockFactoryPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [registryLoading, setRegistryLoading] = useState(false);
+  const [bankLoading, setBankLoading] = useState(false);
   
   // Form State
   const [title, setTitle] = useState("");
@@ -55,6 +56,12 @@ export default function MockFactoryPage() {
   const [isPremium, setIsPremium] = useState(true);
   const [difficulty, setDifficulty] = useState("mixed");
   const [qCount, setQCount] = useState(100);
+
+  // Manual Picker State
+  const [bankQuestions, setBankQuestions] = useState<Question[]>([]);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
+  const [manualSubject, setManualSubject] = useState("All");
+  const [manualSearch, setManualSearch] = useState("");
 
   // Sectional/Chapter State
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -67,6 +74,7 @@ export default function MockFactoryPage() {
 
   useEffect(() => {
     loadRegistry();
+    loadBankForPicker();
   }, []);
 
   useEffect(() => {
@@ -86,6 +94,22 @@ export default function MockFactoryPage() {
     }
   }
 
+  async function loadBankForPicker() {
+    setBankLoading(true);
+    try {
+      let q = query(collection(db, "questions"), where("status", "==", "published"), limit(200));
+      if (manualSubject !== "All") {
+        q = query(collection(db, "questions"), where("status", "==", "published"), where("subject", "==", manualSubject), limit(200));
+      }
+      const snap = await getDocs(q);
+      setBankQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Question)));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBankLoading(false);
+    }
+  }
+
   async function loadRegistry() {
     setRegistryLoading(true);
     try {
@@ -99,6 +123,43 @@ export default function MockFactoryPage() {
       console.error(e);
     } finally {
       setRegistryLoading(false);
+    }
+  }
+
+  async function handleManualMock() {
+    if (!title || !exam) {
+      toast({ title: "Identity Required", description: "Set a title and target exam." });
+      return;
+    }
+    if (selectedQuestionIds.size === 0) {
+      toast({ title: "Empty Payload", description: "Select at least one question from the bank.", variant: "destructive" });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const mockData = {
+        title,
+        exam,
+        type: 'manual',
+        questionIds: Array.from(selectedQuestionIds),
+        duration,
+        negativeMarking: penalty,
+        premium: isPremium,
+        status: "draft",
+        createdAt: Date.now(),
+        totalQuestions: selectedQuestionIds.size
+      };
+
+      await addDoc(collection(db, "mocks"), mockData);
+      toast({ title: "Manual Mock Initialized", description: "Questions linked and saved to Drafts." });
+      setTitle("");
+      setSelectedQuestionIds(new Set());
+      loadRegistry();
+    } catch (e: any) {
+      toast({ title: "Initialization Error", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -154,6 +215,18 @@ export default function MockFactoryPage() {
     }
   }
 
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedQuestionIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedQuestionIds(next);
+  };
+
+  const filteredBank = bankQuestions.filter(q => 
+    q.question_en.toLowerCase().includes(manualSearch.toLowerCase()) ||
+    q.question_pa?.toLowerCase().includes(manualSearch.toLowerCase())
+  );
+
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen">
@@ -168,12 +241,12 @@ export default function MockFactoryPage() {
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
                 </div>
-                <p className="text-zinc-500 font-medium ml-1">Forge server-synced CBT environments for Full, Sectional, or Chapter-level training.</p>
+                <p className="text-zinc-500 font-medium ml-1">Forge server-synced CBT environments using AI Blueprints or Manual Selection.</p>
               </div>
             </header>
 
             <div className="grid lg:grid-cols-12 gap-10">
-               {/* Left Controls - Blueprints */}
+               {/* Left Controls - Blueprints & Manual Builder */}
                <div className="lg:col-span-8 space-y-10">
                   <Card className="p-8 rounded-[40px] bg-zinc-900/40 border-white/5 space-y-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -197,97 +270,188 @@ export default function MockFactoryPage() {
                        </div>
                     </div>
 
-                    <Tabs defaultValue="full" className="space-y-8">
-                       <TabsList className="bg-zinc-950/50 border border-white/5 p-1 rounded-2xl h-14 w-fit">
-                          <TabsTrigger value="full" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Full Mock</TabsTrigger>
-                          <TabsTrigger value="sectional" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Sectional</TabsTrigger>
-                          <TabsTrigger value="chapter" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Chapter Test</TabsTrigger>
+                    <Tabs defaultValue="manual" className="space-y-8">
+                       <TabsList className="bg-zinc-950/50 border border-white/5 p-1.5 rounded-2xl h-16 w-fit">
+                          <TabsTrigger value="manual" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Manual Builder</TabsTrigger>
+                          <TabsTrigger value="ai" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">AI Factory</TabsTrigger>
                        </TabsList>
 
-                       <TabsContent value="full" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Question Payload</p>
-                                <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
+                       {/* RESTORED: Manual Builder Flow */}
+                       <TabsContent value="manual" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                          <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-6 rounded-3xl border border-white/5">
+                             <div className="relative flex-1 w-full md:w-auto">
+                                <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-600" />
+                                <Input 
+                                  placeholder="Search bank assets..." 
+                                  value={manualSearch}
+                                  onChange={(e) => setManualSearch(e.target.value)}
+                                  className="pl-10 h-11 bg-zinc-900 border-white/5 rounded-xl"
+                                />
                              </div>
-                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Difficulty Balanced</p>
-                                <Select value={difficulty} onValueChange={setDifficulty}>
-                                   <SelectTrigger className="bg-transparent border-none p-0 text-lg font-bold h-fit shadow-none">
-                                      <SelectValue />
-                                   </SelectTrigger>
-                                   <SelectContent className="bg-zinc-950 text-white">
-                                      <SelectItem value="mixed">Mixed Strategy</SelectItem>
-                                      <SelectItem value="easy">Easy Base</SelectItem>
-                                      <SelectItem value="medium">Medium Standard</SelectItem>
-                                      <SelectItem value="hard">Hard Elite</SelectItem>
-                                   </SelectContent>
-                                </Select>
-                             </div>
-                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Source Protocol</p>
-                                <p className="text-sm font-bold text-white uppercase">Atomic Bank + PYQ</p>
-                             </div>
+                             <Select value={manualSubject} onValueChange={(val) => { setManualSubject(val); loadBankForPicker(); }}>
+                                <SelectTrigger className="w-full md:w-64 h-11 bg-zinc-900 border-white/5 rounded-xl">
+                                   <SelectValue placeholder="All Subjects" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-950 text-white max-h-[300px]">
+                                   <SelectItem value="All">All Subjects</SelectItem>
+                                   {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                </SelectContent>
+                             </Select>
                           </div>
-                          <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl">
-                             {loading ? <Loader2 className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
-                             Forge Full Mock
-                          </Button>
+
+                          <div className="bg-black/40 rounded-[32px] border border-white/5 max-h-[500px] overflow-y-auto no-scrollbar">
+                             <table className="w-full text-left border-collapse">
+                                <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10 text-[9px] font-black uppercase text-zinc-500 tracking-widest">
+                                   <tr>
+                                      <th className="px-6 py-4">#</th>
+                                      <th className="px-6 py-4">Subject</th>
+                                      <th className="px-6 py-4">Question Narrative</th>
+                                      <th className="px-6 py-4 text-right">Select</th>
+                                   </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                   {bankLoading ? (
+                                      <tr><td colSpan={4} className="p-20 text-center animate-pulse italic text-zinc-600">Scanning Production Bank...</td></tr>
+                                   ) : filteredBank.length > 0 ? filteredBank.map((q, i) => (
+                                      <tr 
+                                        key={q.id} 
+                                        onClick={() => toggleSelect(q.id)}
+                                        className={cn("hover:bg-white/[0.02] cursor-pointer transition-colors group", selectedQuestionIds.has(q.id) && "bg-primary/5")}
+                                      >
+                                         <td className="px-6 py-4 text-xs font-bold text-zinc-600">{i+1}</td>
+                                         <td className="px-6 py-4">
+                                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[8px] font-black uppercase">{q.subject}</Badge>
+                                         </td>
+                                         <td className="px-6 py-4">
+                                            <p className="text-sm font-bold text-white line-clamp-1">{q.question_en}</p>
+                                            <p className="text-[10px] text-zinc-600 font-medium line-clamp-1 italic">{q.question_pa}</p>
+                                         </td>
+                                         <td className="px-6 py-4 text-right">
+                                            <div className={cn(
+                                               "w-6 h-6 rounded-lg border flex items-center justify-center ml-auto transition-all",
+                                               selectedQuestionIds.has(q.id) ? "bg-primary border-primary shadow-lg shadow-primary/20" : "border-white/10"
+                                            )}>
+                                               {selectedQuestionIds.has(q.id) && <CheckCircle2 size={14} className="text-white" />}
+                                            </div>
+                                         </td>
+                                      </tr>
+                                   )) : (
+                                      <tr><td colSpan={4} className="p-20 text-center opacity-30 italic">No artifacts found in this sector.</td></tr>
+                                   )}
+                                </tbody>
+                             </table>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-primary/5 p-6 rounded-[32px] border border-primary/10">
+                             <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+                                   <ListPlus className="text-white w-5 h-5" />
+                                </div>
+                                <div>
+                                   <p className="text-xs font-black text-primary uppercase">Manual Selection Active</p>
+                                   <p className="text-lg font-black text-white">{selectedQuestionIds.size} Artifacts Staged</p>
+                                </div>
+                             </div>
+                             <Button onClick={handleManualMock} disabled={loading || selectedQuestionIds.size === 0} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-sm uppercase tracking-widest blue-glow">
+                                {loading ? <Loader2 className="animate-spin mr-2" /> : "Initialize Manual Mock"}
+                             </Button>
+                          </div>
                        </TabsContent>
 
-                       <TabsContent value="sectional" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Subject Extraction</label>
-                                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                                   <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
-                                      <SelectValue placeholder="Select Subject" />
-                                   </SelectTrigger>
-                                   <SelectContent className="bg-zinc-950 text-white max-h-[300px]">
-                                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                   </SelectContent>
-                                </Select>
-                             </div>
-                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Quantity</p>
-                                <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
-                             </div>
-                          </div>
-                          <Button onClick={() => handleGenerate('sectional')} disabled={loading || !selectedSubject} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl font-black shadow-2xl shadow-emerald-900/20">
-                             {loading ? <Loader2 className="animate-spin mr-3" /> : <Target className="mr-3" />}
-                             Synthesize Sectional Test
-                          </Button>
-                       </TabsContent>
+                       <TabsContent value="ai" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                          <Tabs defaultValue="full" className="space-y-8">
+                             <TabsList className="bg-zinc-950/50 border border-white/5 p-1 rounded-2xl h-14 w-fit">
+                                <TabsTrigger value="full" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Full Mock</TabsTrigger>
+                                <TabsTrigger value="sectional" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Sectional</TabsTrigger>
+                                <TabsTrigger value="chapter" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Chapter Test</TabsTrigger>
+                             </TabsList>
 
-                       <TabsContent value="chapter" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Core Subject</label>
-                                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                                   <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
-                                      <SelectValue placeholder="Select Subject" />
-                                   </SelectTrigger>
-                                   <SelectContent className="bg-zinc-950 text-white">
-                                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                   </SelectContent>
-                                </Select>
-                             </div>
-                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Detected Chapters/Topics</label>
-                                <Select value={selectedTopic} onValueChange={setSelectedTopic} disabled={!selectedSubject}>
-                                   <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
-                                      <SelectValue placeholder={availableTopics.length > 0 ? "Select Chapter" : "No Topics Detected"} />
-                                   </SelectTrigger>
-                                   <SelectContent className="bg-zinc-950 text-white">
-                                      {availableTopics.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                   </SelectContent>
-                                </Select>
-                             </div>
-                          </div>
-                          <Button onClick={() => handleGenerate('chapter')} disabled={loading || !selectedTopic} className="w-full h-20 rounded-[32px] bg-accent hover:bg-accent/90 text-2xl font-black shadow-2xl shadow-accent/20">
-                             {loading ? <Loader2 className="animate-spin mr-3" /> : <Zap className="mr-3" />}
-                             Generate Chapter Sprint
-                          </Button>
+                             <TabsContent value="full" className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Question Payload</p>
+                                      <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
+                                   </div>
+                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Difficulty Balanced</p>
+                                      <Select value={difficulty} onValueChange={setDifficulty}>
+                                         <SelectTrigger className="bg-transparent border-none p-0 text-lg font-bold h-fit shadow-none">
+                                            <SelectValue />
+                                         </SelectTrigger>
+                                         <SelectContent className="bg-zinc-950 text-white">
+                                            <SelectItem value="mixed">Mixed Strategy</SelectItem>
+                                            <SelectItem value="easy">Easy Base</SelectItem>
+                                            <SelectItem value="medium">Medium Standard</SelectItem>
+                                            <SelectItem value="hard">Hard Elite</SelectItem>
+                                         </SelectContent>
+                                      </Select>
+                                   </div>
+                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Source Protocol</p>
+                                      <p className="text-sm font-bold text-white uppercase">Atomic Bank + PYQ</p>
+                                   </div>
+                                </div>
+                                <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl">
+                                   {loading ? <Loader2 className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
+                                   Forge Full Mock
+                                </Button>
+                             </TabsContent>
+
+                             <TabsContent value="sectional" className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                   <div className="space-y-3">
+                                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Subject Extraction</label>
+                                      <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                                         <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
+                                            <SelectValue placeholder="Select Subject" />
+                                         </SelectTrigger>
+                                         <SelectContent className="bg-zinc-950 text-white max-h-[300px]">
+                                            {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                         </SelectContent>
+                                      </Select>
+                                   </div>
+                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Quantity</p>
+                                      <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
+                                   </div>
+                                </div>
+                                <Button onClick={() => handleGenerate('sectional')} disabled={loading || !selectedSubject} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl font-black shadow-2xl shadow-emerald-900/20">
+                                   {loading ? <Loader2 className="animate-spin mr-3" /> : <Target className="mr-3" />}
+                                   Synthesize Sectional Test
+                                </Button>
+                             </TabsContent>
+
+                             <TabsContent value="chapter" className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                   <div className="space-y-3">
+                                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Core Subject</label>
+                                      <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                                         <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
+                                            <SelectValue placeholder="Select Subject" />
+                                         </SelectTrigger>
+                                         <SelectContent className="bg-zinc-950 text-white">
+                                            {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                         </SelectContent>
+                                      </Select>
+                                   </div>
+                                   <div className="space-y-3">
+                                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Detected Chapters/Topics</label>
+                                      <Select value={selectedTopic} onValueChange={setSelectedTopic} disabled={!selectedSubject}>
+                                         <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
+                                            <SelectValue placeholder={availableTopics.length > 0 ? "Select Chapter" : "No Topics Detected"} />
+                                         </SelectTrigger>
+                                         <SelectContent className="bg-zinc-950 text-white">
+                                            {availableTopics.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                         </SelectContent>
+                                      </Select>
+                                   </div>
+                                </div>
+                                <Button onClick={() => handleGenerate('chapter')} disabled={loading || !selectedTopic} className="w-full h-20 rounded-[32px] bg-accent hover:bg-accent/90 text-2xl font-black shadow-2xl shadow-accent/20">
+                                   {loading ? <Loader2 className="animate-spin mr-3" /> : <Zap className="mr-3" />}
+                                   Generate Chapter Sprint
+                                </Button>
+                             </TabsContent>
+                          </Tabs>
                        </TabsContent>
                     </Tabs>
                   </Card>
@@ -432,4 +596,3 @@ export default function MockFactoryPage() {
     </AdminProtect>
   );
 }
-
