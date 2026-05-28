@@ -2,31 +2,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basic Auth Helpers
-    function isAuthenticated() { return request.auth != null; }
-    function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
-    
-    // Master Admin Logic
+    // Master Access Helper
+    function isMaster() {
+      return request.auth != null && request.auth.token.email == 'arshdeepgrewal1122@gmail.com';
+    }
+
+    // Role-based Access Helper
     function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email == 'arshdeepgrewal1122@gmail.com' ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'])
+      return isMaster() || (
+        request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin']
       );
     }
 
-    // SYSTEM FALLBACK: Hardcoded email has master read/write
+    // Authenticated User Helper
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Default: Master Admin has full read/write across ALL collections
     match /{document=**} {
-      allow read, write: if isAuthenticated() && request.auth.token.email == 'arshdeepgrewal1122@gmail.com';
+      allow read, write: if isMaster();
     }
 
     // USER PROFILES
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(userId) || isAdmin();
+      allow write: if (request.auth.uid == userId) || isAdmin();
     }
 
-    // ACADEMIC ASSETS (Questions, Mocks)
+    // ACADEMIC DATA (Publicly readable, Admin write)
     match /questions/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -42,12 +48,30 @@ service cloud.firestore {
         allow write: if isAdmin();
       }
     }
+    match /pyqs/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
 
     // COMMUNITY & SOCIAL
     match /community_messages/{id} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
       allow delete: if isAdmin() || resource.data.senderId == request.auth.uid;
+    }
+    match /aiChats/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // LEADERBOARD & ATTEMPTS
+    match /leaderboards/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if (request.auth.uid == userId) || isAdmin();
+    }
+    match /attempts/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
 
     // OPERATIONAL
@@ -56,16 +80,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /notifications/{id} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
       allow write: if isAdmin();
+    }
+    match /premiumAccess/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+    match /aiUsage/{id} {
+      allow read, write: if isAuthenticated() && (id.startsWith(request.auth.uid) || isAdmin());
     }
     match /cms/{id} {
       allow read: if true;
       allow write: if isAdmin();
-    }
-    match /aiUsage/{id} {
-      allow read: if isAuthenticated() && (id.startsWith(request.auth.uid) || isAdmin());
-      allow write: if isAuthenticated() && (id.startsWith(request.auth.uid) || isAdmin());
     }
   }
 }

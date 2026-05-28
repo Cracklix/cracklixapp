@@ -6,9 +6,10 @@ import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
 import { parseQuestionsAi } from '@/ai/flows/ai-question-parser-flow';
 import { extractText } from '@/services/ocr';
+import { findPotentialDuplicates } from '@/services/ai-duplicate-detector';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, FileUp, Sparkles, Database, Trash2, CheckCircle2, Languages, AlertTriangle } from 'lucide-react';
+import { Loader2, FileUp, Sparkles, Database, Trash2, CheckCircle2, Languages, AlertTriangle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -42,7 +43,14 @@ export default function PdfIngestionPage() {
 
       // 2. AI Parsing
       const result = await parseQuestionsAi({ rawText });
-      setDrafts(result.questions);
+      
+      // 3. Duplicate Detection Enhancement
+      const enrichedDrafts = await Promise.all(result.questions.map(async (q) => {
+        const potentialDupes = await findPotentialDuplicates(q.question_en);
+        return { ...q, isDuplicate: potentialDupes.length > 0 };
+      }));
+
+      setDrafts(enrichedDrafts);
       setProgress(100);
       setStep('review');
       toast({ title: "Analysis Complete", description: `Detected ${result.questions.length} atomic structures.` });
@@ -57,7 +65,8 @@ export default function PdfIngestionPage() {
   async function commitAll() {
     setLoading(true);
     try {
-      const batch = drafts.map(d => 
+      const validDrafts = drafts.filter(d => !d.isDuplicate);
+      const batch = validDrafts.map(d => 
         addDoc(collection(db, "questions"), {
           ...d,
           status: "published",
@@ -67,7 +76,7 @@ export default function PdfIngestionPage() {
         })
       );
       await Promise.all(batch);
-      toast({ title: "Question Bank Sync", description: "All artifacts committed to production." });
+      toast({ title: "Question Bank Sync", description: `${validDrafts.length} artifacts committed to production.` });
       setDrafts([]);
       setStep('idle');
       setFile(null);
@@ -154,11 +163,12 @@ export default function PdfIngestionPage() {
 
                  <div className="grid gap-6">
                     {drafts.map((q, i) => (
-                      <Card key={i} className="rounded-[40px] bg-zinc-900/40 border-white/5 overflow-hidden group">
+                      <Card key={i} className={`rounded-[40px] bg-zinc-900/40 border-white/5 overflow-hidden group ${q.isDuplicate ? 'opacity-60 grayscale' : ''}`}>
                          <div className="p-8 border-b border-white/5 flex justify-between items-center">
                             <div className="flex items-center gap-4">
                                <Badge className="bg-primary/10 text-primary border-none font-black px-4 py-1.5 uppercase text-[10px]">{q.subject}</Badge>
                                <Badge variant="outline" className="text-zinc-500 border-white/10 font-black px-3 py-1 uppercase text-[10px]">{q.difficulty}</Badge>
+                               {q.isDuplicate && <Badge className="bg-destructive/20 text-destructive border-none font-black px-3 py-1 uppercase text-[10px] flex items-center gap-1"><AlertCircle size={10} /> Potential Duplicate</Badge>}
                             </div>
                             <Button variant="ghost" size="icon" className="text-zinc-700 hover:text-destructive rounded-xl" onClick={() => setDrafts(prev => prev.filter((_, idx) => idx !== i))}>
                                <Trash2 size={18} />

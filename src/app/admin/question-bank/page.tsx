@@ -2,24 +2,21 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, getDocs, where, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where, deleteDoc, doc, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
 import { 
   Database, 
   Search, 
-  MoreVertical, 
   ArrowUpRight, 
   Languages, 
   Zap,
   BarChart3,
-  BookOpen,
   Loader2,
   Trash2,
   Sparkles,
-  RefreshCw,
-  Copy
+  RefreshCw
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -36,6 +33,7 @@ export default function QuestionBankPage() {
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState<string>("All");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     loadQuestions();
@@ -92,6 +90,11 @@ export default function QuestionBankPage() {
     }
   }
 
+  const filtered = questions.filter(q => 
+    q.question_en?.toLowerCase().includes(search.toLowerCase()) ||
+    q.question_pa?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen">
@@ -106,12 +109,17 @@ export default function QuestionBankPage() {
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter leading-none">Atomic Bank</h1>
                  </div>
-                 <p className="text-zinc-500 font-medium">The central asset repository for the CRACKLIX engine.</p>
+                 <p className="text-zinc-500 font-medium">Manage and expand the bilingual repository for the CRACKLIX engine.</p>
               </div>
               <div className="flex gap-4 w-full md:w-auto">
                  <div className="relative flex-1 md:w-80">
                     <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-600" />
-                    <Input placeholder="Search bank assets..." className="pl-12 h-14 bg-zinc-900 border-white/5 rounded-2xl text-sm" />
+                    <Input 
+                      placeholder="Search bank assets..." 
+                      className="pl-12 h-14 bg-zinc-900 border-white/5 rounded-2xl text-sm" 
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
                  </div>
                  <Select value={subject} onValueChange={setSubject}>
                     <SelectTrigger className="w-64 h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold">
@@ -168,7 +176,7 @@ export default function QuestionBankPage() {
                                 <p className="text-zinc-600 font-black uppercase tracking-widest text-[10px]">Scanning Atomic Vault</p>
                              </div>
                           </td></tr>
-                        ) : questions.length > 0 ? questions.map(q => (
+                        ) : filtered.length > 0 ? filtered.map(q => (
                           <tr key={q.id} className="hover:bg-white/[0.02] transition-colors group">
                              <td className="px-10 py-8 align-top">
                                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase px-3 py-1 mb-2 block w-fit">{q.subject}</Badge>
@@ -199,6 +207,7 @@ export default function QuestionBankPage() {
                                      className="rounded-xl hover:bg-primary/10 text-primary"
                                      disabled={generatingId === q.id}
                                      onClick={() => handleGenerateVariants(q)}
+                                     title="Generate similar concepts"
                                    >
                                       {generatingId === q.id ? <Loader2 className="animate-spin w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                                    </Button>
