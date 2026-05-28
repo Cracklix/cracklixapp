@@ -353,27 +353,29 @@ export default function LandingPage() {
           </div>
           <div className="space-y-8">
             <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Official Support</h4>
-            <ul className="space-y-4 text-sm text-zinc-500 font-bold uppercase tracking-widest">
-              <li className="flex items-start gap-2 hover:text-primary transition-colors cursor-pointer group">
-                <Mail size={14} className="text-primary mt-1 shrink-0" />
-                <a href={`mailto:${SUPPORT_EMAIL}`} className="break-all leading-tight">{SUPPORT_EMAIL}</a>
+            <ul className="space-y-6">
+              <li className="flex items-start gap-3 hover:text-primary transition-colors group">
+                <Mail size={16} className="text-primary mt-1 shrink-0" />
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="text-sm font-medium text-zinc-500 group-hover:text-primary transition-colors break-words overflow-hidden">{SUPPORT_EMAIL}</a>
               </li>
-              <li className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer">
-                <Phone size={14} className="text-primary shrink-0" />
-                <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`}>{SUPPORT_PHONE}</a>
+              <li className="flex items-center gap-3 hover:text-primary transition-colors">
+                <Phone size={16} className="text-primary shrink-0" />
+                <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`} className="text-sm font-medium text-zinc-500 hover:text-primary transition-colors">{SUPPORT_PHONE}</a>
               </li>
-              <li className="text-[10px] text-zinc-600 font-black mt-4 uppercase">Direct Founder Access</li>
-              <li className="pt-2">
-                <Button asChild variant="outline" className="w-full justify-start gap-3 rounded-2xl border-white/10 hover:bg-white/5 hover:text-primary group h-12">
-                  <a href="https://t.me/cracklixapp" target="_blank" className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">
-                      <Send size={14} />
-                    </div>
-                    <span className="font-bold text-xs uppercase tracking-widest">Join Telegram</span>
+              
+              <li className="pt-4 space-y-4">
+                <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.3em]">Direct Founder Access</p>
+                <Button asChild className="w-full h-14 rounded-2xl bg-[#0088cc] hover:bg-[#0088cc]/90 text-white font-bold group shadow-lg shadow-blue-500/10">
+                  <a href="https://t.me/cracklixapp" target="_blank" className="flex items-center justify-center gap-3">
+                    <Send size={18} className="fill-current" />
+                    <span className="text-sm uppercase tracking-widest">Join Telegram</span>
                   </a>
                 </Button>
               </li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Report Critical Bug</Link></li>
+              
+              <li className="pt-2">
+                <Link href="#" className="text-[10px] font-black text-zinc-600 uppercase tracking-widest hover:text-destructive transition-colors">Report Critical Bug</Link>
+              </li>
             </ul>
           </div>
         </div>
