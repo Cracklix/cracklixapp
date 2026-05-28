@@ -105,13 +105,17 @@ export default function SimulationFactoryPage() {
       const statsMap: any = {};
       for (const m of data) {
         if (m.status !== 'draft') {
-          const stats = await getMockAnalytics(m.id);
-          statsMap[m.id] = stats;
+          try {
+            const stats = await getMockAnalytics(m.id);
+            statsMap[m.id] = stats;
+          } catch (e) {
+            statsMap[m.id] = { totalAttempts: 0 };
+          }
         }
       }
       setMockStats(statsMap);
-    } catch (e) {
-      toast({ title: "Registry Error", description: "Failed to fetch simulation index.", variant: "destructive" });
+    } catch (e: any) {
+      toast({ title: "Registry Error", description: e.message || "Failed to fetch simulation index.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -163,44 +167,47 @@ export default function SimulationFactoryPage() {
     }
   }
 
-  async function handleAction(id: string, action: string) {
+  async function handleAction(mockId: string, action: string) {
     try {
       switch(action) {
         case 'publish':
-          await publishMock(id);
+          await publishMock(mockId);
           toast({ title: "Signal Propagated", description: "Mock is now visible to student dashboard." });
           break;
         case 'live':
-          await setMockLive(id, true);
+          setMockLive(mockId, true);
           toast({ title: "Promoted to Live", description: "Simulation is now in active Arena state." });
           break;
         case 'duplicate':
-          await duplicateMock(id);
+          const newMock = await duplicateMock(mockId);
           toast({ title: "Artifact Cloned", description: "Created a new draft from source template." });
+          if (newMock) router.push(`/admin/mocks/${newMock.id}`);
           break;
         case 'toggle_access':
-          const currentMock = mocks.find(m => m.id === id);
+          const currentMock = mocks.find(m => m.id === mockId);
           if (!currentMock) return;
           const nextAccess = currentMock.accessType === 'free' ? 'pass_plus' : 'free';
-          await updateMock(id, { accessType: nextAccess });
+          updateMock(mockId, { accessType: nextAccess });
           toast({ title: "Policy Updated", description: `Simulation access is now ${nextAccess.toUpperCase()}.` });
           break;
         case 'delete':
           if (confirm('Permanently purge this simulation artifact from the registry?')) {
-            await deleteMock(id);
-            toast({ title: "Artifact Purged", description: "Record removed from cloud storage." });
+            deleteMock(mockId);
+            setMocks(prev => prev.filter(m => m.id !== mockId));
+            toast({ title: "Artifact Purged", description: "Record removed from local state and cloud." });
           }
           break;
       }
-      loadRegistry();
-    } catch (e) {
-      toast({ title: "Action Protocol Failed", variant: "destructive" });
+      // Reload registry after a short delay for background sync
+      setTimeout(loadRegistry, 500);
+    } catch (e: any) {
+      toast({ title: "Action Protocol Failed", description: e.message || "An unexpected error occurred.", variant: "destructive" });
     }
   }
 
   const filtered = mocks.filter(m => {
-    const matchesSearch = m.title?.toLowerCase().includes(search.toLowerCase()) || 
-                          m.exam?.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (m.title?.toLowerCase() || "").includes(search.toLowerCase()) || 
+                          (m.exam?.toLowerCase() || "").includes(search.toLowerCase());
     const matchesTab = activeTab === "all" || m.status === activeTab;
     return matchesSearch && matchesTab;
   });
@@ -356,7 +363,7 @@ export default function SimulationFactoryPage() {
                                              </DropdownMenuItem>
                                           )}
                                           {m.status === 'published' && (
-                                             <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-red-500" onClick={() => handleAction(id, 'live')}>
+                                             <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-red-500" onClick={() => handleAction(m.id, 'live')}>
                                                 <PlayCircle className="w-3.5 h-3.5 mr-2.5" /> Initialize Live Arena
                                              </DropdownMenuItem>
                                           )}

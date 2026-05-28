@@ -20,10 +20,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { MockTest, Question, ExamAttempt, AttemptAnswer } from '@/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry
- * Optimized for Testbook-style mock management.
+ * Refactored for high-integrity non-blocking mutations.
  */
 
 // 1. REGISTRY OPERATIONS
@@ -52,14 +54,20 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
   }
 }
 
-export async function updateMock(id: string, data: Partial<MockTest>) {
+export function updateMock(id: string, data: Partial<MockTest>) {
   if (!id) return;
   const ref = doc(db, 'mocks', id);
   const payload = { ...data, updatedAt: Date.now() };
-  // Safety: Prevent ID injection in payload
   if ('id' in payload) delete (payload as any).id;
   
-  return updateDoc(ref, payload);
+  updateDoc(ref, payload).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: ref.path,
+      operation: 'update',
+      requestResourceData: payload,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 export async function duplicateMock(id: string) {
@@ -77,31 +85,61 @@ export async function duplicateMock(id: string) {
     liveAt: null
   };
 
-  return await addDoc(collection(db, "mocks"), payload);
-}
-
-export async function deleteMock(mockId: string) {
-  if (!mockId) return;
-  const ref = doc(db, 'mocks', mockId);
-  return await deleteDoc(ref);
-}
-
-// 2. ARTIFACT LINKING ENGINE
-export async function linkQuestionToMock(mockId: string, questionId: string) {
-  const ref = doc(db, 'mocks', mockId);
-  return updateDoc(ref, {
-    questionIds: arrayUnion(questionId),
-    totalQuestions: increment(1),
-    updatedAt: Date.now()
+  return addDoc(collection(db, "mocks"), payload).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: 'mocks',
+      operation: 'create',
+      requestResourceData: payload,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+    throw err;
   });
 }
 
-export async function unlinkQuestionFromMock(mockId: string, questionId: string) {
+export function deleteMock(mockId: string) {
+  if (!mockId) return;
   const ref = doc(db, 'mocks', mockId);
-  return updateDoc(ref, {
+  deleteDoc(ref).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: ref.path,
+      operation: 'delete',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
+}
+
+// 2. ARTIFACT LINKING ENGINE
+export function linkQuestionToMock(mockId: string, questionId: string) {
+  const ref = doc(db, 'mocks', mockId);
+  const payload = {
+    questionIds: arrayUnion(questionId),
+    totalQuestions: increment(1),
+    updatedAt: Date.now()
+  };
+  updateDoc(ref, payload).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: ref.path,
+      operation: 'update',
+      requestResourceData: payload,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
+}
+
+export function unlinkQuestionFromMock(mockId: string, questionId: string) {
+  const ref = doc(db, 'mocks', mockId);
+  const payload = {
     questionIds: arrayRemove(questionId),
     totalQuestions: increment(-1),
     updatedAt: Date.now()
+  };
+  updateDoc(ref, payload).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: ref.path,
+      operation: 'update',
+      requestResourceData: payload,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
   });
 }
 
@@ -120,7 +158,6 @@ export async function publishMock(mockId: string) {
     updatedAt: Date.now()
   });
 
-  // Track usage signal on linked artifacts
   questionIds.forEach((qId: string) => {
     const qRef = doc(db, 'questions', qId);
     batch.update(qRef, {
@@ -130,15 +167,30 @@ export async function publishMock(mockId: string) {
     });
   });
 
-  await batch.commit();
+  await batch.commit().catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: 'batch_operation',
+      operation: 'write',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+    throw err;
+  });
 }
 
-export async function setMockLive(mockId: string, isLive: boolean) {
+export function setMockLive(mockId: string, isLive: boolean) {
   const ref = doc(db, 'mocks', mockId);
-  return updateDoc(ref, { 
+  const payload = { 
     status: isLive ? 'live' : 'published',
     liveAt: isLive ? Date.now() : null,
     updatedAt: Date.now()
+  };
+  updateDoc(ref, payload).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: ref.path,
+      operation: 'update',
+      requestResourceData: payload,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
   });
 }
 
@@ -196,7 +248,6 @@ export async function checkMockAccess(userId: string, mock: MockTest): Promise<{
   const userSnap = await getDoc(doc(db, 'users', userId));
   const userData = userSnap.data();
   
-  // Admin universal bypass
   if (userData?.role === 'admin' || userData?.role === 'superadmin' || userData?.email === 'arshdeepgrewal1122@gmail.com' || userData?.email === 'deepgrewal2600@gmail.com') {
     return { allowed: true };
   }
@@ -237,7 +288,14 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
     deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Terminal'
   };
 
-  await setDoc(attemptRef, payload, { merge: true });
+  await setDoc(attemptRef, payload, { merge: true }).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: attemptRef.path,
+      operation: 'write',
+      requestResourceData: payload,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
   return attemptId;
 }
 
@@ -255,14 +313,28 @@ export async function getAttemptState(attemptId: string) {
   return { ...snap.data() as ExamAttempt, id: snap.id, answers };
 }
 
-export async function saveQuestionState(attemptId: string, qIndex: number, data: AttemptAnswer) {
+export function saveQuestionState(attemptId: string, qIndex: number, data: AttemptAnswer) {
   const answerRef = doc(db, 'attempts', attemptId, 'answers', qIndex.toString());
-  return setDoc(answerRef, { ...data, lastSavedAt: Date.now() }, { merge: true });
+  setDoc(answerRef, { ...data, lastSavedAt: Date.now() }, { merge: true }).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: answerRef.path,
+      operation: 'update',
+      requestResourceData: data,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
-export async function updateAttemptActivity(attemptId: string, updates: any) {
+export function updateAttemptActivity(attemptId: string, updates: any) {
   const ref = doc(db, 'attempts', attemptId);
-  return updateDoc(ref, { ...updates, lastActiveAt: Date.now() });
+  updateDoc(ref, { ...updates, lastActiveAt: Date.now() }).catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: ref.path,
+      operation: 'update',
+      requestResourceData: updates,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any, xpGain: number) {
@@ -284,5 +356,12 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     coins: increment(10)
   });
 
-  await batch.commit();
+  await batch.commit().catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: 'batch_finalize_attempt',
+      operation: 'write',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+    throw err;
+  });
 }
