@@ -185,7 +185,8 @@ export default function MockFactoryPage() {
         status: "draft",
         createdAt: Date.now(),
         totalQuestions: selectedQuestionIds.size,
-        difficulty: difficulty as any
+        difficulty: difficulty as any,
+        accessType: isPremium ? 'pass_plus' : 'free'
       };
 
       await addDoc(collection(db, "mocks"), mockData);
@@ -372,7 +373,7 @@ export default function MockFactoryPage() {
                     </div>
 
                     <Tabs defaultValue="manual" className="space-y-8 relative z-10">
-                       <TabsList className="bg-zinc-950/50 border border-white/5 p-1.5 rounded-2xl h-16 w-fit">
+                       <TabsList className="bg-zinc-950/50 border border-white/5 p-1.5 rounded-2xl h-16 w-fit max-w-full overflow-x-auto overflow-y-hidden no-scrollbar">
                           <TabsTrigger value="manual" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Manual Builder</TabsTrigger>
                           <TabsTrigger value="ai" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">AI Factory</TabsTrigger>
                        </TabsList>
@@ -388,9 +389,9 @@ export default function MockFactoryPage() {
                                   className="pl-10 h-11 bg-zinc-900 border-white/5 rounded-xl"
                                 />
                              </div>
-                             <div className="flex gap-4 w-full md:w-auto">
+                             <div className="flex flex-wrap gap-4 w-full md:w-auto">
                                 <Select value={manualSubject} onValueChange={(val) => { setManualSubject(val); loadBankForPicker(); }}>
-                                    <SelectTrigger className="w-full md:w-48 h-11 bg-zinc-900 border-white/5 rounded-xl">
+                                    <SelectTrigger className="flex-1 md:w-48 h-11 bg-zinc-900 border-white/5 rounded-xl">
                                       <SelectValue placeholder="All Subjects" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-950 text-white max-h-[300px]">
@@ -399,7 +400,7 @@ export default function MockFactoryPage() {
                                     </SelectContent>
                                 </Select>
                                 <Select value={usageFilter} onValueChange={setUsageFilter}>
-                                    <SelectTrigger className="w-full md:w-36 h-11 bg-zinc-900 border-white/5 rounded-xl">
+                                    <SelectTrigger className="flex-1 md:w-36 h-11 bg-zinc-900 border-white/5 rounded-xl">
                                       <SelectValue placeholder="Usage" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-950 text-white">
@@ -411,7 +412,7 @@ export default function MockFactoryPage() {
                              </div>
                           </div>
 
-                          <div className="flex items-center justify-between px-4">
+                          <div className="flex flex-col sm:flex-row items-center justify-between px-4 gap-4">
                              <div className="flex gap-4">
                                 <Button variant="ghost" size="sm" onClick={selectAllVisible} className="h-8 rounded-lg text-primary font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 border border-primary/20">
                                    Select All Unused
@@ -424,7 +425,7 @@ export default function MockFactoryPage() {
                           </div>
 
                           <div className="bg-black/40 rounded-[32px] border border-white/5 max-h-[500px] overflow-y-auto no-scrollbar overflow-x-auto">
-                             <table className="w-full text-left border-collapse min-w-[600px]">
+                             <table className="w-full text-left border-collapse min-w-[700px]">
                                 <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10 text-[9px] font-black uppercase text-zinc-500 tracking-widest">
                                    <tr>
                                       <th className="px-6 py-4">#</th>
@@ -454,7 +455,7 @@ export default function MockFactoryPage() {
                                               {getUsageBadge(q)}
                                            </td>
                                            <td className="px-6 py-4">
-                                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[8px] font-black uppercase">{q.subject}</Badge>
+                                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[8px] font-black uppercase whitespace-nowrap">{q.subject}</Badge>
                                            </td>
                                            <td className="px-6 py-4">
                                               <p className="text-sm font-bold text-white line-clamp-1 break-words">{q.question_en}</p>
@@ -485,14 +486,24 @@ export default function MockFactoryPage() {
                                    <ListPlus className="text-white w-5 h-5" />
                                 </div>
                                 <div>
-                                   <p className="text-xs font-black text-primary uppercase">Manual Staging Active</p>
+                                   <p className="text-xs font-black text-primary uppercase tracking-tighter">Manual Staging Active</p>
                                    <p className="text-lg font-black text-white">{selectedQuestionIds.size} Unique Artifacts</p>
                                 </div>
                              </div>
-                             <div className="flex gap-4 w-full md:w-auto">
-                                <Button variant="outline" onClick={clearSelection} className="h-14 flex-1 md:flex-none px-8 rounded-2xl border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive">Discard</Button>
-                                <Button onClick={handleManualMock} disabled={loading || selectedQuestionIds.size === 0} className="h-14 flex-1 md:flex-none px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-sm uppercase tracking-widest blue-glow">
-                                    {loading ? <Loader2 className="animate-spin mr-2" /> : "Initialize Unique Mock"}
+                             <div className="flex flex-wrap md:flex-nowrap gap-4 w-full md:w-auto">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={clearSelection} 
+                                  className="h-14 flex-1 md:flex-none px-8 rounded-2xl border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive shrink-0"
+                                >
+                                  Discard
+                                </Button>
+                                <Button 
+                                  onClick={handleManualMock} 
+                                  disabled={loading || selectedQuestionIds.size === 0} 
+                                  className="h-14 flex-1 md:flex-none px-6 md:px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-xs md:text-sm uppercase tracking-widest blue-glow shrink-0 whitespace-normal text-center leading-tight"
+                                >
+                                    {loading ? <Loader2 className="animate-spin mr-2 shrink-0" /> : "Initialize Unique Mock"}
                                 </Button>
                              </div>
                           </div>
@@ -500,7 +511,7 @@ export default function MockFactoryPage() {
 
                        <TabsContent value="ai" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                           <Tabs defaultValue="full" className="space-y-8">
-                             <TabsList className="bg-zinc-950/50 border border-white/5 p-1 rounded-2xl h-14 w-fit">
+                             <TabsList className="bg-zinc-950/50 border border-white/5 p-1 rounded-2xl h-14 w-fit max-w-full overflow-x-auto no-scrollbar">
                                 <TabsTrigger value="full" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Full Mock</TabsTrigger>
                                 <TabsTrigger value="sectional" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Sectional</TabsTrigger>
                                 <TabsTrigger value="chapter" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Chapter Test</TabsTrigger>
@@ -531,8 +542,8 @@ export default function MockFactoryPage() {
                                       <p className="text-sm font-bold text-emerald-500 uppercase flex items-center gap-2"><Check size={12} /> Active</p>
                                    </div>
                                 </div>
-                                <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl">
-                                   {loading ? <Loader2 className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
+                                <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-lg md:text-2xl font-black blue-glow shadow-2xl transition-all leading-tight text-center px-4">
+                                   {loading ? <Loader2 className="animate-spin mr-3 shrink-0" /> : <Sparkles className="mr-3 shrink-0" />}
                                    Forge Unique Full Mock
                                 </Button>
                              </TabsContent>
@@ -555,8 +566,8 @@ export default function MockFactoryPage() {
                                       <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
                                    </div>
                                 </div>
-                                <Button onClick={() => handleGenerate('sectional')} disabled={loading || !selectedSubject} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl font-black shadow-2xl shadow-emerald-900/20">
-                                   {loading ? <Loader2 className="animate-spin mr-3" /> : <Target className="mr-3" />}
+                                <Button onClick={() => handleGenerate('sectional')} disabled={loading || !selectedSubject} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-lg md:text-2xl font-black shadow-2xl shadow-emerald-900/20 leading-tight text-center px-4">
+                                   {loading ? <Loader2 className="animate-spin mr-3 shrink-0" /> : <Target className="mr-3 shrink-0" />}
                                    Synthesize Sectional Test
                                 </Button>
                              </TabsContent>
@@ -586,8 +597,8 @@ export default function MockFactoryPage() {
                                       </Select>
                                    </div>
                                 </div>
-                                <Button onClick={() => handleGenerate('chapter')} disabled={loading || !selectedTopic} className="w-full h-20 rounded-[32px] bg-accent hover:bg-accent/90 text-2xl font-black shadow-2xl shadow-accent/20">
-                                   {loading ? <Loader2 className="animate-spin mr-3" /> : <Zap className="mr-3" />}
+                                <Button onClick={() => handleGenerate('chapter')} disabled={loading || !selectedTopic} className="w-full h-20 rounded-[32px] bg-accent hover:bg-accent/90 text-lg md:text-2xl font-black shadow-2xl shadow-accent/20 leading-tight text-center px-4">
+                                   {loading ? <Loader2 className="animate-spin mr-3 shrink-0" /> : <Zap className="mr-3 shrink-0" />}
                                    Generate Chapter Sprint
                                 </Button>
                              </TabsContent>
@@ -623,7 +634,7 @@ export default function MockFactoryPage() {
                             { id: 'live', label: 'Live Events', icon: PlayCircle },
                             { id: 'archived', label: 'Archived', icon: Archive }
                           ].map(t => (
-                            <TabsTrigger key={t.id} value={t.id} className="rounded-xl px-6 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">
+                            <TabsTrigger key={t.id} value={t.id} className="rounded-xl px-6 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary shrink-0">
                                <t.icon className="w-3.5 h-3.5 mr-2" /> {t.label}
                             </TabsTrigger>
                           ))}
@@ -634,7 +645,7 @@ export default function MockFactoryPage() {
                             [1,2,3].map(i => <div key={i} className="h-32 rounded-[40px] bg-zinc-900/40 animate-pulse border border-white/5" />)
                           ) : filteredMocks.length > 0 ? filteredMocks.map(m => (
                             <div key={m.id} className="p-8 rounded-[48px] bg-zinc-900/40 border border-white/5 hover:border-primary/20 transition-all flex flex-col md:flex-row items-center justify-between gap-8 group relative overflow-hidden">
-                               <div className="flex items-center gap-8 flex-1">
+                               <div className="flex items-center gap-8 flex-1 w-full md:w-auto">
                                   <div className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center shadow-lg shrink-0", getStatusColor(m.status))}>
                                      {m.status === 'live' ? <PlayCircle className="animate-pulse" /> : <BookOpen />}
                                   </div>
@@ -668,7 +679,7 @@ export default function MockFactoryPage() {
                                   )}
                                </div>
 
-                               <div className="flex items-center gap-3 shrink-0">
+                               <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end">
                                   <DropdownMenu>
                                      <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl hover:bg-white/5">
@@ -724,7 +735,7 @@ export default function MockFactoryPage() {
 
                {/* Right Sidebar - Global CBT Configuration */}
                <div className="lg:col-span-4 space-y-8">
-                  <Card className="p-8 rounded-[40px] bg-zinc-900/50 border border-white/5 space-y-10 sticky top-8 shadow-2xl max-w-full">
+                  <Card className="p-8 rounded-[40px] bg-zinc-900/50 border border-white/5 space-y-10 sticky top-8 shadow-2xl max-w-full overflow-hidden">
                      <h3 className="font-headline text-2xl font-black flex items-center gap-3">
                         <Settings className="text-primary w-6 h-6" />
                         CBT Global Settings
