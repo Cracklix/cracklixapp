@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview Advanced AI Mock Generator Flow v8 (Enterprise Grade).
+ * @fileOverview Advanced AI Mock Generator Flow v8.5 (Pro Layer).
  * Engineered for high-fidelity trilingual (EN, PA, HI) Punjab recruitment simulations.
  */
 
@@ -49,6 +49,8 @@ const MockGeneratorInputSchema = z.object({
   language: z.enum(['en', 'pa', 'hi', 'en_pa', 'en_hi']).default('en_pa'),
   negativeMarking: z.number().default(0.25),
   customTime: z.number().optional(),
+  pyqOnly: z.boolean().optional().default(false),
+  smartMix: z.boolean().optional().default(true),
 });
 export type MockGeneratorInput = z.infer<typeof MockGeneratorInputSchema>;
 
@@ -82,6 +84,8 @@ Generation Mode: {{{mode}}}
 Target Count: {{{count}}}
 Complexity Profile: {{{difficulty}}}
 Linguistic Fidelity: {{{language}}}
+PYQ Priority: {{#if pyqOnly}}Strict PYQ Style{{else}}Latest Pattern Mixed{{/if}}
+Smart Mix: {{#if smartMix}}Active (AI + Bank Intelligence){{else}}Pure Synthetic{{/if}}
 
 INSTITUTIONAL SYLLABUS RULES (PUNJAB STATE):
 - PSSSB Group A/B (Excise, Senior Asst): Part A (Punjabi Qualifying, 50Q) + Part B (Scoring, 100Q). Split Part B: GK(25), Reasoning(25), PB History(17), Punjabi(13), English(12), ICT(8).
@@ -93,6 +97,7 @@ STRICT TECHNICAL REQUIREMENTS:
 1. LINGUISTIC SYNC: 
    - If 'en_pa': You MUST populate BOTH questionEnglish/Punjabi, optionsEnglish/Punjabi, and explanationEnglish/Punjabi.
    - If 'en_hi': You MUST populate BOTH questionEnglish/Hindi, optionsEnglish/Hindi, and explanationEnglish/Hindi.
+   - If 'pa': Populate Punjabi fields; English fields optional.
    - Use Raavi font style for Punjabi.
 2. QUESTION QUALITY: Every question must have exactly 4 unique options. The correctAnswer must match the English version of the option.
 3. EXPLANATIONS: Provide deep, step-by-step logical rationalization in all selected languages.
