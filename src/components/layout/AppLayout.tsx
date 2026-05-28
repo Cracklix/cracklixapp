@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -31,6 +32,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/language-switcher';
 import { checkIsAdmin } from '@/hooks/useAdmin';
+import SupportTrigger from '@/components/support/support-trigger';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -204,10 +206,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <UserIcon className="mr-2 h-4 w-4 text-zinc-500" />
                     <span>My Profile</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/profile')} className="rounded-xl cursor-pointer py-3 focus:bg-white/5">
-                    <Settings className="mr-2 h-4 w-4 text-zinc-500" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/5" />
                   <DropdownMenuItem onClick={logout} className="rounded-xl cursor-pointer py-3 text-red-500 focus:bg-red-500/10 focus:text-red-500">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -226,6 +224,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="h-24 md:hidden" />
         </main>
       </div>
+
+      <SupportTrigger />
     </div>
   );
 }

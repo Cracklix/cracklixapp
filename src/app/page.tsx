@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -13,11 +14,16 @@ import {
   ShieldCheck,
   Globe,
   MessageSquare,
-  ShieldAlert
+  ShieldAlert,
+  Mail,
+  Phone
 } from "lucide-react";
 import GlassCard from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+const SUPPORT_EMAIL = "cracklixhelp@gmail.com";
+const SUPPORT_PHONE = "+91 9888188602";
 
 export default function LandingPage() {
   const container = {
@@ -49,7 +55,7 @@ export default function LandingPage() {
           </div>
           <div className="flex flex-col">
             <span className="font-headline text-2xl font-black tracking-tighter uppercase leading-none">CRACKLIX</span>
-            <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.3em] mt-1">by Arsh Grewal</span>
+            <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.3em] mt-1 text-primary">by Arsh Grewal</span>
           </div>
         </div>
         <nav className="hidden lg:flex gap-12 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-500">
@@ -103,7 +109,7 @@ export default function LandingPage() {
               <div className="flex -space-x-4">
                 {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="w-14 h-14 rounded-full border-4 border-[#050816] overflow-hidden">
-                    <img src={`https://picsum.photos/seed/${i + 50}/100`} className="w-full h-full object-cover" />
+                    <img src={`https://picsum.photos/seed/${i + 50}/100`} className="w-full h-full object-cover" alt="User" />
                   </div>
                 ))}
               </div>
@@ -204,7 +210,7 @@ export default function LandingPage() {
                   <div className="bg-[#050816] rounded-[59px] overflow-hidden p-12 space-y-12 border border-white/5">
                      <div className="flex justify-between items-center">
                         <div className="w-20 h-20 rounded-full border-4 border-primary/20 overflow-hidden">
-                           <img src="https://picsum.photos/seed/arsh/200" className="w-full h-full object-cover" />
+                           <img src="https://picsum.photos/seed/arsh/200" className="w-full h-full object-cover" alt="Founder" />
                         </div>
                         <Badge className="bg-primary text-white border-none font-black text-[9px] px-3 py-1">VERIFIED FOUNDER</Badge>
                      </div>
@@ -332,12 +338,19 @@ export default function LandingPage() {
             </ul>
           </div>
           <div className="space-y-8">
-            <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Support</h4>
+            <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Official Support</h4>
             <ul className="space-y-4 text-sm text-zinc-500 font-bold uppercase tracking-widest">
-              <li><Link href="#" className="hover:text-primary transition-colors">Telegram Community</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Privacy Shield</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+              <li className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer">
+                <Mail size={14} className="text-primary" />
+                <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+              </li>
+              <li className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer">
+                <Phone size={14} className="text-primary" />
+                <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`}>{SUPPORT_PHONE}</a>
+              </li>
+              <li className="text-[10px] text-zinc-600 font-black mt-4 uppercase">Direct Founder Access</li>
+              <li><Link href="/community" className="hover:text-emerald-500 transition-colors">Telegram Community</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Report Critical Bug</Link></li>
             </ul>
           </div>
         </div>

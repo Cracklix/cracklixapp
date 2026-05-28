@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -21,7 +22,8 @@ import {
   Rocket,
   FilePlus2,
   ListFilter,
-  Terminal
+  Terminal,
+  LifeBuoy
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -34,6 +36,7 @@ export default function AdminSidebar() {
         { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
         { name: "Users", href: "/admin/users", icon: Users },
         { name: "PASS Management", href: "/admin/subscriptions", icon: CreditCard },
+        { name: "Support Desk", href: "/admin/support", icon: LifeBuoy },
       ]
     },
     {
