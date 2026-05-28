@@ -22,8 +22,8 @@ import { db } from '@/lib/firebase';
 import { MockTest, Question, AttemptAnswer, ExamAttempt, PassTier } from '@/types';
 
 /**
- * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v18.0)
- * Optimized for sectional navigation, real-time sync, and Testbook-style flow.
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v30.0)
+ * Rebuilt for real CRUD, sectional navigation, and Testbook-style flow.
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -47,25 +47,29 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
   }
 }
 
-/**
- * ADMINISTRATIVE SIGNAL CONTROLS
- */
-
-export async function publishMock(mockId: string, publish: boolean) {
-  const ref = doc(db, 'mocks', mockId);
-  return updateDoc(ref, { 
-    status: publish ? 'published' : 'draft',
-    publishedAt: Date.now(),
-    updatedAt: Date.now() 
+export async function createMock(data: Partial<MockTest>) {
+  const docRef = await addDoc(collection(db, 'mocks'), {
+    ...data,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    status: 'draft',
+    attemptCount: 0
   });
+  return docRef.id;
 }
 
-export async function updateMockAccess(mockId: string, accessType: PassTier) {
+export async function updateMock(mockId: string, updates: Partial<MockTest>) {
   const ref = doc(db, 'mocks', mockId);
-  return updateDoc(ref, { 
-    accessType, 
-    updatedAt: Date.now() 
-  });
+  return updateDoc(ref, { ...updates, updatedAt: Date.now() });
+}
+
+export async function deleteMock(mockId: string) {
+  const batch = writeBatch(db);
+  const mockRef = doc(db, 'mocks', mockId);
+  const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
+  qSnap.forEach(d => batch.delete(d.ref));
+  batch.delete(mockRef);
+  return batch.commit();
 }
 
 /**
@@ -96,8 +100,6 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
     remainingTime: mock.duration * 60,
     currentQuestionIndex: 0,
     answers: {},
-    deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
-    suspiciousActivityCount: 0
   };
   
   await setDoc(attemptRef, payload);
@@ -107,7 +109,6 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
 
 export async function saveAnswer(attemptId: string, questionId: string, answer: AttemptAnswer) {
   const ref = doc(db, 'attempts', attemptId);
-  // Using dynamic key for minimal payload size during real-time sync
   return updateDoc(ref, {
     [`answers.${questionId}`]: {
       ...answer,
@@ -131,7 +132,7 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     streak: increment(1)
   });
 
-  // Update State Leaderboard Registry
+  // Real Merit List Update
   await setDoc(doc(db, 'leaderboards', userId), {
     userId,
     xp: increment(xpGain),
@@ -152,14 +153,6 @@ export async function getMockQuestions(mockId: string): Promise<Question[]> {
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-export function subscribeMockQuestions(mockId: string, callback: (qs: Question[]) => void) {
-  const colRef = collection(db, 'mocks', mockId, 'questions');
-  return onSnapshot(colRef, (snap) => {
-    const qs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
-    callback(qs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-  });
-}
-
 export async function addQuestionToMock(mockId: string, question: Partial<Question>) {
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const docRef = doc(colRef);
@@ -174,30 +167,4 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
   await setDoc(docRef, payload);
   await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(1) });
   return docRef.id;
-}
-
-export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
-  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
-  await updateDoc(docRef, { ...updates, updatedAt: Date.now() });
-}
-
-export async function deleteMockQuestion(mockId: string, questionId: string) {
-  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
-  await deleteDoc(docRef);
-  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
-}
-
-export async function updateMock(mockId: string, updates: Partial<MockTest>) {
-  const ref = doc(db, 'mocks', mockId);
-  return updateDoc(ref, { ...updates, updatedAt: Date.now() });
-}
-
-export async function deleteMock(mockId: string) {
-  const batch = writeBatch(db);
-  const mockRef = doc(db, 'mocks', mockId);
-  // Also delete all subcollection artifacts
-  const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
-  qSnap.forEach(d => batch.delete(d.ref));
-  batch.delete(mockRef);
-  return batch.commit();
 }

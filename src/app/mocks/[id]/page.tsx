@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   getMockDetails, 
@@ -26,7 +26,9 @@ import {
   Clock,
   Target,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  XCircle,
+  LayoutGrid
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer, ExamAttempt, LanguageMode } from "@/types";
@@ -39,10 +41,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /**
- * INSTITUTIONAL CBT ENGINE v25.0
- * Features: High-frequency autosave, Sectional navigation, Standard state palette.
+ * INSTITUTIONAL CBT ENGINE v30.0
+ * Exactly Testbook Style: Mandatory Gateway, High-frequency autosave, Tactical palette.
  */
-export default function CBTEngineV25() {
+export default function CBTEngineV30() {
   const { user, profile } = useAuth();
   const router = useRouter();
   const params = useParams();
@@ -93,7 +95,7 @@ export default function CBTEngineV25() {
     bootSession();
   }, [bootSession]);
 
-  // Real-time Autosave Heartbeat (Every 10 seconds)
+  // Real-time Autosave (Every 10 seconds)
   useEffect(() => {
     if (phase !== 'exam' || !attempt?.id) return;
 
@@ -182,7 +184,7 @@ export default function CBTEngineV25() {
             <div className="max-w-5xl mx-auto grid lg:grid-cols-3 gap-10">
                <div className="lg:col-span-2 space-y-8">
                   <div className="bg-white rounded-[40px] border border-slate-200 p-10 shadow-sm space-y-10">
-                     <h3 className="text-2xl font-black flex items-center gap-3">
+                     <h3 className="text-2xl font-black flex items-center gap-3 text-slate-900 uppercase">
                         <CheckCircle2 className="text-emerald-500 w-7 h-7" /> Institutional Instructions
                      </h3>
                      <div className="space-y-5 text-slate-600 leading-relaxed font-medium">
@@ -190,23 +192,21 @@ export default function CBTEngineV25() {
                         <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> Each correct answer gains <strong>1 mark</strong>.</p>
                         <p className="flex gap-4"><AlertTriangle className="text-red-500 shrink-0 mt-1" size={18} /> Penalty of <strong>{mock?.negativeMarking} marks</strong> for incorrect responses.</p>
                         <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> The exam uses real-time auto-save technology.</p>
-                        <p className="flex gap-4"><AlertTriangle className="text-orange-500 shrink-0 mt-1" size={18} /> Switching tabs or windows will trigger a security warning.</p>
+                        <p className="flex gap-4"><AlertTriangle className="text-orange-500 shrink-0 mt-1" size={18} /> Tab switching or window minimization will trigger a security warning.</p>
                      </div>
                   </div>
                </div>
 
                <div className="space-y-8">
-                  <Card className="rounded-[40px] bg-white border-slate-200 p-10 space-y-8 shadow-sm">
+                  <Card className="rounded-[40px] bg-white border border-slate-200 p-10 space-y-8 shadow-sm">
                      <div className="text-center space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Select Mode</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Initialization Mode</p>
                         <Select value={activeLang} onValueChange={(v: any) => setActiveLang(v)}>
-                           <SelectTrigger className="h-14 bg-slate-50 border-slate-200 rounded-2xl font-black text-xs uppercase px-6">
-                              <SelectValue />
-                           </SelectTrigger>
+                           <SelectTrigger className="h-14 bg-slate-50 border-slate-200 rounded-2xl font-black text-xs uppercase px-6"><SelectValue /></SelectTrigger>
                            <SelectContent className="bg-white text-slate-900 border-slate-200">
                               <SelectItem value="bilingual">Bilingual (EN + PA)</SelectItem>
-                              <SelectItem value="en">English Only</SelectItem>
-                              <SelectItem value="pa">Punjabi Only</SelectItem>
+                              <SelectItem value="english">English Only</SelectItem>
+                              <SelectItem value="punjabi">Punjabi Only</SelectItem>
                            </SelectContent>
                         </Select>
                      </div>
@@ -235,45 +235,39 @@ export default function CBTEngineV25() {
              <div className="flex items-center gap-3 border-r border-white/10 pr-6 mr-2">
                 <Globe size={14} className="text-blue-400" />
                 <Select value={activeLang} onValueChange={(v: any) => setActiveLang(v)}>
-                   <SelectTrigger className="h-9 w-32 bg-white/5 border-white/10 rounded-xl font-black text-[9px] uppercase tracking-widest px-3">
-                      <SelectValue />
-                   </SelectTrigger>
+                   <SelectTrigger className="h-9 w-32 bg-white/5 border-white/10 rounded-xl font-black text-[9px] uppercase tracking-widest px-3"><SelectValue /></SelectTrigger>
                    <SelectContent className="bg-[#1e293b] text-white border-white/10">
                       <SelectItem value="bilingual">Bilingual</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="pa">Punjabi</SelectItem>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="punjabi">Punjabi</SelectItem>
                    </SelectContent>
                 </Select>
              </div>
 
-             <Timer 
-               duration={timeRemaining / 60} 
-               onFinish={handleSubmitFinal} 
-             />
+             <Timer duration={timeRemaining / 60} onFinish={handleSubmitFinal} />
              
              <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-10 px-8 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg">
-                SUBMIT
+                SUBMIT TEST
              </Button>
              
              <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="rounded-xl hover:bg-white/5"><Menu size={22} /></Button>
           </div>
        </header>
 
-       {/* SUBJECT SECTIONS */}
        <div className="h-12 bg-white border-b border-slate-200 flex items-center px-10 shrink-0">
           <div className="flex items-center gap-10">
              <button className="h-full border-b-4 border-blue-600 flex items-center px-2">
-                <span className="text-[11px] font-black uppercase tracking-widest text-blue-600">Core Subjects</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-blue-600">All Sections</span>
              </button>
              <button className="h-full border-b-4 border-transparent flex items-center px-2 hover:border-slate-200">
-                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Qualifiers</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Review Questions</span>
              </button>
           </div>
        </div>
 
        <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 overflow-y-auto no-scrollbar p-12 bg-white relative">
-             <div className="max-w-5xl mx-auto space-y-12">
+             <div className="max-w-5xl mx-auto space-y-12 pb-24">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                    <div className="flex items-center gap-4">
                       <Badge className="bg-blue-50 text-blue-600 border-blue-100 px-4 py-1 font-black uppercase text-[10px] tracking-widest">
@@ -287,7 +281,7 @@ export default function CBTEngineV25() {
                          <span className="text-[10px] font-bold uppercase">{questions[current]?.difficulty}</span>
                       </div>
                       <div className="flex items-center gap-2 text-emerald-500 font-black">
-                         <Badge className="bg-emerald text-emerald-600 border-emerald-100 text-[10px]">+1.0</Badge>
+                         <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px]">+1.0</Badge>
                          <Badge variant="outline" className="border-red-100 text-red-500 text-[10px]">-{mock?.negativeMarking}</Badge>
                       </div>
                    </div>
@@ -309,7 +303,6 @@ export default function CBTEngineV25() {
              </div>
           </main>
 
-          {/* PALETTE PANEL */}
           <aside className="w-[340px] bg-slate-50 border-l border-slate-200 hidden lg:flex flex-col shrink-0">
              <div className="p-8 border-b border-white bg-white">
                 <div className="flex items-center gap-4 mb-6">
@@ -328,8 +321,8 @@ export default function CBTEngineV25() {
                       <p className="text-xl font-black text-emerald-700">{Object.keys(answers).length}</p>
                    </div>
                    <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100">
-                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Not Answered</p>
-                      <p className="text-xl font-black text-blue-700">{questions.length - Object.keys(answers).length}</p>
+                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Marked</p>
+                      <p className="text-xl font-black text-blue-700">0</p>
                    </div>
                 </div>
              </div>
@@ -354,7 +347,7 @@ export default function CBTEngineV25() {
              
              <div className="p-8 border-t border-slate-200 bg-white">
                 <Button onClick={() => setSubmitConfirmOpen(true)} className="w-full h-14 rounded-2xl bg-[#1e293b] hover:bg-black text-white font-black text-xs uppercase tracking-[0.3em] shadow-2xl">
-                   FINISH SIMULATION
+                   CONFIRM SUBMISSION
                 </Button>
              </div>
           </aside>
@@ -363,6 +356,7 @@ export default function CBTEngineV25() {
        <footer className="h-[75px] px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
           <div className="flex gap-4">
              <Button variant="outline" className="rounded-xl h-11 px-8 border-slate-200 font-black text-[11px] uppercase tracking-widest text-slate-600">Mark for Review</Button>
+             <Button variant="ghost" onClick={() => handleOptionSelect('')} className="rounded-xl h-11 px-6 font-black text-[11px] uppercase tracking-widest text-red-500">Clear Response</Button>
           </div>
           <div className="flex gap-6 items-center">
              <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-slate-600 disabled:opacity-0">Previous</button>
@@ -372,6 +366,30 @@ export default function CBTEngineV25() {
           </div>
        </footer>
 
+       <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
+         <DialogContent className="bg-white rounded-[40px] p-12 max-w-lg border-none shadow-2xl">
+            <DialogHeader className="text-center space-y-6">
+               <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center mx-auto shadow-inner"><ShieldCheck className="text-emerald-500 w-10 h-10" /></div>
+               <DialogTitle className="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">End Assessment?</DialogTitle>
+               <DialogDescription className="text-slate-500 text-lg font-medium text-center">Verified signals will be transmitted for performance audit.</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-8 border-y border-slate-100 my-6">
+               <div className="text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Answered</p>
+                  <p className="text-2xl font-black text-emerald-600">{Object.keys(answers).length}</p>
+               </div>
+               <div className="text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Remaining</p>
+                  <p className="text-2xl font-black text-slate-300">{questions.length - Object.keys(answers).length}</p>
+               </div>
+            </div>
+            <DialogFooter className="gap-4 flex flex-col sm:flex-row mt-6">
+               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-16 rounded-2xl flex-1 font-black">RESUME</Button>
+               <Button onClick={handleSubmitFinal} className="h-16 rounded-2xl flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black">FINAL SUBMIT</Button>
+            </DialogFooter>
+         </DialogContent>
+       </Dialog>
+
        <PaletteDrawer 
          open={paletteOpen} 
          onClose={() => setPaletteOpen(false)} 
@@ -379,22 +397,8 @@ export default function CBTEngineV25() {
          current={current} 
          answers={answers} 
          setCurrent={setCurrent} 
-         mockTitle={mock?.title || "Simulation"}
+         mockTitle={mock?.title || "Assessment"}
        />
-
-       <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
-         <DialogContent className="bg-white rounded-[40px] p-12 max-w-lg border-none shadow-2xl overflow-hidden">
-            <DialogHeader className="text-center space-y-6">
-               <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center mx-auto shadow-inner"><ShieldCheck className="text-emerald-500 w-10 h-10" /></div>
-               <DialogTitle className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none">End Simulation?</DialogTitle>
-               <DialogDescription className="text-slate-500 text-lg font-medium">Verified signals will be transmitted for performance audit.</DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-4 flex flex-col sm:flex-row mt-10">
-               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-16 rounded-2xl flex-1 font-black">RESUME</Button>
-               <Button onClick={handleSubmitFinal} className="h-16 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black">FINAL SUBMIT</Button>
-            </DialogFooter>
-         </DialogContent>
-       </Dialog>
     </div>
   );
 }

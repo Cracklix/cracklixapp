@@ -1,12 +1,12 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v25.0 (Institutional Standard)
+ * Production-grade Architecture Layer v30.0 (Institutional Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
 export type PassTier = 'free' | 'pass_plus' | 'premium' | 'elite';
-export type LanguageMode = 'en' | 'pa' | 'hi' | 'bilingual';
-export type QuestionStatus = 'NOT_VISITED' | 'NOT_ANSWERED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
+export type LanguageMode = 'english' | 'punjabi' | 'bilingual';
+export type QuestionStatus = 'NOT_VISITED' | 'VISITED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
 
 export type Subject = 
   | 'General Knowledge' 
@@ -15,21 +15,14 @@ export type Subject =
   | 'Punjab Culture'
   | 'Punjabi Language'
   | 'English Language' 
-  | 'Hindi Language' 
   | 'Reasoning' 
   | 'Quantitative Aptitude' 
-  | 'Data Interpretation'
   | 'ICT & Computers' 
-  | 'Science' 
-  | 'Environmental Studies' 
   | 'Child Development & Pedagogy' 
-  | 'Civil Engineering' 
-  | 'Electrical Engineering' 
-  | 'Mechanical Engineering'
   | 'Other';
 
 export const SUBJECTS: Subject[] = [
-  'General Knowledge', 'Current Affairs', 'Punjab History', 'Punjab Culture', 'Punjabi Language', 'English Language', 'Hindi Language', 'Reasoning', 'Quantitative Aptitude', 'Data Interpretation', 'ICT & Computers', 'Science', 'Environmental Studies', 'Child Development & Pedagogy', 'Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering', 'Other'
+  'General Knowledge', 'Current Affairs', 'Punjab History', 'Punjab Culture', 'Punjabi Language', 'English Language', 'Reasoning', 'Quantitative Aptitude', 'ICT & Computers', 'Child Development & Pedagogy', 'Other'
 ];
 
 export interface UserProfile {
@@ -41,7 +34,6 @@ export interface UserProfile {
   role: UserRole;
   activePass: PassTier;
   passExpiry: number;
-  languageMode: LanguageMode;
   createdAt: number;
   updatedAt: number;
   bookmarks?: any[];
@@ -56,38 +48,35 @@ export interface QuestionContent {
 
 export interface Question {
   id: string;
-  sectionId?: string;
   en: QuestionContent;
   pa?: QuestionContent | null;
-  hi?: QuestionContent | null;
-  correctAnswer: string; 
-  subject: string;
+  correctAnswer: string; // "A", "B", "C", "D"
+  subject: Subject;
   topic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   marks: number;
   negativeMarks: number;
   order?: number;
-  qualityScore?: number;
   status: 'draft' | 'published';
-  type: 'MCQ' | 'NUMERICAL' | 'MATCH';
 }
 
 export interface MockTest {
   id: string;
   title: string;
   exam: string;
+  subject?: string;
   category: 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
   duration: number; 
   totalQuestions: number;
+  totalMarks?: number;
   negativeMarking: number;
   accessType: PassTier;
-  status: 'draft' | 'published';
+  status: 'draft' | 'published' | 'archived';
+  languageMode: LanguageMode;
   createdAt: number;
   updatedAt: number;
   attemptCount?: number;
-  aiGenerated?: boolean;
-  questionIds?: string[];
-  expiresAt?: number;
+  instructions?: string;
   publishedAt?: number;
 }
 
@@ -112,7 +101,9 @@ export interface ExamAttempt {
   answers: Record<string, AttemptAnswer>; 
   score?: number;
   accuracy?: number;
+  correctCount?: number;
+  incorrectCount?: number;
+  unattemptedCount?: number;
+  percentile?: number;
   topicPerformance?: Record<string, { total: number; correct: number }>;
-  deviceInfo?: string;
-  suspiciousActivityCount?: number;
 }
