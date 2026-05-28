@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Zap, Mail, Lock, Loader2 } from 'lucide-react';
+import { Zap, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -24,6 +24,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Auto-Repair Engine: Fixes accounts that exist in Auth but missing in Firestore
   const checkRoleAndRedirect = async (uid: string, userEmail: string) => {
@@ -164,13 +165,20 @@ export default function LoginPage() {
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-zinc-600" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="pl-10 h-11 bg-black/20 rounded-xl border-white/5"
+                    className="pl-10 pr-10 h-11 bg-black/20 rounded-xl border-white/5"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-zinc-600 hover:text-zinc-400 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
               <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black shadow-lg" disabled={loading}>
