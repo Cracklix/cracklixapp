@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from "@/lib/utils";
-import { Bookmark, AlertCircle, Languages } from "lucide-react";
+import { Bookmark, AlertCircle, Languages, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -26,7 +26,6 @@ export default function QuestionCard({
 }: QuestionCardProps) {
   const { user } = useAuth();
   
-  // Logic to handle structured schema (en.question, pa.question)
   const getPrimaryText = () => {
     if (activeLanguage === 'pa' && question.pa?.question) return question.pa.question;
     return question.en?.question || "";
@@ -75,18 +74,21 @@ export default function QuestionCard({
         <div className="flex items-start justify-between">
            <div className="space-y-8 flex-1">
               <div className={cn("grid gap-12", sideBySide ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
-                <div className="space-y-6">
-                   <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] font-black uppercase px-4 py-1.5 tracking-widest">
-                     PRIMARY: {activeLanguage.toUpperCase()}
-                   </Badge>
-                   <h2 className="text-2xl md:text-3xl font-bold leading-snug text-slate-800 tracking-tight">
+                <div className="space-y-4">
+                   <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase px-3 py-1 tracking-widest">PRIMARY: {activeLanguage === 'en' ? 'ENGLISH' : 'ਪੰਜਾਬੀ'}</Badge>
+                      <Badge variant="outline" className="text-[9px] font-black uppercase text-slate-400 border-slate-100">{question.difficulty}</Badge>
+                   </div>
+                   <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-slate-800 tracking-tight">
                      {getPrimaryText()}
                    </h2>
                 </div>
                 {sideBySide && getSecondaryText() && (
-                  <div className="space-y-6 border-l border-slate-100 pl-12">
-                    <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-200 text-[10px] font-black uppercase px-4 py-1.5 tracking-widest">TRANSLATION</Badge>
-                    <h2 className="text-2xl md:text-3xl font-medium leading-snug text-slate-400 tracking-tight italic">
+                  <div className="space-y-4 border-l border-slate-100 pl-12">
+                    <div className="flex items-center gap-2 mb-2">
+                       <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-200 text-[9px] font-black uppercase px-3 py-1 tracking-widest">TRANSLATION</Badge>
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-medium leading-relaxed text-slate-400 tracking-tight italic">
                       {getSecondaryText()}
                     </h2>
                   </div>
@@ -97,15 +99,14 @@ export default function QuestionCard({
              variant="ghost" 
              size="icon" 
              onClick={toggleBookmark} 
-             className="rounded-xl h-14 w-14 shrink-0 text-slate-300 hover:text-primary hover:bg-primary/5 ml-8 transition-all"
+             className="rounded-xl h-12 w-12 shrink-0 text-slate-300 hover:text-primary hover:bg-primary/5 ml-8 transition-all"
            >
-              <Bookmark className="w-8 h-8" />
+              <Bookmark className="w-6 h-6" />
            </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {primaryOptions.map((option: string, idx: number) => {
-            // We use English options as the data identity for consistency in answer checking
             const submissionValue = question.en?.options[idx] || option;
             const isSelected = selected === submissionValue;
             const letter = String.fromCharCode(65 + idx);
@@ -116,22 +117,22 @@ export default function QuestionCard({
                 key={idx}
                 onClick={() => onSelect(submissionValue)}
                 className={cn(
-                  "w-full text-left p-8 rounded-3xl border transition-all duration-200 flex items-center gap-8 group/opt",
+                  "w-full text-left p-6 rounded-2xl border transition-all duration-200 flex items-center gap-6 group/opt",
                   isSelected
-                    ? "bg-primary text-white border-primary shadow-2xl shadow-primary/20 scale-[1.02] z-10"
+                    ? "bg-primary text-white border-primary shadow-xl shadow-primary/10 scale-[1.01] z-10"
                     : "bg-slate-50 border-slate-100 text-slate-700 hover:bg-white hover:border-slate-300 shadow-sm"
                 )}
               >
                 <div className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 transition-all",
+                  "w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 transition-all",
                   isSelected ? "bg-white text-primary" : "bg-white text-slate-400 shadow-sm"
                 )}>
                   {letter}
                 </div>
-                <div className="flex flex-col gap-1.5 overflow-hidden">
-                   <span className="font-bold text-lg md:text-xl truncate">{option}</span>
+                <div className="flex flex-col gap-1 overflow-hidden">
+                   <span className="font-bold text-base md:text-lg truncate leading-snug">{option}</span>
                    {sideBySide && secondaryOption && (
-                     <span className={cn("text-xs font-medium truncate", isSelected ? "text-white/60" : "text-slate-400")}>
+                     <span className={cn("text-[11px] font-medium truncate", isSelected ? "text-white/60" : "text-slate-400")}>
                        {secondaryOption}
                      </span>
                    )}
@@ -144,12 +145,12 @@ export default function QuestionCard({
 
       <div className="mt-auto pt-16 flex justify-between items-center border-t border-slate-50 opacity-40">
          <div className="flex flex-col">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Cracklix High Integrity CBT Engine v4.2</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Cracklix CBT Engine v12.5</p>
             <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-1">Infrastructure Engineered by Arsh Grewal</p>
          </div>
-         <div className="flex gap-6">
-            <AlertCircle size={16} className="text-slate-300" />
-            <Languages size={16} className="text-slate-300" />
+         <div className="flex gap-4">
+            <AlertCircle size={14} className="text-slate-300" />
+            <Target size={14} className="text-slate-300" />
          </div>
       </div>
     </div>

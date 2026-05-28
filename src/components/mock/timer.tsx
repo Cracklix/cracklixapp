@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Clock, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle, Timer as TimerIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TimerProps {
-  duration: number; // in minutes
+  duration: number;
   onFinish: () => void;
   expiresAt?: number;
 }
@@ -45,21 +45,20 @@ export default function Timer({
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   
-  // High-visibility state detection
-  const isWarning = timeLeft <= 600 && timeLeft > 60; // Last 10 mins
-  const isCritical = timeLeft <= 60; // Last 1 min
+  const isWarning = timeLeft <= 600 && timeLeft > 60;
+  const isCritical = timeLeft <= 60;
 
   return (
     <div className={cn(
-      "flex items-center gap-3 px-5 py-2 rounded-2xl font-mono border transition-all duration-500",
+      "flex items-center gap-3 px-5 py-2 rounded-xl font-mono border transition-all duration-500",
       isCritical 
-        ? "bg-red-600 border-red-400 text-white animate-pulse scale-110 shadow-lg shadow-red-900/40" 
+        ? "bg-red-600 border-red-400 text-white animate-pulse scale-105 shadow-lg shadow-red-900/40" 
         : isWarning
-        ? "bg-orange-500/20 border-orange-500 text-orange-500"
+        ? "bg-orange-500 text-white border-orange-400"
         : "bg-white/10 border-white/10 text-white"
     )}>
-      {isCritical || isWarning ? <AlertCircle size={16} /> : <Clock size={16} className="text-primary" />}
-      <span className="text-xl font-black tracking-tighter tabular-nums">
+      {isCritical || isWarning ? <AlertCircle size={14} /> : <TimerIcon size={14} className="text-primary-foreground opacity-60" />}
+      <span className="text-xl font-black tracking-tight tabular-nums">
         {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
       </span>
     </div>
