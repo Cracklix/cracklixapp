@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, History, BookOpen } from "lucide-react";
+import { Loader2, PlusCircle, History, Languages } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SUBJECTS } from "@/types";
 
 export default function PYQForm() {
   const { toast } = useToast();
@@ -18,14 +19,15 @@ export default function PYQForm() {
   const [formData, setFormData] = useState({
     question_en: "",
     question_pa: "",
-    correctAnswer: 0,
+    correctAnswer: "",
     exam: "Punjab Police SI",
-    year: 2023,
+    year: 2024,
     subject: "Punjab GK",
     topic: "",
     options_en: ["", "", "", ""],
     options_pa: ["", "", "", ""],
-    explanation: ""
+    explanation_en: "",
+    difficulty: "medium"
   });
 
   const handleOptionChange = (idx: number, lang: 'en' | 'pa', val: string) => {
@@ -36,8 +38,8 @@ export default function PYQForm() {
   };
 
   async function savePYQ() {
-    if (!formData.question_en || !formData.question_pa) {
-      toast({ title: "Error", description: "Questions in both languages are required.", variant: "destructive" });
+    if (!formData.question_en || !formData.correctAnswer) {
+      toast({ title: "Validation Error", description: "Required fields missing.", variant: "destructive" });
       return;
     }
 
@@ -45,128 +47,145 @@ export default function PYQForm() {
     try {
       await addDoc(collection(db, "pyqs"), {
         ...formData,
-        correctAnswer: Number(formData.correctAnswer),
+        status: "published",
         createdAt: Date.now(),
       });
 
-      toast({ title: "PYQ Saved", description: "Authentic PYQ indexed for student bank." });
+      toast({ title: "PYQ Saved", description: "Artifact injected to official bank." });
       setFormData({
         ...formData,
         question_en: "",
         question_pa: "",
-        explanation: ""
+        options_en: ["", "", "", ""],
+        options_pa: ["", "", "", ""],
+        explanation_en: ""
       });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Injection Failed", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="bg-zinc-900/50 border border-white/5 p-8 rounded-[40px] max-w-4xl space-y-10">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-          <History className="text-orange-500 w-6 h-6" />
-        </div>
-        <h2 className="text-2xl font-bold tracking-tight text-white">Previous Year Question CMS</h2>
+    <div className="bg-zinc-900/50 border border-white/5 p-8 md:p-12 rounded-[48px] max-w-6xl space-y-12 relative overflow-hidden shadow-2xl">
+      <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
+         <History size={200} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-2xl bg-orange-600/20 flex items-center justify-center">
+          <History className="text-orange-600 w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="text-3xl font-black tracking-tight text-white uppercase">Manual Artifact Injection</h2>
+          <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest mt-1">Direct PYQ Repository Port</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
         {/* English Content */}
-        <div className="space-y-6">
-          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+        <div className="space-y-8">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> English Content
           </h3>
-          <div className="space-y-2">
-            <Label>Question (EN)</Label>
+          <div className="space-y-3">
+            <Label className="text-[10px] font-black uppercase text-zinc-600">Question (EN)</Label>
             <Textarea
               value={formData.question_en}
               onChange={(e) => setFormData({...formData, question_en: e.target.value})}
-              className="bg-zinc-800/50 border-white/5 rounded-xl h-24"
+              className="bg-zinc-800/30 border-white/5 rounded-2xl min-h-[120px] p-6 text-sm leading-relaxed"
             />
           </div>
-          {formData.options_en.map((opt, i) => (
-            <div key={i} className="space-y-1">
-              <Label className="text-[10px]">Option {String.fromCharCode(65+i)}</Label>
-              <Input
-                value={opt}
-                onChange={(e) => handleOptionChange(i, 'en', e.target.value)}
-                className="bg-zinc-800/50 border-white/5 h-10 rounded-lg"
-              />
-            </div>
-          ))}
+          <div className="grid gap-4">
+            {formData.options_en.map((opt, i) => (
+              <div key={i} className="relative">
+                <span className="absolute left-4 top-3.5 text-[10px] font-black text-zinc-600">{String.fromCharCode(65+i)}</span>
+                <Input
+                  value={opt}
+                  onChange={(e) => handleOptionChange(i, 'en', e.target.value)}
+                  placeholder={`Option ${String.fromCharCode(65+i)}`}
+                  className="bg-zinc-800/30 border-white/5 h-12 rounded-xl pl-12 text-sm"
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Punjabi Content */}
-        <div className="space-y-6">
-          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" /> Punjabi Content
+        <div className="space-y-8">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-600" /> Punjabi (Raavi)
           </h3>
-          <div className="space-y-2">
-            <Label>ਪ੍ਰਸ਼ਨ (PA)</Label>
+          <div className="space-y-3">
+            <Label className="text-[10px] font-black uppercase text-zinc-600">ਪ੍ਰਸ਼ਨ (PA)</Label>
             <Textarea
               value={formData.question_pa}
               onChange={(e) => setFormData({...formData, question_pa: e.target.value})}
-              className="bg-zinc-800/50 border-white/5 rounded-xl h-24"
+              className="bg-zinc-800/30 border-white/5 rounded-2xl min-h-[120px] p-6 text-sm leading-relaxed"
             />
           </div>
-          {formData.options_pa.map((opt, i) => (
-            <div key={i} className="space-y-1">
-              <Label className="text-[10px]">ਵਿਕਲਪ {String.fromCharCode(65+i)}</Label>
-              <Input
-                value={opt}
-                onChange={(e) => handleOptionChange(i, 'pa', e.target.value)}
-                className="bg-zinc-800/50 border-white/5 h-10 rounded-lg"
-              />
-            </div>
-          ))}
+          <div className="grid gap-4">
+            {formData.options_pa.map((opt, i) => (
+              <div key={i} className="relative">
+                <span className="absolute left-4 top-3.5 text-[10px] font-black text-zinc-600">{i+1}</span>
+                <Input
+                  value={opt}
+                  onChange={(e) => handleOptionChange(i, 'pa', e.target.value)}
+                  placeholder={`ਵਿਕਲਪ ${i+1}`}
+                  className="bg-zinc-800/30 border-white/5 h-12 rounded-xl pl-12 text-sm"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-10 border-t border-white/5">
-        <div className="space-y-2">
-          <Label>Correct Answer Index</Label>
-          <Select value={formData.correctAnswer.toString()} onValueChange={(val) => setFormData({...formData, correctAnswer: Number(val)})}>
-            <SelectTrigger className="bg-zinc-800/50 border-white/5">
-              <SelectValue placeholder="Select Index" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-12 border-t border-white/5">
+        <div className="space-y-3">
+          <Label className="text-[10px] font-black uppercase text-emerald-500">Correct Match</Label>
+          <Input 
+            value={formData.correctAnswer} 
+            onChange={(e) => setFormData({...formData, correctAnswer: e.target.value})}
+            placeholder="Exact text match"
+            className="bg-zinc-800/50 border-emerald-500/20 h-14 rounded-2xl px-6 font-bold"
+          />
+        </div>
+        <div className="space-y-3">
+          <Label className="text-[10px] font-black uppercase text-zinc-500">Subject Class</Label>
+          <Select value={formData.subject} onValueChange={(val) => setFormData({...formData, subject: val})}>
+            <SelectTrigger className="bg-zinc-800/50 border-white/5 h-14 rounded-2xl font-bold">
+              <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">Option A</SelectItem>
-              <SelectItem value="1">Option B</SelectItem>
-              <SelectItem value="2">Option C</SelectItem>
-              <SelectItem value="3">Option D</SelectItem>
+            <SelectContent className="bg-zinc-950 text-white border-white/10">
+              {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
-          <Label>Exam</Label>
-          <Input value={formData.exam} onChange={(e) => setFormData({...formData, exam: e.target.value})} className="bg-zinc-800/50 border-white/5" />
+        <div className="space-y-3">
+          <Label className="text-[10px] font-black uppercase text-zinc-500">Cycle Year</Label>
+          <Input 
+            type="number" 
+            value={formData.year} 
+            onChange={(e) => setFormData({...formData, year: Number(e.target.value)})}
+            className="bg-zinc-800/50 border-white/5 h-14 rounded-2xl text-lg font-black"
+          />
         </div>
-        <div className="space-y-2">
-          <Label>Year</Label>
-          <Input type="number" value={formData.year} onChange={(e) => setFormData({...formData, year: Number(e.target.value)})} className="bg-zinc-800/50 border-white/5" />
-        </div>
-        <div className="space-y-2">
-          <Label>Subject</Label>
-          <Input value={formData.subject} onChange={(e) => setFormData({...formData, subject: e.target.value})} className="bg-zinc-800/50 border-white/5" />
+        <div className="space-y-3">
+          <Label className="text-[10px] font-black uppercase text-zinc-500">Exam Board</Label>
+          <Input 
+            value={formData.exam} 
+            onChange={(e) => setFormData({...formData, exam: e.target.value})}
+            className="bg-zinc-800/50 border-white/5 h-14 rounded-2xl font-bold"
+          />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Detailed Explanation (Markdown)</Label>
-        <Textarea 
-          value={formData.explanation} 
-          onChange={(e) => setFormData({...formData, explanation: e.target.value})}
-          className="bg-zinc-800/50 border-white/5 h-32 rounded-2xl" 
-          placeholder="Why is this answer correct? Provide tricks or context..."
-        />
-      </div>
-
-      <Button onClick={savePYQ} disabled={loading} className="w-full h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-lg shadow-xl shadow-orange-900/10">
-        {loading ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="mr-2" />}
+      <Button onClick={savePYQ} disabled={loading} className="w-full h-20 rounded-[32px] bg-orange-600 hover:bg-orange-700 text-2xl font-black blue-glow shadow-2xl transition-transform active:scale-95 shadow-orange-900/20">
+        {loading ? <Loader2 className="animate-spin mr-3" /> : <PlusCircle className="mr-3" />}
         Finalize PYQ Injection
       </Button>
     </div>
   );
 }
+
