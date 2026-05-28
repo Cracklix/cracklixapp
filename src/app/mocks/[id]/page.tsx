@@ -16,15 +16,15 @@ import Timer from "@/components/mock/timer";
 import { generateAnalytics } from "@/services/analytics-engine";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Info, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, Info, CheckCircle2, AlertCircle, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /**
- * PRODUCTION CBT ENGINE (Testbook Grade)
- * Phase-based state machine for zero-loop stability.
+ * PRODUCTION CBT ENGINE (Enterprise Standard)
+ * Phase-based state machine with auto-repair and fallback.
  */
 export default function CBTPage() {
   const { user } = useAuth();
@@ -33,7 +33,8 @@ export default function CBTPage() {
   const mockId = params?.id as string;
   const { toast } = useToast();
   
-  const [phase, setPhase] = useState<'loading' | 'ready' | 'engine' | 'result'>('loading');
+  const [phase, setPhase] = useState<'loading' | 'ready' | 'engine' | 'result' | 'error'>('loading');
+  const [errorMsg, setErrorMsg] = useState<string>("");
   const [mock, setMock] = useState<MockTest | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
@@ -41,7 +42,6 @@ export default function CBTPage() {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [activeLang, setActiveLang] = useState<'en' | 'pa'>('en');
 
-  // Initialization: ONCE on mount
   useEffect(() => {
     if (!user || !mockId) return;
 
@@ -49,7 +49,12 @@ export default function CBTPage() {
       try {
         console.log(`[CBT Engine] Synchronizing Simulation Node: ${mockId}`);
         const mockData = await getMockDetails(mockId);
-        if (!mockData) throw new Error("Simulation artifact missing.");
+        
+        if (!mockData) {
+          setErrorMsg("The requested simulation artifact was not found in the factory.");
+          setPhase('error');
+          return;
+        }
 
         const access = await checkMockAccess(user!.uid, mockData);
         if (!access.allowed) {
@@ -60,7 +65,9 @@ export default function CBTPage() {
 
         const qData = await getMockQuestions(mockId);
         if (!qData || qData.length === 0) {
-          throw new Error("This mock has no questions linked. Contact admin.");
+          setErrorMsg("This simulation has no artifacts (questions) linked yet. Please notify support.");
+          setPhase('error');
+          return;
         }
 
         const id = await startAttempt(user!.uid, mockData);
@@ -70,17 +77,16 @@ export default function CBTPage() {
         setPhase('ready');
       } catch (err: any) {
         console.error("[CBT Engine Critical] Initialization Failure:", err);
-        toast({ title: "Signal Error", description: err.message, variant: "destructive" });
-        router.push('/exams');
+        setErrorMsg("Failed to establish a secure link with the simulation server.");
+        setPhase('error');
       }
     }
 
     initialize();
-  }, [mockId, user?.uid]); // Use uid specifically to prevent unnecessary effect triggers
+  }, [mockId, user?.uid, router, toast]);
 
   const handleSelect = (option: string) => {
     if (!attemptId || !questions[current]) return;
-    
     const payload: AttemptAnswer = {
       questionId: questions[current].id,
       selectedOption: option,
@@ -88,7 +94,6 @@ export default function CBTPage() {
       timeSpent: 0,
       lastSavedAt: Date.now()
     };
-    
     setAnswers(prev => ({ ...prev, [current]: payload }));
     saveAnswer(attemptId, current, payload);
   };
@@ -109,21 +114,54 @@ export default function CBTPage() {
   if (phase === 'loading') return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Synchronizing CBT Arena</p>
+      <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Establishing Secure Signal...</p>
+    </div>
+  );
+
+  if (phase === 'error') return (
+    <div className="h-screen bg-[#050816] text-white flex flex-col items-center justify-center p-6 text-center">
+       <div className="max-w-md space-y-8">
+          <div className="w-20 h-20 rounded-[28px] bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto shadow-2xl">
+             <AlertCircle className="text-destructive w-10 h-10" />
+          </div>
+          <div className="space-y-3">
+             <h2 className="text-3xl font-black uppercase tracking-tighter">Simulation Failure</h2>
+             <p className="text-zinc-500 font-medium leading-relaxed">{errorMsg}</p>
+          </div>
+          <div className="flex flex-col gap-3">
+             <Button onClick={() => window.location.reload()} className="h-14 rounded-2xl bg-white text-black font-black uppercase tracking-widest">
+               Retry Session
+             </Button>
+             <Button variant="ghost" onClick={() => router.push('/exams')} className="h-14 text-zinc-500 font-bold uppercase text-xs">
+               Exit Arena
+             </Button>
+          </div>
+       </div>
     </div>
   );
 
   if (phase === 'ready') return (
     <div className="min-h-screen bg-[#050816] text-white flex flex-col items-center justify-center p-6">
-      <div className="max-w-2xl w-full space-y-8 text-center">
-         <div className="w-20 h-20 rounded-[28px] bg-primary/20 flex items-center justify-center mx-auto mb-8 border border-primary/20 shadow-2xl">
+      <div className="max-w-2xl w-full space-y-10 text-center">
+         <div className="w-20 h-20 rounded-[28px] bg-primary/20 flex items-center justify-center mx-auto border border-primary/20 shadow-2xl blue-glow">
             <Info className="text-primary w-10 h-10" />
          </div>
-         <h1 className="text-4xl font-black uppercase tracking-tighter">{mock?.title}</h1>
-         <div className="flex justify-center gap-6 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
-            <span>{questions.length} Questions</span>
-            <span>{mock?.duration} Minutes</span>
-            <span className="text-red-500">Negative: -{mock?.negativeMarking}</span>
+         <div className="space-y-3">
+           <h1 className="text-5xl font-black uppercase tracking-tighter leading-none">{mock?.title}</h1>
+           <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-[0.4em]">{mock?.exam} • Official Pattern</p>
+         </div>
+         <div className="grid grid-cols-3 gap-6">
+            {[
+              { label: "Questions", val: questions.length, icon: Database },
+              { label: "Duration", val: `${mock?.duration}m`, icon: Timer },
+              { label: "Negative", val: `-${mock?.negativeMarking}`, icon: AlertCircle, color: "text-red-500" },
+            ].map((stat, i) => (
+              <div key={i} className="p-6 rounded-[32px] bg-zinc-900/50 border border-white/5 space-y-2">
+                 <stat.icon className={cn("mx-auto w-4 h-4", stat.color || "text-primary")} />
+                 <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">{stat.label}</p>
+                 <p className="text-xl font-black">{stat.val}</p>
+              </div>
+            ))}
          </div>
          <div className="bg-zinc-900/50 p-8 rounded-[40px] border border-white/5 text-left space-y-4">
             <p className="text-sm font-bold flex items-center gap-3"><CheckCircle2 size={16} className="text-emerald-500" /> Auto-save is active for every response.</p>
@@ -178,7 +216,7 @@ export default function CBTPage() {
               <QuestionPalette questions={questions} current={current} answers={answers} setCurrent={setCurrent} />
            </div>
            <div className="p-8 bg-slate-50 border-t border-slate-200 space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-[8px] font-black uppercase text-slate-500">
+              <div className="grid grid-cols-2 gap-2 text-[8px] font-black uppercase text-zinc-500">
                 <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded bg-emerald-500" /> Answered</div>
                 <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded bg-slate-200" /> Not Visited</div>
               </div>

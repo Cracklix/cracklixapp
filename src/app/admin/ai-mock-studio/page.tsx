@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
 import { generateAILogic, MockGeneratorOutput } from '@/ai/flows/ai-mock-generator-flow';
@@ -94,8 +94,6 @@ export default function AiMockStudioV7() {
   const [promptInput, setPromptInput] = useState("");
   const [output, setOutput] = useState<MockGeneratorOutput | null>(null);
   const [loading, setLoading] = useState(false);
-  
-  // Tactical Configuration State
   const [exam, setExam] = useState("ei");
   const [mode, setMode] = useState("full");
   const [count, setCount] = useState("50");
@@ -106,8 +104,6 @@ export default function AiMockStudioV7() {
   const [negativeMarking, setNegativeMarking] = useState("0.25");
   const [useCustomTime, setUseCustomTime] = useState(false);
   const [customTime, setCustomTime] = useState("60");
-
-  // Flow Controls
   const [directPublish, setDirectPublish] = useState(false);
   const [saveToBank, setSaveToBank] = useState(true);
 
@@ -153,8 +149,9 @@ export default function AiMockStudioV7() {
 
   async function executeEnterpriseWorkflow() {
     if (!output) return;
+    setLoading(true);
     try {
-      // 1. Create the Mock record in Factory
+      // 1. Create parent mock doc with metadata and status
       const mockRef = await addDoc(collection(db, "mocks"), {
         title: output.title,
         exam: output.exam,
@@ -167,17 +164,19 @@ export default function AiMockStudioV7() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         aiGenerated: true,
-        source: 'AI_STUDIO_V7',
-        syllabusCoverage: output.syllabusCoverage || 100
+        source: 'AI_STUDIO_V7.2',
+        syllabusCoverage: output.syllabusCoverage || 100,
+        languageMode: language,
       });
 
-      // 2. Perform Batch Injection
+      // 2. Perform Batch Injection of Questions
       const batch = writeBatch(db);
       let globalIndex = 0;
+      const questionIds: string[] = [];
       
       for (const section of output.sections) {
         for (const q of section.questions) {
-          // A. Push to Mock Subcollection
+          // A. Push to Mock Subcollection (Required for CBT Engine)
           const mockQRef = doc(collection(db, "mocks", mockRef.id, "questions"));
           const artifactData = {
             ...q,
@@ -187,14 +186,15 @@ export default function AiMockStudioV7() {
             createdAt: Date.now()
           };
           batch.set(mockQRef, artifactData);
+          questionIds.push(mockQRef.id);
 
-          // B. Optionally push to Atomic Bank
+          // B. Optionally push to Atomic Bank (Universal Repo)
           if (saveToBank) {
             const bankQRef = doc(collection(db, "questions"));
             batch.set(bankQRef, {
               ...q,
               status: 'published',
-              source: 'AI_STUDIO_V7',
+              source: 'AI_STUDIO_V7.2',
               usageCount: 1,
               qualityScore: 90,
               createdAt: Date.now(),
@@ -204,6 +204,9 @@ export default function AiMockStudioV7() {
         }
       }
       
+      // Update parent with linked question IDs for mapping verification
+      batch.update(mockRef, { questionIds });
+      
       await batch.commit();
 
       toast({ 
@@ -211,12 +214,12 @@ export default function AiMockStudioV7() {
         description: `Handled ${globalIndex} artifacts across ${output.sections.length} sections.` 
       });
       
-      if (directPublish) {
-        setOutput(null);
-        setPromptInput("");
-      }
+      setOutput(null);
+      setPromptInput("");
     } catch (e: any) {
       toast({ title: "Workflow Injection Error", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -227,12 +230,11 @@ export default function AiMockStudioV7() {
         
         <main className="flex-1 flex flex-row h-screen overflow-hidden">
           
-          {/* Main AI OS Workspace */}
           <div className="flex-1 flex flex-col relative bg-[#020408]">
              <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl z-30">
                 <div className="flex items-center gap-3">
                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center blue-glow"><Sparkles size={16} className="text-primary" /></div>
-                   <h1 className="text-[11px] font-black uppercase tracking-[0.4em]">Exam AI Operating System v7</h1>
+                   <h1 className="text-[11px] font-black uppercase tracking-[0.4em]">Exam AI Operating System v7.2</h1>
                 </div>
                 <div className="flex items-center gap-6">
                    <div className="flex items-center gap-2">
@@ -244,7 +246,6 @@ export default function AiMockStudioV7() {
                 </div>
              </header>
 
-             {/* Main Canvas */}
              <ScrollArea className="flex-1 p-8 md:p-12">
                 <div className="max-w-5xl mx-auto space-y-16 pb-40">
                    {!output && !loading && (
@@ -279,7 +280,7 @@ export default function AiMockStudioV7() {
                      </div>
                    )}
 
-                   {loading && (
+                   {loading && !output && (
                      <div className="py-40 flex flex-col items-center justify-center gap-10">
                         <div className="relative">
                            <div className="w-24 h-24 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
@@ -298,7 +299,6 @@ export default function AiMockStudioV7() {
 
                    {output && (
                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-                        {/* Summary Header */}
                         <div className="flex gap-8 items-start">
                            <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg blue-glow"><Bot className="text-white w-7 h-7" /></div>
                            <div className="flex-1 space-y-10">
@@ -310,7 +310,7 @@ export default function AiMockStudioV7() {
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                  {[
                                    { label: "Institutional Board", val: output.exam, icon: Target },
-                                   { label: "Duration Limit", val: `${output.duration}m`, icon: Clock },
+                                   { label: "Duration Limit", val: `${customTime}m`, icon: Clock },
                                    { label: "Syllabus Coverage", val: `${output.syllabusCoverage}%`, icon: BarChart3 },
                                    { label: "Total Artifacts", val: output.sections.reduce((acc, s) => acc + s.questions.length, 0), icon: BookOpen },
                                  ].map((stat, i) => (
@@ -324,7 +324,6 @@ export default function AiMockStudioV7() {
                                  ))}
                               </div>
 
-                              {/* Action Bar */}
                               <div className="p-10 rounded-[48px] bg-white/[0.02] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
                                  <div className="flex items-center gap-6">
                                     <div className="w-16 h-16 rounded-[28px] bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20"><ShieldCheck className="text-emerald-500 w-8 h-8" /></div>
@@ -334,8 +333,8 @@ export default function AiMockStudioV7() {
                                     </div>
                                  </div>
                                  <div className="flex gap-4 w-full md:w-auto">
-                                    <Button onClick={executeEnterpriseWorkflow} className="h-16 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest blue-glow shadow-xl">
-                                       {directPublish ? 'Publish Live Instantly' : 'Push to Staging Factory'}
+                                    <Button onClick={executeEnterpriseWorkflow} disabled={loading} className="h-16 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest blue-glow shadow-xl">
+                                       {loading ? <Loader2 className="animate-spin" /> : (directPublish ? 'Publish Live Instantly' : 'Push to Staging Factory')}
                                     </Button>
                                     <Button variant="outline" className="h-16 px-10 rounded-3xl border-white/10 bg-zinc-800 text-sm font-black uppercase tracking-widest">
                                        Artifact Review
@@ -343,7 +342,6 @@ export default function AiMockStudioV7() {
                                  </div>
                               </div>
 
-                              {/* Matrix Visualizer */}
                               <div className="space-y-6">
                                  <h4 className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.3em] px-4 flex items-center gap-2">
                                     <LayoutGrid size={12} className="text-primary" /> Exam Sectional Matrix
@@ -373,7 +371,6 @@ export default function AiMockStudioV7() {
                 </div>
              </ScrollArea>
 
-             {/* Advanced Prompt Composer (Gemini Style) */}
              <footer className="p-8 bg-[#020408] border-t border-white/5 z-50">
                 <div className="max-w-4xl mx-auto">
                    <div className="relative group">
@@ -422,7 +419,6 @@ export default function AiMockStudioV7() {
              </footer>
           </div>
 
-          {/* Dynamic OS Configuration Sidebar (Right Panel) */}
           <aside className="w-[480px] border-l border-white/5 bg-zinc-950 flex flex-col shrink-0 hidden lg:flex relative overflow-hidden">
              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent" />
              <header className="p-8 border-b border-white/5 flex items-center justify-between bg-zinc-950/50">
@@ -436,7 +432,6 @@ export default function AiMockStudioV7() {
              <ScrollArea className="flex-1">
                 <div className="p-10 space-y-12">
                    
-                   {/* Exam OS Selector */}
                    <div className="space-y-4">
                       <label className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.3em] px-2 flex items-center gap-2"><Target size={12} className="text-primary" /> Institutional Board</label>
                       <Select value={exam} onValueChange={setExam}>
@@ -456,7 +451,6 @@ export default function AiMockStudioV7() {
                       </Select>
                    </div>
 
-                   {/* Count & Time Calibration */}
                    <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-4">
                          <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Questions Count</label>
@@ -491,7 +485,6 @@ export default function AiMockStudioV7() {
                      </div>
                    )}
 
-                   {/* Linguistic & Pattern Calibration */}
                    <div className="space-y-6">
                       <div className="space-y-4">
                          <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Linguistic Fidelity</label>
@@ -531,7 +524,6 @@ export default function AiMockStudioV7() {
                       )}
                    </div>
 
-                   {/* Enterprise Actions */}
                    <div className="space-y-4">
                       <p className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Workflow Controls</p>
                       <div className="grid gap-3">
@@ -552,7 +544,6 @@ export default function AiMockStudioV7() {
                       </div>
                    </div>
 
-                   {/* Intelligent Status Node */}
                    <div className="p-8 rounded-[40px] bg-primary/5 border border-primary/20 space-y-4 shadow-xl">
                       <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> <span className="text-[10px] font-black text-primary uppercase tracking-widest">Syllabus Aware Engine Active</span></div>
                       <p className="text-[11px] text-zinc-500 leading-relaxed italic">

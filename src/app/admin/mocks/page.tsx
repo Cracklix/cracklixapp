@@ -28,8 +28,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * SIMULATION FACTORY (Operations Hub)
- * Institutional registry for PSSSB & Punjab Police CBT oversight.
- * Strictly focused on management, NOT generation.
+ * High-density registry for simulation tracking and lifecycle control.
  */
 export default function SimulationFactoryPage() {
   const { toast } = useToast();
@@ -95,12 +94,11 @@ export default function SimulationFactoryPage() {
         <main className="flex-1 p-6 md:p-8 overflow-y-auto no-scrollbar">
           <div className="max-w-[1600px] mx-auto space-y-10">
             
-            {/* KPI Dashboard */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                {[
                  { label: "Total Artifacts", val: mocks.length, icon: Database, color: "text-blue-500", bg: "bg-blue-500/10" },
                  { label: "Live Productions", val: mocks.filter(m => m.status === 'published').length, icon: PlayCircle, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                 { label: "Staging Area", val: mocks.filter(m => m.status === 'draft').length, icon: LayersIcon, color: "text-orange-500", bg: "bg-orange-500/10" },
+                 { label: "Staging Area", val: mocks.filter(m => m.status === 'draft').length, icon: RefreshCw, color: "text-orange-500", bg: "bg-orange-500/10" },
                  { label: "Attempt Volume", val: mocks.reduce((acc, m) => acc + (m.attemptCount || 0), 0), icon: BarChart3, color: "text-primary", bg: "bg-primary/10" },
                ].map((kpi, i) => (
                  <div key={i} className="p-6 rounded-[32px] bg-zinc-900/40 border border-white/5 space-y-4 group hover:bg-zinc-900 transition-all">
@@ -118,11 +116,11 @@ export default function SimulationFactoryPage() {
             <header className="flex justify-between items-end border-b border-white/5 pb-8">
               <div className="space-y-1">
                 <h1 className="font-headline text-4xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Institutional Operations Dashboard v5.2</p>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Operational Lifecycle Manager v5.2</p>
               </div>
               <div className="flex gap-4">
                  <Button onClick={() => router.push('/admin/ai-mock-studio')} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] uppercase tracking-widest blue-glow shadow-2xl">
-                    <Plus className="mr-2 w-4 h-4" /> Create New Mock
+                    <Plus className="mr-2 w-4 h-4" /> Create New Simulation
                  </Button>
               </div>
             </header>
@@ -132,7 +130,7 @@ export default function SimulationFactoryPage() {
                  <div className="relative w-full md:w-[450px]">
                     <Search className="absolute left-5 top-4 w-5 h-5 text-zinc-600" />
                     <Input 
-                      placeholder="Filter factory artifacts by identity or board..." 
+                      placeholder="Filter artifacts by identity or board..." 
                       className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl pl-14 font-bold text-sm"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
@@ -141,10 +139,10 @@ export default function SimulationFactoryPage() {
                  <div className="flex items-center gap-6 px-4">
                     <div className="flex items-center gap-3">
                        <Filter size={16} className="text-zinc-600" />
-                       <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Active Filters: None</span>
+                       <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Active Sync: Global</span>
                     </div>
                     <div className="h-8 w-px bg-white/10" />
-                    <Button variant="ghost" size="sm" onClick={loadMocks} className="text-zinc-500 hover:text-white"><RefreshCw size={14} className="mr-2" /> Sync Feed</Button>
+                    <Button variant="ghost" size="sm" onClick={loadMocks} className="text-zinc-500 hover:text-white"><RefreshCw size={14} className="mr-2" /> Refresh Feed</Button>
                  </div>
               </div>
 
@@ -154,10 +152,10 @@ export default function SimulationFactoryPage() {
                        <thead className="bg-zinc-900/60 text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 border-b border-white/5">
                           <tr>
                              <th className="px-12 py-8">Simulation Identity</th>
-                             <th className="px-12 py-8">Recruitment Board</th>
-                             <th className="px-12 py-8 text-center">Qs / Volume</th>
-                             <th className="px-12 py-8">Access Level</th>
-                             <th className="px-12 py-8 text-right">Operational Logic</th>
+                             <th className="px-12 py-8">Board Profile</th>
+                             <th className="px-12 py-8 text-center">Artifact Count</th>
+                             <th className="px-12 py-8">Status Signals</th>
+                             <th className="px-12 py-8 text-right">Operations</th>
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-white/5">
@@ -188,7 +186,7 @@ export default function SimulationFactoryPage() {
                                </td>
                                <td className="px-12 py-8 text-center">
                                   <p className="text-sm font-black text-white">{m.totalQuestions || 0} Qs</p>
-                                  <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{m.attemptCount || 0} Aspirants</p>
+                                  <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{m.attemptCount || 0} Attempts</p>
                                </td>
                                <td className="px-12 py-8">
                                   <div className="flex flex-col gap-2">
@@ -248,23 +246,3 @@ export default function SimulationFactoryPage() {
   );
 }
 
-function LayersIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.1 6.27a2 2 0 0 0 0 3.46l9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09a2 2 0 0 0 0-3.46z" />
-      <path d="m2.1 14.73 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09" />
-      <path d="m2.1 19.16 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09" />
-    </svg>
-  )
-}

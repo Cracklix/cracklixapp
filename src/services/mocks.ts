@@ -23,11 +23,10 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /**
- * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Testbook Standard)
- * Enhanced v6: Pattern-Aware Injection, Sovereign Subcollections, and Index-Free Loading.
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade)
+ * Strictly using the sovereign subcollection pattern for simulation questions.
  */
 
-// 1. REGISTRY OPERATIONS
 export async function getAllMocks(): Promise<MockTest[]> {
   try {
     const q = query(collection(db, 'mocks'), orderBy('createdAt', 'desc'), limit(100));
@@ -71,7 +70,6 @@ export async function duplicateMock(mockId: string) {
   if (!original) throw new Error("Source simulation artifact not found.");
 
   const { id, ...data } = original;
-  // 1. Create Mock Metadata Clone
   const newMockRef = await addDoc(collection(db, 'mocks'), {
     ...data,
     title: `${data.title} (Clone)`,
@@ -81,7 +79,6 @@ export async function duplicateMock(mockId: string) {
     updatedAt: Date.now()
   });
 
-  // 2. Clone Subcollection Questions
   const questions = await getMockQuestions(mockId);
   if (questions.length > 0) {
     const batch = writeBatch(db);
@@ -95,8 +92,6 @@ export async function duplicateMock(mockId: string) {
       });
     });
     await batch.commit();
-    
-    // Update count in clone metadata
     await updateDoc(newMockRef, { totalQuestions: questions.length });
   }
 
@@ -106,87 +101,19 @@ export async function duplicateMock(mockId: string) {
 export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
-  
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
-  
   batch.delete(mockRef);
   return batch.commit();
 }
 
-// 2. ARTIFACT MANAGEMENT (Sovereign Subcollection Pattern)
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
-  // Index-Free Loading: Handle sorting in memory for maximum stability
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const snap = await getDocs(colRef);
-  
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-export function subscribeMockQuestions(mockId: string, callback: (questions: Question[]) => void) {
-  const colRef = collection(db, 'mocks', mockId, 'questions');
-  
-  return onSnapshot(colRef, (snap) => {
-    const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
-    callback(questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-  }, (error) => {
-    console.warn("[MockService] Questions sync suspended:", error.message);
-  });
-}
-
-export async function addQuestionToMock(mockId: string, question: Partial<Question>) {
-  if (!question.id) throw new Error("Artifact identity missing.");
-
-  const mockRef = doc(db, 'mocks', mockId);
-  const qRef = doc(db, 'mocks', mockId, 'questions', question.id);
-  
-  const existing = await getDoc(qRef);
-  if (existing.exists()) {
-    throw new Error("Artifact already linked to this simulation.");
-  }
-
-  let fullPayload = question;
-  if (!question.en || !question.correctAnswer) {
-    const globalSnap = await getDoc(doc(db, 'questions', question.id));
-    if (globalSnap.exists()) {
-      fullPayload = { ...globalSnap.data(), id: question.id };
-    }
-  }
-
-  const batch = writeBatch(db);
-  batch.set(qRef, { 
-    ...fullPayload, 
-    order: Date.now(),
-    updatedAt: Date.now() 
-  });
-  batch.update(mockRef, { 
-    totalQuestions: increment(1), 
-    updatedAt: Date.now() 
-  });
-
-  return batch.commit();
-}
-
-export async function linkGlobalToMock(mockId: string, globalQuestionId: string) {
-  const qSnap = await getDoc(doc(db, 'questions', globalQuestionId));
-  if (!qSnap.exists()) throw new Error("Global artifact not found.");
-  return addQuestionToMock(mockId, { id: globalQuestionId, ...qSnap.data() });
-}
-
-export async function deleteMockQuestion(mockId: string, questionId: string) {
-  const batch = writeBatch(db);
-  batch.delete(doc(db, 'mocks', mockId, 'questions', questionId));
-  batch.update(doc(db, 'mocks', mockId), { totalQuestions: increment(-1), updatedAt: Date.now() });
-  return batch.commit();
-}
-
-export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
-  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
-  return updateDoc(qRef, { ...updates, updatedAt: Date.now() });
-}
-
-// 3. CBT OPERATIONS
 export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
   const attemptRef = await addDoc(collection(db, 'attempts'), {
     userId,
@@ -244,7 +171,6 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
 
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
   if (mock.accessType === 'free') return { allowed: true };
-  
   const userSnap = await getDoc(doc(db, 'users', userId));
   const userData = userSnap.data();
   if (userData?.role === 'admin' || userData?.role === 'superadmin') return { allowed: true };
@@ -260,13 +186,10 @@ export async function getMockAnalytics(mockId: string) {
   const q = query(collection(db, 'attempts'), where('mockId', '==', mockId));
   const snap = await getDocs(q);
   const attempts = snap.docs.map(d => d.data());
-  
   if (attempts.length === 0) return { totalAttempts: 0, avgScore: 0, avgAccuracy: 0 };
-  
   const total = attempts.length;
   const avgScore = attempts.reduce((acc, curr: any) => acc + (curr.score || 0), 0) / total;
   const avgAccuracy = attempts.reduce((acc, curr: any) => acc + (curr.accuracy || 0), 0) / total;
-  
   return {
     totalAttempts: total,
     avgScore: Number(avgScore.toFixed(2)),
