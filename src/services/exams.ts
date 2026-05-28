@@ -8,20 +8,24 @@ export interface ExamCategory {
   id: string;
   name: string;
   icon: string;
-  category: string; // 'National' | 'State'
+  category: string; // 'Punjab'
   totalMocks: number;
   activeStudents: number;
   premium: boolean;
   createdAt: number;
 }
 
-export async function getAllExams(type?: string) {
+/**
+ * Strictly focused on Punjab Government Exams.
+ */
+export async function getAllExams() {
   const examsRef = collection(db, 'exams');
-  let q = query(examsRef, orderBy('createdAt', 'desc'));
-  
-  if (type) {
-    q = query(examsRef, where('category', '==', type), orderBy('createdAt', 'desc'));
-  }
+  // Filters to ensure only Punjab context exams are fetched
+  const q = query(
+    examsRef, 
+    where('category', '==', 'Punjab'), 
+    orderBy('createdAt', 'desc')
+  );
 
   const snapshot = await getDocs(q);
 
@@ -31,10 +35,6 @@ export async function getAllExams(type?: string) {
   })) as ExamCategory[];
 }
 
-export async function getNationalExams() {
-  return getAllExams('National');
-}
-
-export async function getStateExams() {
-  return getAllExams('State');
+export async function getPunjabExams() {
+  return getAllExams();
 }

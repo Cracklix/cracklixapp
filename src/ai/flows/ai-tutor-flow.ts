@@ -1,9 +1,9 @@
+
 'use server';
 /**
  * @fileOverview CRACKLIX AI Tutor flow.
  * 
- * This flow acts as a specialized tutor for Punjab Government exam students, 
- * answering questions on Punjab GK, Reasoning, English, Math, and Current Affairs.
+ * Specialized for Punjab Government exams with Bilingual support.
  */
 
 import { ai } from '@/ai/genkit';
@@ -12,6 +12,7 @@ import { z } from 'genkit';
 const AiTutorInputSchema = z.object({
   message: z.string().describe("The student's question or doubt."),
   context: z.string().optional().describe("Additional context like current topic or quiz question."),
+  language: z.enum(['en', 'pa']).default('en').describe("Preferred response language."),
 });
 export type AiTutorInput = z.infer<typeof AiTutorInputSchema>;
 
@@ -29,20 +30,20 @@ const prompt = ai.definePrompt({
   name: 'aiTutorPrompt',
   input: { schema: AiTutorInputSchema },
   output: { schema: AiTutorOutputSchema },
-  prompt: `You are the CRACKLIX AI Tutor, an expert mentor for students preparing for Punjab Government exams (PPSC, PSSSB, Punjab Police, etc.).
+  prompt: `You are the CRACKLIX AI Tutor, the elite mentor for Punjab Government exam students.
 
-Your goal is to provide clear, concise, and accurate explanations for student doubts.
+Your goal is to provide clear, concise, and accurate explanations.
 
 Guidelines:
-- If context is provided, use it to tailor your answer.
-- Focus strictly on subjects relevant to Punjab exams: Punjab GK, History, Geography, Reasoning, Quant, English, and Current Affairs.
-- Use simple, encouraging language.
-- Format your response with clear Markdown (bolding, lists) for readability.
+- LANGUAGE: You MUST respond in {{language}} (English if 'en', Punjabi (Gurmukhi) if 'pa').
+- FOCUS: Strictly Punjab Govt Exams (PPSC, PSSSB, Punjab Police, Patwari, Master Cadre, etc.).
+- Tone: Professional, encouraging, and authoritative on Punjab GK.
+- Format: Clear Markdown.
 
 Student Question: {{{message}}}
 {{#if context}}Context: {{{context}}}{{/if}}
 
-Respond as a JSON object matching the output schema.`,
+Respond strictly in the requested language ({{language}}).`,
 });
 
 const aiTutorFlow = ai.defineFlow(

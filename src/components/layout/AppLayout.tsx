@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useI18n } from '@/app/lib/i18n-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import LanguageSwitcher from '@/components/language-switcher';
 
 const SidebarItem = ({ href, icon: Icon, label, active }: { href: string, icon: any, label: string, active: boolean }) => (
   <Link href={href}>
@@ -47,6 +49,7 @@ const SidebarItem = ({ href, icon: Icon, label, active }: { href: string, icon: 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth();
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setSidebarOpen] = React.useState(true);
@@ -73,14 +76,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+    { href: '/dashboard', icon: LayoutDashboard, label: t('home') },
     { href: '/live', icon: Radio, label: 'Live' },
-    { href: '/exams', icon: BookOpen, label: 'Mocks' },
-    { href: '/jobs', icon: Briefcase, label: 'Jobs' },
-    { href: '/marketplace', icon: ShoppingBag, label: 'Market' },
-    { href: '/referral', icon: Gift, label: 'Invites' },
-    { href: '/leaderboard', icon: Trophy, label: 'Rank' },
-    { href: '/ai', icon: BrainCircuit, label: 'AI Coach' },
+    { href: '/exams', icon: BookOpen, label: t('mocks') },
+    { href: '/jobs', icon: Briefcase, label: t('jobs') },
+    { href: '/marketplace', icon: ShoppingBag, label: t('market') },
+    { href: '/referral', icon: Gift, label: t('invites') },
+    { href: '/leaderboard', icon: Trophy, label: t('leaderboard') },
+    { href: '/ai', icon: BrainCircuit, label: t('ai_coach') },
   ];
 
   return (
@@ -159,16 +162,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Search className="w-4 h-4 text-zinc-500 mr-3" />
               <input 
                 type="text" 
-                placeholder="Search exams, news..." 
+                placeholder={t('search_placeholder')} 
                 className="bg-transparent border-none outline-none text-sm w-full placeholder:text-zinc-600 font-medium"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-6">
+            <LanguageSwitcher />
+            
             <div className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-full bg-white/[0.03] border border-white/5">
                <Sparkles className="w-4 h-4 text-accent" />
-               <span className="text-[10px] font-black uppercase tracking-widest text-accent">Pro Status</span>
+               <span className="text-[10px] font-black uppercase tracking-widest text-accent">{t('pro_status')}</span>
             </div>
             
             <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-white/5">
@@ -179,7 +184,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-4 pl-6 border-l border-white/5">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-black tracking-tight">{profile?.name || 'Aspirant'}</p>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{profile?.streak || 0} DAY STREAK 🔥</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{profile?.streak || 0} {t('streak')} 🔥</p>
               </div>
               <Avatar className="w-12 h-12 border-2 border-primary/20 p-0.5">
                 <AvatarImage src={`https://picsum.photos/seed/${profile?.uid}/200`} className="rounded-full" />

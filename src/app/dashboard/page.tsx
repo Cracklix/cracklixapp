@@ -2,6 +2,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import { useI18n } from '@/app/lib/i18n-context';
 import HeroCard from '@/components/dashboard/hero-card';
 import Navbar from '@/components/navbar';
 import AppLayout from '@/components/layout/AppLayout';
@@ -23,11 +24,12 @@ import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
 
   return (
     <AppLayout>
       <div className="space-y-10 pb-24">
-        {/* SaaS Welcome Section */}
+        {/* Punjab Welcome Section */}
         <div className="flex flex-col lg:flex-row gap-10 items-start">
           <div className="flex-1 w-full">
              {profile && (
@@ -48,8 +50,8 @@ export default function DashboardPage() {
                 <CardContent className="p-8">
                   <div className="flex justify-between items-start mb-8">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 mb-1">National Performance</p>
-                      <h3 className="text-3xl font-black">Rank #842</h3>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 mb-1">{t('punjab_rank')}</p>
+                      <h3 className="text-3xl font-black">#842</h3>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center blue-glow">
                        <Globe className="text-white w-6 h-6" />
@@ -57,7 +59,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-4">
                      <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                       <span className="text-zinc-500">Global Percentile</span>
+                       <span className="text-zinc-500">Percentile</span>
                        <span className="text-white">92.4%</span>
                      </div>
                      <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden">
@@ -70,12 +72,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Center Column */}
           <div className="lg:col-span-8 space-y-10">
             
             <ReadinessPredictor />
 
-            {/* Quick Actions Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                <Card className="rounded-[40px] cracklix-glass overflow-hidden border-none relative group cursor-pointer h-64">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent group-hover:from-primary/30 transition-all duration-500" />
@@ -83,9 +83,9 @@ export default function DashboardPage() {
                     <BrainCircuit size={240} />
                   </div>
                   <CardHeader className="p-8 relative">
-                    <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-4 px-3 py-1 font-black uppercase tracking-widest text-[10px]">v4.0 NATIONAL</Badge>
-                    <CardTitle className="text-3xl font-black tracking-tight">AI Command<br />Center</CardTitle>
-                    <CardDescription className="text-zinc-500 mt-2 font-medium">Multimodal AI Mentorship</CardDescription>
+                    <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-4 px-3 py-1 font-black uppercase tracking-widest text-[10px]">PUNJAB CORE v4</Badge>
+                    <CardTitle className="text-3xl font-black tracking-tight">{t('ai_command_center')}</CardTitle>
+                    <CardDescription className="text-zinc-500 mt-2 font-medium">Bilingual AI Mentorship</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8 pt-0 relative">
                      <Link href="/ai-lab">
@@ -96,10 +96,10 @@ export default function DashboardPage() {
 
                <div className="grid grid-cols-2 gap-4">
                   {[
-                    { label: "JOBS", icon: Briefcase, href: "/jobs", color: "text-emerald-400" },
-                    { label: "REWARDS", icon: Gift, href: "/referral", color: "text-orange-400" },
-                    { label: "ANALYTICS", icon: TrendingUp, href: "/profile", color: "text-red-400" },
-                    { label: "SIMULATOR", icon: Sparkles, href: "/exams", color: "text-accent" },
+                    { label: t('jobs').toUpperCase(), icon: Briefcase, href: "/jobs", color: "text-emerald-400" },
+                    { label: "COINS", icon: Gift, href: "/referral", color: "text-orange-400" },
+                    { label: t('leaderboard').toUpperCase(), icon: Trophy, href: "/leaderboard", color: "text-red-400" },
+                    { label: "MOCKS", icon: Sparkles, href: "/exams", color: "text-accent" },
                   ].map((tool, i) => (
                     <Link key={i} href={tool.href}>
                       <motion.div 
@@ -123,19 +123,18 @@ export default function DashboardPage() {
                   <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-8 cyan-glow">
                     <BookOpen className="text-accent w-7 h-7" />
                   </div>
-                  <h3 className="text-3xl font-black mb-3">National<br />Exams</h3>
-                  <p className="text-sm text-zinc-500 leading-relaxed max-w-[220px]">Explore UPSC, SSC, and Banking simulations.</p>
+                  <h3 className="text-3xl font-black mb-3">Punjab<br />Mastery</h3>
+                  <p className="text-sm text-zinc-500 leading-relaxed max-w-[220px]">Targeted preparation for PPSC & PSSSB.</p>
                 </div>
                 <Link href="/exams">
                   <Button variant="outline" className="w-full rounded-2xl h-14 border-accent/20 text-accent font-black tracking-tight mt-8 hover:bg-accent hover:text-black transition-all">
-                    Browse All Exams
+                    {t('all_exams')}
                   </Button>
                 </Link>
               </Card>
             </div>
           </div>
 
-          {/* Right Sidebar */}
           <div className="lg:col-span-4 space-y-10">
             <StudyTimer />
             <NotificationPanel />
@@ -144,12 +143,8 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      {/* PWA Install Trigger */}
       <InstallPrompt />
-      
-      {/* Floating Support Hub */}
       <SupportTrigger />
-      
       <Navbar />
     </AppLayout>
   );

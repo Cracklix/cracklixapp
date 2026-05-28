@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
+import { LocaleProvider } from '@/app/lib/i18n-context';
 import { Toaster } from '@/components/ui/toaster';
 
 export const viewport: Viewport = {
@@ -53,8 +54,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground min-h-screen">
         <AuthProvider>
-          {children}
-          <Toaster />
+          <LocaleProvider>
+            {children}
+            <Toaster />
+          </LocaleProvider>
         </AuthProvider>
       </body>
     </html>
