@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -48,7 +49,7 @@ function QuestionBankContent() {
   const router = useRouter();
   const view = searchParams.get('view') || 'published';
   
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState<string>("All");
   const [search, setSearch] = useState("");
@@ -56,7 +57,7 @@ function QuestionBankContent() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Edit Modal State
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -83,7 +84,7 @@ function QuestionBankContent() {
       }
       
       const snap = await getDocs(q);
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       docs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setQuestions(docs);
     } catch (e: any) {
@@ -93,12 +94,50 @@ function QuestionBankContent() {
     }
   }
 
-  const handleEdit = (q: Question) => {
+  // Data Normalization Helpers
+  const getQuestionText = (q: any, lang: 'en' | 'pa') => {
+    if (lang === 'en') return q.en?.question || q.question_en || "English content missing.";
+    return q.pa?.question || q.question_pa || "Raavi signal missing.";
+  };
+
+  const getOptions = (q: any, lang: 'en' | 'pa') => {
+    if (lang === 'en') return q.en?.options || q.options_en || [];
+    return q.pa?.options || q.options_pa || [];
+  };
+
+  const getExplanation = (q: any, lang: 'en' | 'pa') => {
+    if (lang === 'en') return q.en?.explanation || q.explanation_en || "";
+    return q.pa?.explanation || q.explanation_pa || "";
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Confirm complete purging of this academic asset?")) return;
+    try {
+      await deleteDoc(doc(db, "questions", id));
+      setQuestions(prev => prev.filter(q => q.id !== id));
+      toast({ title: "Artifact Purged", description: "The question has been removed from the repository." });
+    } catch (e: any) {
+      toast({ title: "Purge Failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleEdit = (q: any) => {
     // Deep clone to avoid immediate state mutation
     const qClone = JSON.parse(JSON.stringify(q));
-    // Ensure pa object exists for editing
+    // Ensure nested objects exist for editing terminal
+    if (!qClone.en) {
+      qClone.en = { 
+        question: qClone.question_en || "", 
+        options: qClone.options_en || ["", "", "", ""], 
+        explanation: qClone.explanation_en || "" 
+      };
+    }
     if (!qClone.pa) {
-      qClone.pa = { question: "", options: ["", "", "", ""], explanation: "" };
+      qClone.pa = { 
+        question: qClone.question_pa || "", 
+        options: qClone.options_pa || ["", "", "", ""], 
+        explanation: qClone.explanation_pa || "" 
+      };
     }
     setEditingQuestion(qClone);
     setIsEditOpen(true);
@@ -123,7 +162,7 @@ function QuestionBankContent() {
     }
   };
 
-  const handleClone = async (q: Question) => {
+  const handleClone = async (q: any) => {
     const { id, ...data } = q;
     try {
       await addDoc(collection(db, "questions"), {
@@ -158,11 +197,12 @@ function QuestionBankContent() {
     toast({ title: "Status Updated", description: `Artifact moved to ${next}.` });
   }
 
-  const filtered = questions.filter(q => 
-    q.en?.question?.toLowerCase().includes(search.toLowerCase()) ||
-    q.pa?.question?.toLowerCase().includes(search.toLowerCase()) ||
-    q.subject?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = questions.filter(q => {
+    const enQ = getQuestionText(q, 'en').toLowerCase();
+    const paQ = getQuestionText(q, 'pa').toLowerCase();
+    const sub = (q.subject || "").toLowerCase();
+    return enQ.includes(search.toLowerCase()) || paQ.includes(search.toLowerCase()) || sub.includes(search.toLowerCase());
+  });
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 pb-32">
@@ -264,10 +304,10 @@ function QuestionBankContent() {
                           </td>
                           <td className="px-8 py-6 max-w-2xl align-top">
                             <div className="flex items-center gap-2 mb-1.5">
-                               <p className="text-sm font-bold text-white line-clamp-1 leading-relaxed">{q.en?.question}</p>
+                               <p className="text-sm font-bold text-white line-clamp-1 leading-relaxed">{getQuestionText(q, 'en')}</p>
                                {expandedId !== q.id ? <ChevronDown size={14} className="text-zinc-700" /> : <ChevronUp size={14} className="text-primary" />}
                             </div>
-                            <p className="text-xs text-zinc-500 line-clamp-1 italic font-medium">{q.pa?.question || "Raavi signal missing."}</p>
+                            <p className="text-xs text-zinc-500 line-clamp-1 italic font-medium">{getQuestionText(q, 'pa')}</p>
                           </td>
                           <td className="px-8 py-6 align-top">
                             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -277,46 +317,39 @@ function QuestionBankContent() {
                             </div>
                             <div className="flex items-center gap-2">
                                <p className="text-[8px] text-zinc-700 font-bold uppercase tracking-widest">#{q.id.substring(0, 8)}</p>
-                               {!q.pa?.question && <Badge className="bg-orange-500/10 text-orange-500 border-none text-[6px] h-3 uppercase">NO PA</Badge>}
+                               {!q.pa?.question && !q.question_pa && <Badge className="bg-orange-500/10 text-orange-500 border-none text-[6px] h-3 uppercase">NO PA</Badge>}
                             </div>
                           </td>
                           <td className="px-8 py-6 text-right align-top">
                             <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
-                                <Button 
+                                <button 
                                   onClick={(e) => { e.stopPropagation(); handleEdit(q); }}
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 rounded-xl hover:bg-primary/10 text-primary"
+                                  className="h-8 w-8 rounded-xl hover:bg-primary/10 text-primary flex items-center justify-center transition-colors"
                                   title="Edit Artifact"
                                 >
                                   <Edit3 className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button 
+                                </button>
+                                <button 
                                   onClick={(e) => { e.stopPropagation(); handleClone(q); }}
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 rounded-xl hover:bg-blue-600/10 text-blue-500"
+                                  className="h-8 w-8 rounded-xl hover:bg-blue-600/10 text-blue-500 flex items-center justify-center transition-colors"
                                   title="Clone Artifact"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button 
+                                </button>
+                                <button 
                                   onClick={(e) => { e.stopPropagation(); toggleStatus(q.id, q.status); }}
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 rounded-xl hover:bg-emerald-500/10 text-emerald-500"
+                                  className="h-8 w-8 rounded-xl hover:bg-emerald-500/10 text-emerald-500 flex items-center justify-center transition-colors"
                                   title={q.status === 'published' ? "Move to Staging" : "Approve Artifact"}
                                 >
                                   {q.status === 'published' ? <RefreshCw className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                </Button>
-                                <Button 
-                                  onClick={(e) => { e.stopPropagation(); if(confirm('Purge this academic asset?')) deleteDoc(doc(db, 'questions', q.id)); }}
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 rounded-xl hover:bg-destructive/10 text-destructive"
+                                </button>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(q.id); }}
+                                  className="h-8 w-8 rounded-xl hover:bg-destructive/10 text-destructive flex items-center justify-center transition-colors"
+                                  title="Delete Artifact"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
+                                </button>
                             </div>
                           </td>
                       </tr>
@@ -326,9 +359,9 @@ function QuestionBankContent() {
                               <div className="grid grid-cols-2 gap-16">
                                  <div className="space-y-6">
                                     <Badge className="bg-blue-600 text-white border-none text-[8px] font-black uppercase">Primary Payload (EN)</Badge>
-                                    <p className="text-xl font-bold leading-relaxed">{q.en?.question}</p>
+                                    <p className="text-xl font-bold leading-relaxed">{getQuestionText(q, 'en')}</p>
                                     <div className="grid gap-3">
-                                       {q.en?.options.map((opt, i) => (
+                                       {getOptions(q, 'en').map((opt: string, i: number) => (
                                          <div key={i} className={cn("p-4 rounded-2xl text-sm border", opt === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500")}>
                                             {String.fromCharCode(65+i)}. {opt}
                                          </div>
@@ -336,14 +369,14 @@ function QuestionBankContent() {
                                     </div>
                                     <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
                                        <p className="text-[8px] font-black uppercase text-zinc-500 tracking-widest mb-2">Rationalization</p>
-                                       <p className="text-sm text-zinc-300 leading-relaxed italic">{q.en?.explanation || "No explanation provided."}</p>
+                                       <p className="text-sm text-zinc-300 leading-relaxed italic">{getExplanation(q, 'en') || "No explanation provided."}</p>
                                     </div>
                                  </div>
                                  <div className="space-y-6 border-l border-white/5 pl-16">
                                     <Badge className="bg-orange-600 text-white border-none text-[8px] font-black uppercase">Raavi Translation (PA)</Badge>
-                                    <p className="text-xl font-medium text-zinc-300 leading-relaxed">{q.pa?.question || "Artifact un-translated."}</p>
+                                    <p className="text-xl font-medium text-zinc-300 leading-relaxed">{getQuestionText(q, 'pa')}</p>
                                     <div className="grid gap-3">
-                                       {q.pa?.options.map((opt, i) => (
+                                       {getOptions(q, 'pa').map((opt: string, i: number) => (
                                          <div key={i} className="p-4 rounded-2xl text-sm bg-black/40 border border-white/5 text-zinc-500">
                                             {opt || "Missing signal."}
                                          </div>
@@ -351,7 +384,7 @@ function QuestionBankContent() {
                                     </div>
                                     <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
                                        <p className="text-[8px] font-black uppercase text-zinc-500 tracking-widest mb-2">ਵਿਆਖਿਆ</p>
-                                       <p className="text-sm text-zinc-400 leading-relaxed">{q.pa?.explanation || "No Raavi explanation detected."}</p>
+                                       <p className="text-sm text-zinc-400 leading-relaxed">{getExplanation(q, 'pa') || "No Raavi explanation detected."}</p>
                                     </div>
                                  </div>
                               </div>
@@ -398,15 +431,15 @@ function QuestionBankContent() {
                    <>
                      <TabsContent value="en" className="m-0 space-y-8">
                         <div className="space-y-3">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Question Narrative (EN)</label>
+                           <label className="text-[10px] font-black uppercase text-zinc-300 tracking-widest px-2">Question Narrative (EN)</label>
                            <Textarea 
-                             value={editingQuestion.en.question} 
+                             value={editingQuestion.en?.question} 
                              onChange={e => setEditingQuestion({...editingQuestion, en: {...editingQuestion.en, question: e.target.value}})}
                              className="min-h-[160px] bg-zinc-900/50 border-white/10 rounded-3xl p-8 text-lg font-bold leading-relaxed"
                            />
                         </div>
                         <div className="grid md:grid-cols-2 gap-6">
-                           {editingQuestion.en.options.map((opt, i) => (
+                           {editingQuestion.en?.options.map((opt: string, i: number) => (
                              <div key={i} className="space-y-2">
                                 <label className="text-[9px] font-black text-zinc-600 uppercase px-2">Option {String.fromCharCode(65+i)}</label>
                                 <Input 
@@ -424,7 +457,7 @@ function QuestionBankContent() {
                         <div className="space-y-3">
                            <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Logical Explanation (EN)</label>
                            <Textarea 
-                             value={editingQuestion.en.explanation} 
+                             value={editingQuestion.en?.explanation} 
                              onChange={e => setEditingQuestion({...editingQuestion, en: {...editingQuestion.en, explanation: e.target.value}})}
                              className="min-h-[120px] bg-zinc-900/50 border-white/10 rounded-3xl p-6 text-sm"
                            />
@@ -433,7 +466,7 @@ function QuestionBankContent() {
 
                      <TabsContent value="pa" className="m-0 space-y-8">
                         <div className="space-y-3">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">ਪ੍ਰਸ਼ਨ (Raavi Punjabi)</label>
+                           <label className="text-[10px] font-black uppercase text-zinc-300 tracking-widest px-2">ਪ੍ਰਸ਼ਨ (Raavi Punjabi)</label>
                            <Textarea 
                              value={editingQuestion.pa?.question} 
                              onChange={e => setEditingQuestion({...editingQuestion, pa: {...editingQuestion.pa!, question: e.target.value}})}
