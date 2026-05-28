@@ -49,9 +49,47 @@ export async function updateMock(mockId: string, updates: Partial<MockTest>) {
   const ref = doc(db, 'mocks', mockId);
   return updateDoc(ref, { ...updates, updatedAt: Date.now() })
     .catch(async (e) => {
-      const pErr = new FirestorePermissionError({ path: ref.path, operation: 'update', requestResourceData: updates });
+      const pErr = new FirestorePermissionError({ 
+        path: ref.path, 
+        operation: 'update', 
+        requestResourceData: updates 
+      });
       errorEmitter.emit('permission-error', pErr);
     });
+}
+
+export async function publishMock(mockId: string, publish: boolean) {
+  return updateMock(mockId, { status: publish ? 'published' : 'draft' });
+}
+
+export async function duplicateMock(mockId: string) {
+  const original = await getMockDetails(mockId);
+  if (!original) throw new Error("Source simulation artifact not found.");
+
+  const { id, ...data } = original;
+  // 1. Create Mock Metadata Clone
+  const newMockRef = await addDoc(collection(db, 'mocks'), {
+    ...data,
+    title: `${data.title} (Clone)`,
+    status: 'draft',
+    attemptCount: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  });
+
+  // 2. Clone Subcollection Questions
+  const questions = await getMockQuestions(mockId);
+  if (questions.length > 0) {
+    const batch = writeBatch(db);
+    questions.forEach(q => {
+      const { id: oldId, ...qData } = q;
+      const newQRef = doc(collection(db, 'mocks', newMockRef.id, 'questions'));
+      batch.set(newQRef, { ...qData, createdAt: Date.now() });
+    });
+    await batch.commit();
+  }
+
+  return newMockRef.id;
 }
 
 export async function deleteMock(mockId: string) {
@@ -82,23 +120,17 @@ export function subscribeMockQuestions(mockId: string, callback: (questions: Que
   });
 }
 
-/**
- * ADD QUESTION TO MOCK
- * Enhanced v4: Full schema porting and duplication check
- */
 export async function addQuestionToMock(mockId: string, question: Partial<Question>) {
   if (!question.id) throw new Error("Artifact identity missing.");
 
   const mockRef = doc(db, 'mocks', mockId);
   const qRef = doc(db, 'mocks', mockId, 'questions', question.id);
   
-  // 1. Check if already exists in this mock to prevent repeats
   const existing = await getDoc(qRef);
   if (existing.exists()) {
     throw new Error("Artifact already linked to this simulation.");
   }
 
-  // 2. Fetch full schema if only partial was passed
   let fullPayload = question;
   if (!question.en || !question.correctAnswer) {
     const globalSnap = await getDoc(doc(db, 'questions', question.id));
@@ -107,7 +139,6 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
     }
   }
 
-  // 3. Atomically add to mock and increment count
   const batch = writeBatch(db);
   batch.set(qRef, { 
     ...fullPayload, 
@@ -164,7 +195,11 @@ export function saveAnswer(attemptId: string, questionIndex: number, answer: Att
   const ref = doc(db, 'attempts', attemptId, 'answers', questionIndex.toString());
   setDoc(ref, answer, { merge: true })
     .catch(async (e) => {
-      const pErr = new FirestorePermissionError({ path: ref.path, operation: 'write', requestResourceData: answer });
+      const pErr = new FirestorePermissionError({ 
+        path: ref.path, 
+        operation: 'write', 
+        requestResourceData: answer 
+      });
       errorEmitter.emit('permission-error', pErr);
     });
 }
@@ -177,7 +212,6 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     ...analytics
   });
 
-  // Global Stat Updates
   const xpGain = Math.round(analytics.score || 10);
   await updateDoc(doc(db, 'users', userId), {
     xp: increment(xpGain),
