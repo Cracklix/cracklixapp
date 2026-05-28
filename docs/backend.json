@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -70,6 +69,45 @@
         "plan": { "type": "string" },
         "createdAt": { "type": "number" }
       }
+    },
+    "LiveTest": {
+      "title": "Live Test",
+      "description": "A high-stakes scheduled test competition.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "exam": { "type": "string" },
+        "startTime": { "type": "number" },
+        "endTime": { "type": "number" },
+        "duration": { "type": "number" },
+        "questions": { "type": "number" },
+        "participants": { "type": "number" },
+        "live": { "type": "boolean" }
+      }
+    },
+    "LiveRank": {
+      "title": "Live Rank",
+      "description": "Real-time ranking entry for a live competition.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "score": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "lastUpdated": { "type": "number" }
+      }
+    },
+    "BattleRoom": {
+      "title": "Battle Room",
+      "description": "A 1v1 quiz battle room.",
+      "type": "object",
+      "properties": {
+        "player1": { "type": "string" },
+        "player2": { "type": "string" },
+        "topic": { "type": "string" },
+        "winner": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting", "live", "finished"] }
+      }
     }
   },
   "auth": {
@@ -95,6 +133,18 @@
     "/revisionPlans/{userId}": {
       "schema": "RevisionPlan",
       "description": "Personalized revision strategies."
+    },
+    "/liveTests/{id}": {
+      "schema": "LiveTest",
+      "description": "Scheduled competitions."
+    },
+    "/liveRanks/{id}": {
+      "schema": "LiveRank",
+      "description": "Real-time competition rankings."
+    },
+    "/battleRooms/{id}": {
+      "schema": "BattleRoom",
+      "description": "1v1 competition rooms."
     }
   }
 }
