@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -17,7 +16,8 @@ import {
   BookOpen,
   Timer,
   CreditCard,
-  ArrowRight
+  ArrowRight,
+  LayoutGrid
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
