@@ -19,9 +19,9 @@ interface QuestionCardProps {
 }
 
 /**
- * PRODUCTION BILINGUAL RENDERER v30.0
- * Pure vertical stack layout for English and Punjabi (Raavi font).
- * Font: 30px (Desktop) / 22px (Mobile)
+ * PRODUCTION BILINGUAL RENDERER v30.1
+ * Defensive property access to prevent crashes with malformed data.
+ * Standardized Language Keys: 'english', 'punjabi', 'bilingual'.
  */
 export default function QuestionCard({
   question,
@@ -33,6 +33,8 @@ export default function QuestionCard({
   const { user, profile } = useAuth();
   const { toast } = useToast();
 
+  if (!question) return null;
+
   const isBookmarked = profile?.bookmarks?.some(b => b.id === question.id);
 
   const toggleBookmark = async () => {
@@ -41,7 +43,7 @@ export default function QuestionCard({
       await updateDoc(doc(db, "users", user.uid), {
         bookmarks: arrayUnion({
           id: question.id,
-          text: question.en.question,
+          text: question.en?.question || "Bilingual Artifact",
           subject: question.subject,
           savedAt: Date.now()
         })
@@ -59,7 +61,7 @@ export default function QuestionCard({
       {/* QUESTION PAYLOAD */}
       <div className="space-y-8">
          {/* English Header */}
-         {(activeLanguage === 'english' || isBilingual) && (
+         {(activeLanguage === 'english' || isBilingual) && question.en && (
             <div className="text-[30px] font-bold text-slate-800 leading-[1.5] max-md:text-[22px]">
                {question.en.question}
             </div>
@@ -75,7 +77,7 @@ export default function QuestionCard({
 
       {/* OPTION MATRIX (STACKED BILINGUAL) */}
       <div className="grid grid-cols-1 gap-5 pt-12 border-t border-slate-100">
-         {question.en.options.map((option, idx) => {
+         {(question.en?.options || []).map((option, idx) => {
            const letter = String.fromCharCode(65 + idx);
            const isOptionSelected = selected === letter;
            const paOption = question.pa?.options?.[idx];
