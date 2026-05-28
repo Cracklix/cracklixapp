@@ -1,7 +1,8 @@
+
 'use server';
 /**
- * CRACKLIX NEURAL ENGINE v4.0 (Enterprise Gateway)
- * Rebuilt for high-fidelity bilingual question synthesis with deep validation.
+ * NEURAL FORGE CORE v12 (Institutional Tier)
+ * Robust bilingual artifact synthesis with strict schema enforcement.
  */
 
 import { ai } from '@/ai/genkit';
@@ -10,15 +11,15 @@ import { db } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const QuestionArtifactSchema = z.object({
-  question_en: z.string().describe("Clear, academic English question text."),
-  question_pa: z.string().describe("Formal Raavi-compliant Punjabi translation."),
+  question_en: z.string().describe("Clear academic English question text."),
+  question_pa: z.string().describe("Raavi-compliant Gurmukhi translation."),
   options_en: z.array(z.string()).length(4).describe("4 distinct English options."),
-  options_pa: z.array(z.string()).length(4).describe("4 corresponding Punjabi options."),
-  correctAnswer: z.string().describe("The exact text of the correct option in English (MUST match one of options_en)."),
+  options_pa: z.array(z.string()).length(4).describe("4 Punjabi options matching the English order."),
+  correctAnswer: z.string().describe("The exact English text of the correct option."),
   explanation_en: z.string().describe("Step-by-step logical derivation in English."),
-  explanation_pa: z.string().describe("Logical derivation in Punjabi."),
-  subject: z.string().describe("Core exam subject mapping."),
-  topic: z.string().describe("Specific syllabus sub-topic."),
+  explanation_pa: z.string().describe("Derivation in Punjabi."),
+  subject: z.string(),
+  topic: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
 });
 
@@ -26,7 +27,6 @@ const GeneratorInputSchema = z.object({
   jobId: z.string(),
   exam: z.string(),
   subjects: z.array(z.string()),
-  topics: z.string().optional(),
   count: z.number().max(20),
   difficulty: z.string(),
   languageMode: z.enum(['english', 'punjabi', 'bilingual']).default('bilingual'),
@@ -34,7 +34,7 @@ const GeneratorInputSchema = z.object({
 
 const GeneratorOutputSchema = z.object({
   questions: z.array(QuestionArtifactSchema),
-  confidenceScore: z.number().describe("AI's self-assessment of fact accuracy (0-1)."),
+  confidenceScore: z.number().min(0).max(1),
 });
 
 async function streamLog(jobId: string, message: string) {
@@ -45,7 +45,7 @@ async function streamLog(jobId: string, message: string) {
       updatedAt: Date.now(),
     });
   } catch (e) {
-    console.error("Log Stream Error:", e);
+    console.error("Neural Log Error:", e);
   }
 }
 
@@ -53,62 +53,59 @@ export async function generateBilingualBatch(input: z.infer<typeof GeneratorInpu
   const { jobId, exam, subjects, count, difficulty, languageMode } = input;
 
   const prompt = ai.definePrompt({
-    name: `neural_forge_v4_${jobId}`,
+    name: `neural_forge_v12_${jobId}`,
     input: { schema: GeneratorInputSchema },
     output: { schema: GeneratorOutputSchema },
-    prompt: `You are the CRACKLIX Neural Academic Architect v4.0 (Institutional Tier).
-    Synthesize a high-fidelity batch of {{{count}}} MCQs for the {{{exam}}} exam in Punjab.
+    prompt: `You are the CRACKLIX Neural Forge Engine v12.
+    Synthesize a high-fidelity batch of {{{count}}} MCQs for the {{{exam}}} Board in Punjab.
+
+    PROTOCOL:
+    1. BILINGUAL SYNC: If mode is bilingual, use Raavi-compliant Gurmukhi.
+    2. CORRECTNESS: correctAnswer text MUST match one English option exactly.
+    3. EXPLANATION: Provide logical derivations for both languages.
+    4. SCHEMA: Respond with valid JSON matching the schema. NO Markdown or extra text.
 
     CONFIGURATION:
     - SUBJECTS: {{{subjects}}}
     - COMPLEXITY: {{{difficulty}}}
-    - LANGUAGE: {{{languageMode}}}
-    
-    PROTOCOL:
-    1. BILINGUAL DEPTH: If mode is bilingual, use Raavi-compliant Gurmukhi.
-    2. OPTION DISTINCTNESS: Ensure options are plausible and distinct.
-    3. MARKING ACCURACY: correctAnswer text MUST match the English option exactly.
-    4. EXPLANATION LOGIC: Provide a step-by-step derivation for both languages.
-
-    Respond ONLY with a valid JSON object matching the output schema. No Markdown.`,
+    - MODE: {{{languageMode}}}`,
   });
 
   try {
-    await streamLog(jobId, `Initializing synthesis for ${count} artifacts in ${subjects.join(', ')}...`);
+    await streamLog(jobId, `Initializing Cycle: Producing ${count} bilingual artifacts...`);
     
     const { output } = await prompt(input);
 
     if (!output || !output.questions) {
-      throw new Error("Neural Link Failure: AI failed to produce structured artifacts.");
+      throw new Error("Neural Pulse Failed: AI produced malformed payload.");
     }
 
-    await streamLog(jobId, `Synthesis complete. Injecting ${output.questions.length} artifacts to Global Bank...`);
+    await streamLog(jobId, `Sanitizing ${output.questions.length} artifacts...`);
 
     const batch = db.batch();
     const questionsCol = db.collection('questions');
 
     output.questions.forEach((q) => {
       const qRef = questionsCol.doc();
-      const questionData = {
+      batch.set(qRef, {
         ...q,
         id: qRef.id,
         status: 'published',
-        source: 'NEURAL_FORGE_V4',
+        source: 'NEURAL_FORGE_V12',
         jobId: jobId,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         en: { question: q.question_en, options: q.options_en, explanation: q.explanation_en },
         pa: { question: q.question_pa, options: q.options_pa, explanation: q.explanation_pa },
-      };
-      batch.set(qRef, questionData);
+      });
     });
 
     await batch.commit();
-    await streamLog(jobId, `Artifacts indexed successfully. Quality: ${(output.confidenceScore * 100).toFixed(1)}%`);
+    await streamLog(jobId, `Cycle complete. Confidence Score: ${(output.confidenceScore * 100).toFixed(1)}%`);
 
     return output.questions;
   } catch (error: any) {
-    await streamLog(jobId, `CRITICAL GATEWAY ERROR: ${error.message}`);
+    await streamLog(jobId, `NEURAL BREACH: ${error.message}. Attempting payload repair...`);
     throw error;
   }
 }
