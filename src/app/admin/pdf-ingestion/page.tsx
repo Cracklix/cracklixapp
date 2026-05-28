@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -59,14 +60,6 @@ export default function UniversalPdfIngestion() {
   const addLog = (msg: string) => {
     setLog(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 50)]);
   };
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selected = e.target.files?.[0];
-    if (selected) {
-      setFile(selected);
-      addLog(`Selected file: ${selected.name} (${(selected.size / (1024 * 1024)).toFixed(2)} MB)`);
-    }
-  }
 
   async function convertPageToImage(pdf: any, pageNum: number): Promise<string> {
     const page = await pdf.getPage(pageNum);
@@ -261,7 +254,7 @@ export default function UniversalPdfIngestion() {
                     
                     <div className="flex flex-col items-center gap-8 w-full max-w-lg">
                         <label className="w-full cursor-pointer p-6 md:p-8 rounded-[32px] bg-zinc-800/40 border border-white/5 flex items-center justify-center gap-6 font-bold hover:bg-zinc-800 transition-all text-base md:text-lg overflow-hidden">
-                          <input type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
+                          <input type="file" className="hidden" accept=".pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
                           <LayoutGrid className="text-zinc-500 w-6 h-6 shrink-0" />
                           <span className="truncate flex-1 text-left">{file ? file.name : "Select High-Volume PDF"}</span>
                         </label>

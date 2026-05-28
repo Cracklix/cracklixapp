@@ -1,3 +1,4 @@
+
 /**
  * CRACKLIX Global Type Definitions
  * Production-grade Architecture Layer v18.0 (Enterprise Standard)

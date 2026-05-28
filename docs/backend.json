@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -13,36 +14,75 @@
         "passExpiry": { "type": "number" },
         "purchasedTests": { "type": "array" },
         "languageMode": { "type": "string" },
+        "xp": { "type": "number" },
+        "streak": { "type": "number" },
         "createdAt": { "type": "number" },
         "updatedAt": { "type": "number" }
       }
     },
-    "TestSeries": {
-      "title": "Test Series",
-      "description": "Board-specific simulation clusters.",
+    "Question": {
+      "title": "Question",
+      "description": "Bilingual academic question artifact.",
+      "type": "object",
+      "properties": {
+        "en": { "type": "object", "properties": { "question": { "type": "string" }, "options": { "type": "array" }, "explanation": { "type": "string" }, "image": { "type": "string" } } },
+        "pa": { "type": "object", "properties": { "question": { "type": "string" }, "options": { "type": "array" }, "explanation": { "type": "string" } } },
+        "hi": { "type": "object", "properties": { "question": { "type": "string" }, "options": { "type": "array" }, "explanation": { "type": "string" } } },
+        "correctAnswer": { "type": "string" },
+        "subject": { "type": "string" },
+        "topic": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "marks": { "type": "number" },
+        "negativeMarks": { "type": "number" },
+        "status": { "type": "string" },
+        "source": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "MockTest": {
+      "title": "Mock Simulation",
+      "description": "Standardized computer-based test simulation.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
+        "exam": { "type": "string" },
         "category": { "type": "string" },
-        "thumbnail": { "type": "string" },
-        "totalTests": { "type": "number" },
-        "freeTests": { "type": "number" },
-        "price": { "type": "number" },
-        "passRequired": { "type": "string" },
-        "isActive": { "type": "boolean" }
+        "duration": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "negativeMarking": { "type": "number" },
+        "status": { "type": "string" },
+        "accessType": { "type": "string" },
+        "sections": { "type": "array" },
+        "createdAt": { "type": "number" }
       }
     },
-    "Transaction": {
-      "title": "Transaction Signal",
-      "description": "Audited preparation pass purchases.",
+    "ExamAttempt": {
+      "title": "Exam Attempt",
+      "description": "User specific session data for a mock test.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "amount": { "type": "number" },
-        "passType": { "type": "string" },
+        "mockId": { "type": "string" },
         "status": { "type": "string" },
-        "paymentId": { "type": "string" },
-        "createdAt": { "type": "number" }
+        "answers": { "type": "object" },
+        "timeSpent": { "type": "object" },
+        "score": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "startedAt": { "type": "number" },
+        "completedAt": { "type": "number" }
+      }
+    },
+    "PassPlan": {
+      "title": "Pass Plan",
+      "description": "Subscription tier details.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "duration": { "type": "number" },
+        "tier": { "type": "string" },
+        "features": { "type": "array" },
+        "active": { "type": "boolean" }
       }
     }
   },
@@ -54,17 +94,21 @@
       "schema": "UserProfile",
       "description": "Student identity nodes."
     },
-    "/testSeries/{seriesId}": {
-      "schema": "TestSeries",
-      "description": "Recruitment preparation clusters."
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Global atomic question bank."
     },
     "/mocks/{mockId}": {
       "schema": "MockTest",
-      "description": "High-fidelity preparing simulations."
+      "description": "Simulation clusters."
     },
-    "/transactions/{txnId}": {
-      "schema": "Transaction",
-      "description": "Preparatory acquisition ledger."
+    "/attempts/{attemptId}": {
+      "schema": "ExamAttempt",
+      "description": "CBT session state logs."
+    },
+    "/plans/{planId}": {
+      "schema": "PassPlan",
+      "description": "Subscription tier artifacts."
     }
   }
 }
