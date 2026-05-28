@@ -38,7 +38,9 @@ import {
   Settings2,
   AlertTriangle,
   RotateCcw,
-  Check
+  Check,
+  Languages,
+  MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -68,6 +70,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function MockFactoryPage() {
   const { toast } = useToast();
@@ -91,46 +101,24 @@ export default function MockFactoryPage() {
   const [manualSearch, setManualSearch] = useState("");
   const [usageFilter, setUsageFilter] = useState("Unused");
 
-  // Sectional/Chapter State
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedTopic, setSelectedTopic] = useState<string>("");
-  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
-
   // Registry State
   const [mocks, setMocks] = useState<MockTest[]>([]);
   const [registrySearch, setRegistrySearch] = useState("");
   const [activeRegistryTab, setActiveRegistryTab] = useState<MockStatus>("published");
   const [mockStats, setMockStats] = useState<Record<string, any>>({});
 
+  // Editor Modal State
+  const [editingMock, setEditingMock] = useState<MockTest | null>(null);
+
   useEffect(() => {
     loadRegistry();
     loadBankForPicker();
   }, []);
 
-  useEffect(() => {
-    if (selectedSubject) {
-      loadTopicsForSubject(selectedSubject);
-    }
-  }, [selectedSubject]);
-
-  async function loadTopicsForSubject(subj: string) {
-    try {
-      const q = query(collection(db, "questions"), where("subject", "==", subj), limit(100));
-      const snap = await getDocs(q);
-      const topics = Array.from(new Set(snap.docs.map(d => d.data().topic).filter(Boolean)));
-      setAvailableTopics(topics as string[]);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   async function loadBankForPicker() {
     setBankLoading(true);
     try {
-      let q = query(collection(db, "questions"), where("status", "==", "published"), limit(500));
-      if (manualSubject !== "All") {
-        q = query(collection(db, "questions"), where("status", "==", "published"), where("subject", "==", manualSubject), limit(500));
-      }
+      let q = query(collection(db, "questions"), where("status", "==", "published"), limit(1000));
       const snap = await getDocs(q);
       setBankQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Question)));
     } catch (e) {
@@ -150,7 +138,7 @@ export default function MockFactoryPage() {
       for (const m of data) {
         if (m.status === 'published' || m.status === 'live') {
           const stats = await getMockAnalytics(m.id);
-          if (stats) statsMap[m.id] = stats;
+          statsMap[m.id] = stats;
         }
       }
       setMockStats(statsMap);
@@ -163,11 +151,11 @@ export default function MockFactoryPage() {
 
   async function handleManualMock() {
     if (!title || !exam) {
-      toast({ title: "Identity Required", description: "Set a title and target examBoard." });
+      toast({ title: "Validation Error", description: "Identity and target exam are mandatory." });
       return;
     }
     if (selectedQuestionIds.size === 0) {
-      toast({ title: "Empty Payload", description: "Select at least one question from the bank.", variant: "destructive" });
+      toast({ title: "Empty Payload", description: "Select questions from the bank.", variant: "destructive" });
       return;
     }
     
@@ -189,7 +177,7 @@ export default function MockFactoryPage() {
       };
 
       await addDoc(collection(db, "mocks"), mockData);
-      toast({ title: "Manual Mock Initialized", description: "Questions linked and saved to Drafts." });
+      toast({ title: "Simulation Staged", description: "Linked artifacts saved as Draft." });
       setTitle("");
       setSelectedQuestionIds(new Set());
       loadRegistry();
@@ -202,7 +190,7 @@ export default function MockFactoryPage() {
 
   async function handleGenerate(type: 'full' | 'sectional' | 'chapter') {
     if (!title || !exam) {
-      toast({ title: "Identification Required", description: "Set a title and target exam board." });
+      toast({ title: "Validation Error", description: "Required fields missing." });
       return;
     }
     
@@ -212,8 +200,6 @@ export default function MockFactoryPage() {
         title,
         exam,
         type,
-        subject: selectedSubject,
-        topic: selectedTopic,
         count: qCount,
         difficulty,
         duration,
@@ -221,7 +207,7 @@ export default function MockFactoryPage() {
         isPremium
       });
 
-      toast({ title: "Mock Synthesized", description: "Simulation saved to Drafts for review." });
+      toast({ title: "AI Forge Success", description: "Simulation synthesized and saved to Drafts." });
       setTitle("");
       loadRegistry();
     } catch (e: any) {
@@ -231,76 +217,61 @@ export default function MockFactoryPage() {
     }
   }
 
-  async function handleUpdateStatus(id: string, nextStatus: MockStatus) {
+  async function handleAction(id: string, action: 'publish' | 'live' | 'archive' | 'delete' | 'duplicate') {
     try {
-      if (nextStatus === 'published') {
-        await publishMock(id);
-      } else {
-        await updateMock(id, { status: nextStatus });
+      switch(action) {
+        case 'publish':
+          await publishMock(id);
+          toast({ title: "Signal Propagated", description: "Mock is now visible to students." });
+          break;
+        case 'live':
+          await updateMock(id, { status: 'live', liveAt: Date.now() });
+          toast({ title: "Marked Live", description: "Session pinned to live arena." });
+          break;
+        case 'archive':
+          await updateMock(id, { status: 'archived' });
+          toast({ title: "Archived", description: "Signal moved to secondary storage." });
+          break;
+        case 'duplicate':
+          await duplicateMock(id);
+          toast({ title: "Artifact Cloned", description: "New draft instance created." });
+          break;
+        case 'delete':
+          if(confirm('Hard purge this simulation record?')) {
+            await deleteMock(id);
+            toast({ title: "Purged", variant: "destructive" });
+          }
+          break;
       }
-      toast({ title: "Registry Updated", description: `Simulation moved to ${nextStatus.toUpperCase()}.` });
       loadRegistry();
-      loadBankForPicker(); // Refresh usage badges
+    } catch (e) {
+      toast({ title: "Action Failed", variant: "destructive" });
+    }
+  }
+
+  async function saveMetadataUpdate() {
+    if (!editingMock) return;
+    setLoading(true);
+    try {
+      await updateMock(editingMock.id, editingMock);
+      toast({ title: "Registry Updated" });
+      setEditingMock(null);
+      loadRegistry();
     } catch (e) {
       toast({ title: "Update Failed", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   }
-
-  async function handleDuplicate(id: string) {
-    try {
-      await duplicateMock(id);
-      toast({ title: "Artifact Duplicated", description: "New draft instance created." });
-      loadRegistry();
-    } catch (e) {
-      toast({ title: "Duplication Failed", variant: "destructive" });
-    }
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Terminate this simulation registry? This action is IRREVERSIBLE.")) return;
-    try {
-      await deleteMock(id);
-      toast({ title: "Signal Purged" });
-      loadRegistry();
-    } catch (e) {
-      toast({ title: "Deletion Error", variant: "destructive" });
-    }
-  }
-
-  const toggleSelect = (id: string, isUsed: boolean) => {
-    if (isUsed) {
-      toast({ title: "Artifact Quarantined", description: "This question is already in a live mock.", variant: "destructive" });
-      return;
-    }
-    const next = new Set(selectedQuestionIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedQuestionIds(next);
-  };
-
-  const selectAllVisible = () => {
-    const next = new Set(selectedQuestionIds);
-    filteredBank.forEach(q => {
-      if ((q.usageCount || 0) === 0) {
-        next.add(q.id);
-      }
-    });
-    setSelectedQuestionIds(next);
-    toast({ title: "Batch Staged", description: `${next.size} unused artifacts now in payload.` });
-  };
-
-  const clearSelection = () => {
-    setSelectedQuestionIds(new Set());
-    toast({ title: "Selection Cleared" });
-  };
 
   const filteredBank = bankQuestions.filter(q => {
     const matchesSearch = q.question_en.toLowerCase().includes(manualSearch.toLowerCase()) ||
                           q.question_pa?.toLowerCase().includes(manualSearch.toLowerCase());
+    const matchesSubject = manualSubject === "All" || q.subject === manualSubject;
     const matchesUsage = usageFilter === "All" || 
                          (usageFilter === "Unused" && (q.usageCount || 0) === 0) ||
                          (usageFilter === "Used" && (q.usageCount || 0) > 0);
-    return matchesSearch && matchesUsage;
+    return matchesSearch && matchesSubject && matchesUsage;
   });
 
   const filteredMocks = mocks.filter(m => 
@@ -308,27 +279,11 @@ export default function MockFactoryPage() {
     (m.title.toLowerCase().includes(registrySearch.toLowerCase()) || m.exam.toLowerCase().includes(registrySearch.toLowerCase()))
   );
 
-  const getStatusColor = (s: MockStatus) => {
-    switch(s) {
-      case 'live': return 'bg-red-500 text-white';
-      case 'published': return 'bg-emerald-500 text-white';
-      case 'draft': return 'bg-orange-500 text-white';
-      case 'scheduled': return 'bg-blue-500 text-white';
-      default: return 'bg-zinc-800 text-zinc-400';
-    }
-  };
-
-  const getUsageBadge = (q: Question) => {
-    const count = q.usageCount || 0;
-    if (count > 0) return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[8px] uppercase font-black px-2">USED</Badge>;
-    return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] uppercase font-black px-2">UNUSED</Badge>;
-  };
-
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto no-scrollbar">
+        <main className="flex-1 p-4 md:p-10 overflow-y-auto no-scrollbar">
           <div className="max-w-7xl mx-auto space-y-12">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
               <div className="space-y-3">
@@ -338,21 +293,26 @@ export default function MockFactoryPage() {
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
                 </div>
-                <p className="text-zinc-500 font-medium ml-1">Forge server-synced CBT environments with strict duplicate prevention.</p>
+                <p className="text-zinc-500 font-medium ml-1">Enterprise CMS for forging server-synced CBT environments.</p>
+              </div>
+              <div className="flex gap-4">
+                 <Button variant="outline" className="h-14 rounded-2xl border-white/10" onClick={loadRegistry}>
+                    <RotateCcw className={cn("w-4 h-4 mr-2", registryLoading && "animate-spin")} /> Refresh Signal
+                 </Button>
               </div>
             </header>
 
+            {/* Simulation Generator Hub */}
             <div className="grid lg:grid-cols-12 gap-10">
-               {/* Left Controls - Blueprints & Manual Builder */}
                <div className="lg:col-span-8 space-y-10">
-                  <Card className="p-4 md:p-8 rounded-[40px] bg-zinc-900/40 border-white/5 space-y-10 shadow-2xl relative overflow-hidden max-w-full">
+                  <Card className="p-8 rounded-[48px] bg-zinc-900/40 border-white/5 space-y-10 shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
                        <Settings2 size={300} />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Simulation Identity</label>
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.3em] px-4">Test Identity</label>
                           <Input 
                             placeholder="e.g. Excise Inspector Mega Mock #1" 
                             value={title}
@@ -361,7 +321,7 @@ export default function MockFactoryPage() {
                           />
                        </div>
                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Exam Board Cluster</label>
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.3em] px-4">Exam Cluster</label>
                           <Input 
                             placeholder="e.g. PSSSB" 
                             value={exam}
@@ -372,374 +332,169 @@ export default function MockFactoryPage() {
                     </div>
 
                     <Tabs defaultValue="manual" className="space-y-8 relative z-10">
-                       <TabsList className="bg-zinc-950/50 border border-white/5 p-1.5 rounded-2xl h-16 w-fit max-w-full overflow-x-auto overflow-y-hidden no-scrollbar">
-                          <TabsTrigger value="manual" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Manual Builder</TabsTrigger>
-                          <TabsTrigger value="ai" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">AI Factory</TabsTrigger>
+                       <TabsList className="bg-zinc-950/50 border border-white/5 p-1.5 rounded-2xl h-16 w-fit">
+                          <TabsTrigger value="manual" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Manual Port</TabsTrigger>
+                          <TabsTrigger value="ai" className="rounded-xl px-8 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">AI Synthesize</TabsTrigger>
                        </TabsList>
 
-                       <TabsContent value="manual" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                       <TabsContent value="manual" className="space-y-8">
                           <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-6 rounded-3xl border border-white/5">
-                             <div className="relative flex-1 w-full md:w-auto">
+                             <div className="relative flex-1 w-full">
                                 <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-600" />
                                 <Input 
-                                  placeholder="Search bank assets..." 
+                                  placeholder="Search artifacts..." 
                                   value={manualSearch}
                                   onChange={(e) => setManualSearch(e.target.value)}
                                   className="pl-10 h-11 bg-zinc-900 border-white/5 rounded-xl"
                                 />
                              </div>
-                             <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                                <Select value={manualSubject} onValueChange={(val) => { setManualSubject(val); loadBankForPicker(); }}>
+                             <div className="flex gap-4 w-full md:w-auto">
+                                <Select value={manualSubject} onValueChange={setManualSubject}>
                                     <SelectTrigger className="flex-1 md:w-48 h-11 bg-zinc-900 border-white/5 rounded-xl">
-                                      <SelectValue placeholder="All Subjects" />
+                                      <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-950 text-white max-h-[300px]">
+                                    <SelectContent className="bg-zinc-950 text-white">
                                       <SelectItem value="All">All Subjects</SelectItem>
                                       {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <Select value={usageFilter} onValueChange={setUsageFilter}>
-                                    <SelectTrigger className="flex-1 md:w-36 h-11 bg-zinc-900 border-white/5 rounded-xl">
-                                      <SelectValue placeholder="Usage" />
+                                    <SelectTrigger className="w-36 h-11 bg-zinc-900 border-white/5 rounded-xl">
+                                      <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-950 text-white">
-                                      <SelectItem value="Unused">Filter: Unused</SelectItem>
-                                      <SelectItem value="Used">Filter: Used</SelectItem>
-                                      <SelectItem value="All">Filter: All</SelectItem>
+                                      <SelectItem value="Unused">Unused</SelectItem>
+                                      <SelectItem value="Used">Used</SelectItem>
+                                      <SelectItem value="All">All</SelectItem>
                                     </SelectContent>
                                 </Select>
                              </div>
                           </div>
 
-                          <div className="flex flex-col sm:flex-row items-center justify-between px-4 gap-4">
-                             <div className="flex gap-4">
-                                <button onClick={selectAllVisible} className="h-8 rounded-lg text-primary font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 border border-primary/20 px-3">
-                                   Select All Unused
-                                </button>
-                                <button onClick={clearSelection} className="h-8 rounded-lg text-zinc-500 font-black text-[9px] uppercase tracking-widest hover:bg-white/5 px-3">
-                                   Clear All
-                                </button>
-                             </div>
-                             <p className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.2em]">{filteredBank.length} Signal Artifacts</p>
-                          </div>
-
-                          <div className="bg-black/40 rounded-[32px] border border-white/5 max-h-[500px] overflow-y-auto no-scrollbar overflow-x-auto">
+                          <div className="bg-black/40 rounded-[32px] border border-white/5 max-h-[500px] overflow-y-auto no-scrollbar">
                              <table className="w-full text-left border-collapse min-w-[700px]">
                                 <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10 text-[9px] font-black uppercase text-zinc-500 tracking-widest">
                                    <tr>
-                                      <th className="px-6 py-4">#</th>
-                                      <th className="px-6 py-4">Usage Guard</th>
-                                      <th className="px-6 py-4">Subject</th>
-                                      <th className="px-6 py-4">Question Narrative</th>
-                                      <th className="px-6 py-4 text-right">Select</th>
+                                      <th className="px-6 py-4">State</th>
+                                      <th className="px-6 py-4">Classification</th>
+                                      <th className="px-6 py-4">Body Narrative</th>
+                                      <th className="px-6 py-4 text-right">Link</th>
                                    </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
                                    {bankLoading ? (
-                                      <tr><td colSpan={5} className="p-20 text-center animate-pulse italic text-zinc-600">Scanning Production Bank...</td></tr>
-                                   ) : filteredBank.length > 0 ? filteredBank.map((q, i) => {
+                                      <tr><td colSpan={4} className="p-20 text-center animate-pulse italic text-zinc-600">Scanning Atomic Vault...</td></tr>
+                                   ) : filteredBank.length > 0 ? filteredBank.map((q) => {
                                       const isUsed = (q.usageCount || 0) > 0;
+                                      const isSelected = selectedQuestionIds.has(q.id);
                                       return (
                                         <tr 
                                           key={q.id} 
-                                          onClick={() => toggleSelect(q.id, isUsed)}
+                                          onClick={() => {
+                                            if (isUsed) return;
+                                            const next = new Set(selectedQuestionIds);
+                                            if (next.has(q.id)) next.delete(q.id);
+                                            else next.add(q.id);
+                                            setSelectedQuestionIds(next);
+                                          }}
                                           className={cn(
-                                            "hover:bg-white/[0.02] cursor-pointer transition-colors group", 
-                                            selectedQuestionIds.has(q.id) && "bg-primary/5",
+                                            "hover:bg-white/[0.02] cursor-pointer transition-colors", 
+                                            isSelected && "bg-primary/5",
                                             isUsed && "opacity-60 grayscale cursor-not-allowed"
                                           )}
                                         >
-                                           <td className="px-6 py-4 text-xs font-bold text-zinc-600">{i+1}</td>
                                            <td className="px-6 py-4">
-                                              {getUsageBadge(q)}
+                                              {isUsed ? (
+                                                <Badge className="bg-red-500/10 text-red-500 border-none text-[8px] font-black uppercase">Used</Badge>
+                                              ) : (
+                                                <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase">Fresh</Badge>
+                                              )}
                                            </td>
                                            <td className="px-6 py-4">
-                                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[8px] font-black uppercase whitespace-nowrap">{q.subject}</Badge>
+                                              <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10">{q.subject}</Badge>
                                            </td>
                                            <td className="px-6 py-4">
-                                              <p className="text-sm font-bold text-white line-clamp-1 break-words">{q.question_en}</p>
-                                              <p className="text-[10px] text-zinc-600 font-medium line-clamp-1 italic break-words">{q.question_pa}</p>
+                                              <p className="text-xs font-bold text-white line-clamp-1">{q.question_en}</p>
                                            </td>
                                            <td className="px-6 py-4 text-right">
                                               <div className={cn(
-                                                 "w-6 h-6 rounded-lg border flex items-center justify-center ml-auto transition-all",
-                                                 selectedQuestionIds.has(q.id) ? "bg-primary border-primary shadow-lg shadow-primary/20" : "border-white/10",
-                                                 isUsed && "bg-zinc-800 border-transparent"
+                                                 "w-5 h-5 rounded-lg border flex items-center justify-center ml-auto transition-all",
+                                                 isSelected ? "bg-primary border-primary" : "border-white/10"
                                               )}>
-                                                 {selectedQuestionIds.has(q.id) && <Check size={14} className="text-white" strokeWidth={4} />}
-                                                 {isUsed && <XCircle size={14} className="text-zinc-600" />}
+                                                 {isSelected && <Check size={12} className="text-white" strokeWidth={4} />}
                                               </div>
                                            </td>
                                         </tr>
                                       );
                                    }) : (
-                                      <tr><td colSpan={5} className="p-20 text-center opacity-30 italic">No available artifacts found in this sector.</td></tr>
+                                      <tr><td colSpan={4} className="p-20 text-center opacity-30 italic">Sector quiet. No artifacts found.</td></tr>
                                    )}
                                 </tbody>
                              </table>
                           </div>
 
-                          {/* Staging Area - Responsive Fix */}
                           <div className="flex flex-wrap items-center justify-between bg-primary/5 p-5 rounded-[28px] border border-primary/10 gap-4">
-                             <div className="flex items-center gap-3 shrink-0">
+                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
                                    <ListPlus className="text-white w-5 h-5" />
                                 </div>
-                                <div className="min-w-0">
-                                   <p className="text-[9px] font-black text-primary uppercase tracking-tighter truncate">Staging Active</p>
-                                   <p className="text-base font-black text-white truncate">{selectedQuestionIds.size} Unique Items</p>
+                                <div>
+                                   <p className="text-[9px] font-black text-primary uppercase">Staging Area</p>
+                                   <p className="text-sm font-black text-white">{selectedQuestionIds.size} Artifacts</p>
                                 </div>
                              </div>
-                             
-                             <div className="flex items-center gap-2 ml-auto">
-                                <Button 
-                                  variant="ghost" 
-                                  onClick={clearSelection} 
-                                  className="h-11 px-4 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10"
-                                >
-                                  Discard
-                                </Button>
+                             <div className="flex items-center gap-2">
+                                <Button variant="ghost" onClick={() => setSelectedQuestionIds(new Set())} className="h-10 text-xs font-bold text-zinc-500 hover:text-white">Discard</Button>
                                 <Button 
                                   onClick={handleManualMock} 
                                   disabled={loading || selectedQuestionIds.size === 0} 
-                                  className="h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-widest blue-glow whitespace-nowrap"
+                                  className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest blue-glow"
                                 >
-                                    {loading ? <Loader2 className="animate-spin mr-2 shrink-0" /> : "Initialize Mock"}
+                                    Initialize Mock
                                 </Button>
                              </div>
                           </div>
                        </TabsContent>
 
-                       <TabsContent value="ai" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                          <Tabs defaultValue="full" className="space-y-8">
-                             <TabsList className="bg-zinc-950/50 border border-white/5 p-1 rounded-2xl h-14 w-fit max-w-full overflow-x-auto no-scrollbar">
-                                <TabsTrigger value="full" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Full Mock</TabsTrigger>
-                                <TabsTrigger value="sectional" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Sectional</TabsTrigger>
-                                <TabsTrigger value="chapter" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Chapter Test</TabsTrigger>
-                             </TabsList>
-
-                             <TabsContent value="full" className="space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Question Payload</p>
-                                      <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
-                                   </div>
-                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Difficulty Balanced</p>
-                                      <Select value={difficulty} onValueChange={setDifficulty}>
-                                         <SelectTrigger className="bg-transparent border-none p-0 text-lg font-bold h-fit shadow-none">
-                                            <SelectValue />
-                                         </SelectTrigger>
-                                         <SelectContent className="bg-zinc-950 text-white">
-                                            <SelectItem value="mixed">Mixed Strategy</SelectItem>
-                                            <SelectItem value="easy">Easy Base</SelectItem>
-                                            <SelectItem value="medium">Medium Standard</SelectItem>
-                                            <SelectItem value="hard">Hard Elite</SelectItem>
-                                         </SelectContent>
-                                      </Select>
-                                   </div>
-                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Duplicate Guard</p>
-                                      <p className="text-sm font-bold text-emerald-500 uppercase flex items-center gap-2"><Check size={12} /> Active</p>
-                                   </div>
-                                </div>
-                                <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-lg md:text-2xl font-black blue-glow shadow-2xl transition-all leading-tight text-center px-4">
-                                   {loading ? <Loader2 className="animate-spin mr-3 shrink-0" /> : <Sparkles className="mr-3 shrink-0" />}
-                                   Forge Unique Full Mock
-                                </Button>
-                             </TabsContent>
-
-                             <TabsContent value="sectional" className="space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                   <div className="space-y-3">
-                                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Subject Extraction</label>
-                                      <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                                         <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
-                                            <SelectValue placeholder="Select Subject" />
-                                         </SelectTrigger>
-                                         <SelectContent className="bg-zinc-950 text-white max-h-[300px]">
-                                            {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                         </SelectContent>
-                                      </Select>
-                                   </div>
-                                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Quantity</p>
-                                      <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
-                                   </div>
-                                </div>
-                                <Button onClick={() => handleGenerate('sectional')} disabled={loading || !selectedSubject} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-lg md:text-2xl font-black shadow-2xl shadow-emerald-900/20 leading-tight text-center px-4">
-                                   {loading ? <Loader2 className="animate-spin mr-3 shrink-0" /> : <Target className="mr-3 shrink-0" />}
-                                   Synthesize Sectional Test
-                                </Button>
-                             </TabsContent>
-
-                             <TabsContent value="chapter" className="space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                   <div className="space-y-3">
-                                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Core Subject</label>
-                                      <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                                         <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
-                                            <SelectValue placeholder="Select Subject" />
-                                         </SelectTrigger>
-                                         <SelectContent className="bg-zinc-950 text-white">
-                                            {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                         </SelectContent>
-                                      </Select>
-                                   </div>
-                                   <div className="space-y-3">
-                                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Detected Chapters/Topics</label>
-                                      <Select value={selectedTopic} onValueChange={setSelectedTopic} disabled={!selectedSubject}>
-                                         <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
-                                            <SelectValue placeholder={availableTopics.length > 0 ? "Select Chapter" : "No Topics Detected"} />
-                                         </SelectTrigger>
-                                         <SelectContent className="bg-zinc-950 text-white">
-                                            {availableTopics.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                         </SelectContent>
-                                      </Select>
-                                   </div>
-                                </div>
-                                <Button onClick={() => handleGenerate('chapter')} disabled={loading || !selectedTopic} className="w-full h-20 rounded-[32px] bg-accent hover:bg-accent/90 text-lg md:text-2xl font-black shadow-2xl shadow-accent/20 leading-tight text-center px-4">
-                                   {loading ? <Loader2 className="animate-spin mr-3 shrink-0" /> : <Zap className="mr-3 shrink-0" />}
-                                   Generate Chapter Sprint
-                                </Button>
-                             </TabsContent>
-                          </Tabs>
+                       <TabsContent value="ai" className="space-y-8">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Question Count</p>
+                                <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
+                             </div>
+                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Balancing</p>
+                                <Select value={difficulty} onValueChange={setDifficulty}>
+                                   <SelectTrigger className="bg-transparent border-none p-0 text-lg font-bold h-fit shadow-none">
+                                      <SelectValue />
+                                   </SelectTrigger>
+                                   <SelectContent className="bg-zinc-950 text-white">
+                                      <SelectItem value="mixed">Mixed (Weighted)</SelectItem>
+                                      <SelectItem value="easy">Easy Base</SelectItem>
+                                      <SelectItem value="medium">Medium Standard</SelectItem>
+                                      <SelectItem value="hard">Hard Elite</SelectItem>
+                                   </SelectContent>
+                                </Select>
+                             </div>
+                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Quarantine Guard</p>
+                                <p className="text-sm font-bold text-emerald-500 uppercase flex items-center gap-2"><Check size={12} /> Active</p>
+                             </div>
+                          </div>
+                          <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl">
+                             {loading ? <Loader2 className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
+                             Forge Unique Simulation
+                          </Button>
                        </TabsContent>
                     </Tabs>
                   </Card>
-
-                  {/* Simulation Registry CMS */}
-                  <div className="space-y-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                       <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-3">
-                          <Database className="text-primary w-8 h-8" />
-                          Simulation Registry
-                       </h3>
-                       <div className="relative w-full md:w-80">
-                          <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-600" />
-                          <Input 
-                            placeholder="Find simulation..." 
-                            value={registrySearch}
-                            onChange={e => setRegistrySearch(e.target.value)}
-                            className="pl-10 h-12 bg-zinc-900/50 border-white/5 rounded-2xl text-xs font-bold"
-                          />
-                       </div>
-                    </div>
-
-                    <Tabs value={activeRegistryTab} onValueChange={v => setActiveRegistryTab(v as any)} className="space-y-8">
-                       <TabsList className="bg-zinc-900 border-white/5 p-1 rounded-2xl h-14 w-full justify-start overflow-x-auto no-scrollbar">
-                          {[
-                            { id: 'draft', label: 'Drafts', icon: FileText },
-                            { id: 'scheduled', label: 'Scheduled', icon: Calendar },
-                            { id: 'published', label: 'Published', icon: CheckCircle2 },
-                            { id: 'live', label: 'Live Events', icon: PlayCircle },
-                            { id: 'archived', label: 'Archived', icon: Archive }
-                          ].map(t => (
-                            <TabsTrigger key={t.id} value={t.id} className="rounded-xl px-6 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary shrink-0">
-                               <t.icon className="w-3.5 h-3.5 mr-2" /> {t.label}
-                            </TabsTrigger>
-                          ))}
-                       </TabsList>
-
-                       <div className="grid gap-6">
-                          {registryLoading ? (
-                            [1,2,3].map(i => <div key={i} className="h-32 rounded-[40px] bg-zinc-900/40 animate-pulse border border-white/5" />)
-                          ) : filteredMocks.length > 0 ? filteredMocks.map(m => (
-                            <div key={m.id} className="p-8 rounded-[48px] bg-zinc-900/40 border border-white/5 hover:border-primary/20 transition-all flex flex-col md:flex-row items-center justify-between gap-8 group relative overflow-hidden">
-                               <div className="flex items-center gap-8 flex-1 w-full md:w-auto">
-                                  <div className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center shadow-lg shrink-0", getStatusColor(m.status))}>
-                                     {m.status === 'live' ? <PlayCircle className="animate-pulse" /> : <BookOpen />}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                        <h4 className="text-xl font-bold text-white group-hover:text-primary transition-colors truncate max-w-full">{m.title}</h4>
-                                        <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10 text-zinc-500 shrink-0">{m.type}</Badge>
-                                     </div>
-                                     <div className="flex flex-wrap gap-6 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                                        <span className="flex items-center gap-2 shrink-0"><Target className="w-3 h-3" /> {m.exam}</span>
-                                        <span className="flex items-center gap-2 shrink-0"><ListPlus className="w-3 h-3" /> {m.totalQuestions} Artifacts</span>
-                                        <span className="flex items-center gap-2 shrink-0"><Clock className="w-3 h-3" /> {m.duration} Mins</span>
-                                     </div>
-                                  </div>
-                               </div>
-
-                               <div className="flex items-center gap-12 border-l border-white/5 pl-12 hidden lg:flex">
-                                  {mockStats[m.id] ? (
-                                    <>
-                                       <div className="text-center">
-                                          <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Attempts</p>
-                                          <p className="text-2xl font-black text-white">{mockStats[m.id].totalAttempts}</p>
-                                       </div>
-                                       <div className="text-center">
-                                          <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Avg Score</p>
-                                          <p className="text-2xl font-black text-primary">{mockStats[m.id].avgScore}</p>
-                                       </div>
-                                    </>
-                                  ) : (
-                                    <div className="text-xs text-zinc-600 font-bold uppercase italic">No activity logs</div>
-                                  )}
-                               </div>
-
-                               <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end">
-                                  <DropdownMenu>
-                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl hover:bg-white/5">
-                                           <MoreVertical size={20} className="text-zinc-500" />
-                                        </Button>
-                                     </DropdownMenuTrigger>
-                                     <DropdownMenuContent className="bg-zinc-950 border-white/10 text-white rounded-2xl w-56 p-2 shadow-2xl" align="end">
-                                        <DropdownMenuLabel className="px-4 py-2 text-[10px] uppercase font-black text-zinc-500">Simulation Control</DropdownMenuLabel>
-                                        <DropdownMenuItem className="rounded-xl py-3 cursor-pointer focus:bg-primary/10" onClick={() => handleUpdateStatus(m.id, 'published')}>
-                                           <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> Publish Mock
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className="rounded-xl py-3 cursor-pointer focus:bg-red-500/10" onClick={() => handleUpdateStatus(m.id, 'live')}>
-                                           <PlayCircle className="w-4 h-4 mr-3 text-red-500" /> Mark Live Event
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator className="bg-white/5" />
-                                        <DropdownMenuItem className="rounded-xl py-3 cursor-pointer focus:bg-white/5">
-                                           <Edit3 className="w-4 h-4 mr-3 text-zinc-400" /> Edit Metadata
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className="rounded-xl py-3 cursor-pointer focus:bg-white/5" onClick={() => handleDuplicate(m.id)}>
-                                           <Copy className="w-4 h-4 mr-3 text-zinc-400" /> Duplicate Simulation
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator className="bg-white/5" />
-                                        <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-orange-500 focus:bg-orange-500/10 focus:text-orange-500" onClick={() => handleUpdateStatus(m.id, 'archived')}>
-                                           <Archive className="w-4 h-4 mr-3" /> Archive Entry
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-500" onClick={() => handleDelete(m.id)}>
-                                           <Trash2 className="w-4 h-4 mr-3" /> Purge Registry
-                                        </DropdownMenuItem>
-                                     </DropdownMenuContent>
-                                  </DropdownMenu>
-                                  
-                                  {m.status === 'draft' && (
-                                    <Button 
-                                      onClick={() => handleUpdateStatus(m.id, 'published')}
-                                      className="h-12 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-900/20"
-                                    >
-                                       Publish Mock
-                                    </Button>
-                                  )}
-                               </div>
-                            </div>
-                          )) : (
-                            <div className="py-32 text-center rounded-[64px] border-2 border-dashed border-white/5 bg-zinc-950/20">
-                               <Database className="w-16 h-16 text-zinc-800 mx-auto mb-6" />
-                               <h3 className="text-2xl font-black uppercase text-zinc-600 tracking-tighter">Sector Quiet</h3>
-                               <p className="text-zinc-700 mt-2 font-medium italic">No simulations matching the current frequency.</p>
-                            </div>
-                          )}
-                       </div>
-                    </Tabs>
-                  </div>
                </div>
 
-               {/* Right Sidebar - Global CBT Configuration */}
                <div className="lg:col-span-4 space-y-8">
-                  <Card className="p-8 rounded-[40px] bg-zinc-900/50 border border-white/5 space-y-10 sticky top-8 shadow-2xl max-w-full overflow-hidden">
+                  <Card className="p-8 rounded-[40px] bg-zinc-900/50 border border-white/5 space-y-10 sticky top-8 shadow-2xl overflow-hidden">
                      <h3 className="font-headline text-2xl font-black flex items-center gap-3">
                         <Settings className="text-primary w-6 h-6" />
-                        CBT Global Settings
+                        CBT Blueprint
                      </h3>
                      
                      <div className="space-y-10">
@@ -777,7 +532,7 @@ export default function MockFactoryPage() {
                         </div>
 
                         <div className="space-y-4">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-2">Monetization Logic</label>
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-2">Monetization</label>
                            <div className="flex gap-2">
                               <button 
                                 onClick={() => setIsPremium(true)}
@@ -786,7 +541,7 @@ export default function MockFactoryPage() {
                                   isPremium ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "border-white/5 text-zinc-600"
                                 )}
                               >
-                                <Crown size={14} />
+                                <Zap size={14} />
                                 <span>PASS+</span>
                               </button>
                               <button 
@@ -796,7 +551,7 @@ export default function MockFactoryPage() {
                                   !isPremium ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-900/20" : "border-white/5 text-zinc-600"
                                 )}
                               >
-                                <Zap size={14} />
+                                <Eye size={14} />
                                 <span>FREE HUB</span>
                               </button>
                            </div>
@@ -806,43 +561,217 @@ export default function MockFactoryPage() {
                      <div className="p-6 rounded-[32px] bg-primary/5 border border-primary/20 flex gap-4 items-start">
                         <ClipboardCheck className="text-primary shrink-0" size={20} />
                         <p className="text-[11px] text-zinc-500 leading-relaxed italic">
-                           "Protocol: Full Mocks auto-balance subject weightage. Sectional and Chapter tests are tuned for rapid-repetition drills."
+                           "All generated simulations are saved as **Drafts**. Verify the question payload before pushing to the student registry."
                         </p>
                      </div>
-
-                     {selectedQuestionIds.size > 0 && (
-                        <div className="p-6 rounded-[32px] bg-emerald-500/10 border border-emerald-500/20 flex gap-4 items-center">
-                           <AlertTriangle className="text-emerald-500 shrink-0" size={20} />
-                           <p className="text-[11px] text-emerald-500 font-bold uppercase">
-                              Check usage status before saving to ensure zero repetition.
-                           </p>
-                        </div>
-                     )}
                   </Card>
                </div>
             </div>
+
+            {/* Simulation Registry - THE REBUILD */}
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                 <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-3">
+                    <Database className="text-primary w-8 h-8" />
+                    Simulation Registry
+                 </h3>
+                 <div className="relative w-full md:w-80">
+                    <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-600" />
+                    <Input 
+                      placeholder="Find simulation..." 
+                      value={registrySearch}
+                      onChange={e => setRegistrySearch(e.target.value)}
+                      className="pl-10 h-12 bg-zinc-900/50 border-white/5 rounded-2xl text-xs font-bold"
+                    />
+                 </div>
+              </div>
+
+              <Tabs value={activeRegistryTab} onValueChange={v => setActiveRegistryTab(v as any)} className="space-y-8">
+                 <TabsList className="bg-zinc-900 border-white/5 p-1.5 rounded-2xl h-14 w-full justify-start overflow-x-auto no-scrollbar">
+                    {[
+                      { id: 'draft', label: 'Drafts', icon: FileText },
+                      { id: 'scheduled', label: 'Scheduled', icon: Calendar },
+                      { id: 'published', label: 'Published', icon: CheckCircle2 },
+                      { id: 'live', label: 'Live Arena', icon: PlayCircle },
+                      { id: 'archived', label: 'Archived', icon: Archive }
+                    ].map(t => (
+                      <TabsTrigger key={t.id} value={t.id} className="rounded-xl px-6 h-full font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary shrink-0">
+                         <t.icon className="w-3.5 h-3.5 mr-2" /> {t.label}
+                      </TabsTrigger>
+                    ))}
+                 </TabsList>
+
+                 <div className="bg-zinc-900/40 border border-white/5 rounded-[48px] overflow-hidden">
+                    <div className="overflow-x-auto">
+                       <table className="w-full text-left border-collapse">
+                          <thead className="bg-zinc-900/60 text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500">
+                             <tr>
+                                <th className="px-8 py-6">Mock Identity</th>
+                                <th className="px-8 py-6">Board</th>
+                                <th className="px-8 py-6">CBT Specs</th>
+                                <th className="px-8 py-6">Access</th>
+                                <th className="px-8 py-6">Attempts</th>
+                                <th className="px-8 py-6 text-right">Actions</th>
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                             {registryLoading ? (
+                               <tr><td colSpan={6} className="p-32 text-center animate-pulse italic text-zinc-600">Syncing with Registry Node...</td></tr>
+                             ) : filteredMocks.length > 0 ? filteredMocks.map(m => (
+                               <tr key={m.id} className="hover:bg-white/[0.01] transition-colors group">
+                                  <td className="px-8 py-8">
+                                     <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
+                                           <BookOpen size={18} className="text-zinc-600 group-hover:text-primary transition-colors" />
+                                        </div>
+                                        <div>
+                                           <p className="font-bold text-white group-hover:text-primary transition-colors">{m.title}</p>
+                                           <p className="text-[9px] text-zinc-600 font-bold uppercase mt-1">ID: {m.id.substring(0, 8)}</p>
+                                        </div>
+                                     </div>
+                                  </td>
+                                  <td className="px-8 py-8">
+                                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase">{m.exam}</Badge>
+                                  </td>
+                                  <td className="px-8 py-8">
+                                     <div className="flex gap-4 text-[10px] font-bold text-zinc-500 uppercase">
+                                        <span className="flex items-center gap-1.5"><ListPlus size={12} /> {m.totalQuestions}</span>
+                                        <span className="flex items-center gap-1.5"><Clock size={12} /> {m.duration}m</span>
+                                     </div>
+                                  </td>
+                                  <td className="px-8 py-8">
+                                     {m.accessType === 'pass_plus' ? (
+                                       <Badge className="bg-primary text-white border-none text-[8px] font-black uppercase">PASS+</Badge>
+                                     ) : (
+                                       <Badge className="bg-emerald-600 text-white border-none text-[8px] font-black uppercase">Free</Badge>
+                                     )}
+                                  </td>
+                                  <td className="px-8 py-8">
+                                     <p className="text-lg font-black text-white">{mockStats[m.id]?.totalAttempts || 0}</p>
+                                  </td>
+                                  <td className="px-8 py-8 text-right">
+                                     <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                           <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5">
+                                              <MoreHorizontal size={20} className="text-zinc-600" />
+                                           </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="bg-zinc-950 border-white/10 text-white rounded-2xl w-56 p-2" align="end">
+                                           <DropdownMenuLabel className="px-4 py-2 text-[10px] uppercase font-black text-zinc-500">Simulation Management</DropdownMenuLabel>
+                                           <DropdownMenuItem className="rounded-xl py-3 cursor-pointer" onClick={() => setEditingMock(m)}>
+                                              <Edit3 className="w-4 h-4 mr-3 text-primary" /> Edit Metadata
+                                           </DropdownMenuItem>
+                                           <DropdownMenuItem className="rounded-xl py-3 cursor-pointer" onClick={() => handleAction(m.id, 'duplicate')}>
+                                              <Copy className="w-4 h-4 mr-3 text-zinc-400" /> Duplicate Simulation
+                                           </DropdownMenuItem>
+                                           
+                                           <DropdownMenuSeparator className="bg-white/5" />
+                                           
+                                           {m.status === 'draft' && (
+                                              <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-emerald-500 focus:text-emerald-500 focus:bg-emerald-500/10" onClick={() => handleAction(m.id, 'publish')}>
+                                                 <CheckCircle2 className="w-4 h-4 mr-3" /> Publish Simulation
+                                              </DropdownMenuItem>
+                                           )}
+
+                                           {m.status === 'published' && (
+                                              <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-red-500 focus:text-red-500 focus:bg-red-500/10" onClick={() => handleAction(m.id, 'live')}>
+                                                 <PlayCircle className="w-4 h-4 mr-3" /> Mark Live Event
+                                              </DropdownMenuItem>
+                                           )}
+
+                                           <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-zinc-500" onClick={() => handleAction(m.id, 'archive')}>
+                                              <Archive className="w-4 h-4 mr-3" /> Archive Record
+                                           </DropdownMenuItem>
+                                           
+                                           <DropdownMenuSeparator className="bg-white/5" />
+                                           
+                                           <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-600/10" onClick={() => handleAction(m.id, 'delete')}>
+                                              <Trash2 className="w-4 h-4 mr-3" /> Hard Purge
+                                           </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                     </DropdownMenu>
+                                  </td>
+                               </tr>
+                             )) : (
+                               <tr><td colSpan={6} className="p-32 text-center text-zinc-600 italic">Sector quiet. No simulations matching this status.</td></tr>
+                             )}
+                          </tbody>
+                       </table>
+                    </div>
+                 </div>
+              </Tabs>
+            </div>
           </div>
+
+          {/* Metadata Editor Modal */}
+          <Dialog open={!!editingMock} onOpenChange={() => setEditingMock(null)}>
+            <DialogContent className="bg-zinc-950 border-white/10 rounded-[32px] p-10 text-white max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-3xl font-black uppercase tracking-tighter">Mock Metadata Editor</DialogTitle>
+                <DialogDescription className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest mt-2">Editing Simulation Node: {editingMock?.id}</DialogDescription>
+              </DialogHeader>
+              
+              <div className="py-8 grid grid-cols-2 gap-8">
+                 <div className="space-y-2 col-span-2">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Mock Title</label>
+                    <Input 
+                      value={editingMock?.title || ""}
+                      onChange={e => setEditingMock(prev => prev ? {...prev, title: e.target.value} : null)}
+                      className="h-12 bg-white/5 border-white/10 rounded-xl px-4"
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Exam Board</label>
+                    <Input 
+                      value={editingMock?.exam || ""}
+                      onChange={e => setEditingMock(prev => prev ? {...prev, exam: e.target.value} : null)}
+                      className="h-12 bg-white/5 border-white/10 rounded-xl px-4"
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Session Duration (Mins)</label>
+                    <Input 
+                      type="number"
+                      value={editingMock?.duration || 0}
+                      onChange={e => setEditingMock(prev => prev ? {...prev, duration: Number(e.target.value)} : null)}
+                      className="h-12 bg-white/5 border-white/10 rounded-xl px-4"
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Negative Factor</label>
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      value={editingMock?.negativeMarking || 0}
+                      onChange={e => setEditingMock(prev => prev ? {...prev, negativeMarking: Number(e.target.value)} : null)}
+                      className="h-12 bg-white/5 border-white/10 rounded-xl px-4"
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Access Policy</label>
+                    <Select value={editingMock?.accessType || 'free'} onValueChange={v => setEditingMock(prev => prev ? {...prev, accessType: v as any} : null)}>
+                       <SelectTrigger className="h-12 bg-white/5 border-white/10 rounded-xl px-4 text-white">
+                          <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent className="bg-zinc-900 text-white border-white/10">
+                          <SelectItem value="free">Free Access</SelectItem>
+                          <SelectItem value="pass_plus">PASS+ Active</SelectItem>
+                          <SelectItem value="premium">Premium Only</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+              </div>
+
+              <DialogFooter className="gap-4">
+                 <Button variant="ghost" onClick={() => setEditingMock(null)} className="h-12 rounded-xl">Cancel</Button>
+                 <Button onClick={saveMetadataUpdate} disabled={loading} className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 font-black">
+                    {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
+                 </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </AdminProtect>
   );
-}
-
-function Crown(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
-    </svg>
-  )
 }

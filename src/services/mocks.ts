@@ -95,20 +95,6 @@ export async function getAllMocks(): Promise<MockTest[]> {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-/**
- * PRODUCTION FEED: Returns mocks visible to students.
- */
-export async function getStudentMocks(): Promise<MockTest[]> {
-  const q = query(
-    collection(db, 'mocks'), 
-    where('status', '==', 'published')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest))
-    .filter(m => !m.expiresAt || m.expiresAt > Date.now())
-    .sort((a, b) => (b.publishedAt || b.createdAt) - (a.publishedAt || a.createdAt));
-}
-
 export async function getMockDetails(mockId: string): Promise<MockTest> {
   const docRef = doc(db, 'mocks', mockId);
   const snap = await getDoc(docRef);
@@ -158,42 +144,45 @@ export async function publishMock(mockId: string) {
   await batch.commit();
 }
 
-/**
- * CBT ENGINE PERSISTENCE & ACCESS CONTROL
- */
-
-export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
-  const userSnap = await getDoc(doc(db, 'users', userId));
-  const role = userSnap.data()?.role;
-  if (role === 'admin' || role === 'superadmin') return { allowed: true };
-
-  if (mock.accessType === 'free') return { allowed: true };
-
-  const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
-  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
-    return { allowed: false, reason: `Requires ${mock.accessType.replace('_', ' ').toUpperCase()}` };
-  }
-
-  const attemptsQ = query(collection(db, 'attempts'), where('userId', '==', userId), where('mockId', '==', mock.id), where('status', '==', 'completed'));
-  const attemptsSnap = await getDocs(attemptsQ);
-  const maxAttempts = mock.maxAttempts || (mock.type === 'full' ? 1 : 5);
-  
-  if (attemptsSnap.size >= maxAttempts) {
-    return { allowed: false, reason: 'Attempt limit reached for this session.' };
-  }
-
-  return { allowed: true };
+export async function updateMock(id: string, data: Partial<MockTest>) {
+  const ref = doc(db, 'mocks', id);
+  await updateDoc(ref, { ...data, updatedAt: Date.now() });
 }
 
+export async function duplicateMock(id: string) {
+  const mock = await getMockDetails(id);
+  const { id: _, ...data } = mock;
+  return await addDoc(collection(db, "mocks"), {
+    ...data,
+    title: `${data.title} (Copy)`,
+    status: "draft",
+    createdAt: Date.now(),
+  });
+}
+
+export async function getMockAnalytics(mockId: string) {
+  const q = query(collection(db, 'attempts'), where('mockId', '==', mockId), where('status', '==', 'completed'));
+  const snap = await getDocs(q);
+  if (snap.empty) return { totalAttempts: 0, avgScore: 0 };
+  const scores = snap.docs.map(d => d.data().score || 0);
+  return {
+    totalAttempts: snap.size,
+    avgScore: scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : 0,
+  };
+}
+
+export async function deleteMock(mockId: string) {
+  await deleteDoc(doc(db, 'mocks', mockId));
+}
+
+/**
+ * CBT ENGINE LOGIC
+ */
 export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
   const attemptId = `${userId}_${mock.id}`;
   const attemptRef = doc(db, 'attempts', attemptId);
-  
   const existing = await getDoc(attemptRef);
-  if (existing.exists() && existing.data().status === 'completed') {
-    return attemptId;
-  }
-
+  if (existing.exists() && existing.data().status === 'completed') return attemptId;
   if (existing.exists()) return attemptId;
 
   const startedAt = Date.now();
@@ -217,42 +206,22 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
 export async function getAttemptState(attemptId: string) {
   const snap = await getDoc(doc(db, 'attempts', attemptId));
   if (!snap.exists()) return null;
-  
   const answersSnap = await getDocs(collection(db, 'attempts', attemptId, 'answers'));
   const answers: Record<number, AttemptAnswer> = {};
   answersSnap.docs.forEach(d => {
-    const data = d.data() as AttemptAnswer;
-    answers[parseInt(d.id)] = data;
+    answers[parseInt(d.id)] = d.data() as AttemptAnswer;
   });
-
-  return {
-    ...snap.data() as ExamAttempt,
-    id: snap.id,
-    answers
-  };
+  return { ...snap.data() as ExamAttempt, id: snap.id, answers };
 }
 
 export async function saveQuestionState(attemptId: string, qIndex: number, data: AttemptAnswer) {
   const answerRef = doc(db, 'attempts', attemptId, 'answers', qIndex.toString());
-  setDoc(answerRef, {
-    ...data,
-    lastSavedAt: Date.now()
-  }, { merge: true }).catch(async (err) => {
-    const permissionError = new FirestorePermissionError({
-      path: answerRef.path,
-      operation: 'write',
-      requestResourceData: data
-    });
-    errorEmitter.emit('permission-error', permissionError);
-  });
+  await setDoc(answerRef, { ...data, lastSavedAt: Date.now() }, { merge: true });
 }
 
 export async function updateAttemptActivity(attemptId: string, updates: any) {
   const ref = doc(db, 'attempts', attemptId);
-  updateDoc(ref, {
-    ...updates,
-    lastActiveAt: Date.now()
-  }).catch(() => {});
+  await updateDoc(ref, { ...updates, lastActiveAt: Date.now() });
 }
 
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any, xpGain: number) {
@@ -263,42 +232,18 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     accuracy: analytics.accuracy,
     completedAt: Date.now()
   });
-
   const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
-    xp: increment(xpGain),
-    streak: increment(1)
-  });
+  await updateDoc(userRef, { xp: increment(xpGain), streak: increment(1) });
 }
 
-export async function updateMock(id: string, data: Partial<MockTest>) {
-  const ref = doc(db, 'mocks', id);
-  await updateDoc(ref, { ...data, updatedAt: Date.now() });
-}
-
-export async function duplicateMock(id: string) {
-  const mock = await getMockDetails(id);
-  const { id: _, ...data } = mock;
-  return await addDoc(collection(db, "mocks"), {
-    ...data,
-    title: `${data.title} (Copy)`,
-    status: "draft",
-    createdAt: Date.now(),
-  });
-}
-
-export async function getMockAnalytics(mockId: string) {
-  const q = query(collection(db, 'attempts'), where('mockId', '==', mockId), where('status', '==', 'completed'));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const scores = snap.docs.map(d => d.data().score || 0);
-  return {
-    totalAttempts: snap.size,
-    avgScore: scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : 0,
-    scores
-  };
-}
-
-export async function deleteMock(mockId: string) {
-  await deleteDoc(doc(db, 'mocks', mockId));
+export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
+  const userSnap = await getDoc(doc(db, 'users', userId));
+  const role = userSnap.data()?.role;
+  if (role === 'admin' || role === 'superadmin') return { allowed: true };
+  if (mock.accessType === 'free') return { allowed: true };
+  const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
+  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
+    return { allowed: false, reason: `Requires ${mock.accessType.replace('_', ' ').toUpperCase()}` };
+  }
+  return { allowed: true };
 }

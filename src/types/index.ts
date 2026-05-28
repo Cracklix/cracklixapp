@@ -106,7 +106,7 @@ export interface MockTest {
   duration: number;
   totalQuestions: number;
   negativeMarking: number;
-  premium: boolean; // Legacy: kept for compatibility
+  premium: boolean; 
   accessType: MockAccessType;
   status: MockStatus;
   questionIds: string[];
