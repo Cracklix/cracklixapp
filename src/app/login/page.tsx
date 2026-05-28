@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -104,6 +104,35 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail) {
+      toast({ 
+        title: "Email Identity Required", 
+        description: "Please enter your registered email address first.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      toast({ 
+        title: "Reset Signal Dispatched", 
+        description: "Check your inbox for the password recovery link." 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Dispatcher Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     if (loading) return;
     setLoading(true);
@@ -174,6 +203,17 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              <div className="flex justify-end px-1">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
+                >
+                  Forgot access key?
+                </button>
+              </div>
+
               <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black shadow-lg" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize Entry"}
               </Button>
