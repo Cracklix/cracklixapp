@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import Navbar from '@/components/navbar';
 import { getTestSeriesById, getSubjectsBySeries, getTestsBySeries, DEFAULT_SERIES, MOCK_SUBJECTS } from '@/services/test-series';
@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -26,8 +26,8 @@ import { usePremium } from '@/hooks/usePremium';
  * Exactly Testbook Style: Mock Tests, PYPs, Study Notes, Sticky Unlock Button.
  */
 export default function TestSeriesHub() {
-  const unwrappedParams = use(React.use(useParams())); 
-  const seriesId = unwrappedParams.id as string;
+  const params = useParams();
+  const seriesId = params?.id as string;
   const router = useRouter();
   const { user } = useAuth();
   const { isPremium } = usePremium(user?.uid);
@@ -39,6 +39,8 @@ export default function TestSeriesHub() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!seriesId) return;
+
     async function loadData() {
       setLoading(true);
       const data = await getTestSeriesById(seriesId) || DEFAULT_SERIES.find(s => s.id === seriesId);
@@ -47,7 +49,7 @@ export default function TestSeriesHub() {
       const subjs = await getSubjectsBySeries(seriesId);
       setSubjects(subjs.length > 0 ? subjs : MOCK_SUBJECTS.filter(s => s.seriesId === seriesId));
       
-      const testList = await getTestsBySeries(seriesId, activeTab === 'mock-tests' ? 'full' : activeTab as any);
+      const testList = await getTestsBySeries(seriesId, activeTab);
       setTests(testList);
       
       setLoading(false);
@@ -147,7 +149,7 @@ export default function TestSeriesHub() {
                        <Search className="absolute left-4 top-3 w-4 h-4 text-slate-500" />
                        <input 
                          placeholder="Search mock..." 
-                         className="h-10 w-full md:w-64 bg-zinc-900 border border-white/5 rounded-xl pl-11 text-[10px] font-bold uppercase outline-none focus:ring-1 ring-blue-600/40 text-white" 
+                         className="h-10 w-full md:w-64 bg-zinc-900 border border-white/5 rounded-xl pl-11 text-[10px] font-bold uppercase outline-none focus:ring-1 ring-blue-600/40 text-white shadow-inner" 
                        />
                     </div>
                  </div>
@@ -213,7 +215,7 @@ export default function TestSeriesHub() {
         <footer className="fixed bottom-0 left-0 w-full h-20 bg-zinc-950 border-t border-white/10 z-[60] flex items-center justify-center md:left-60 md:w-[calc(100%-240px)]">
            <div className="max-w-4xl w-full px-6 flex items-center justify-between gap-4">
               <div className="hidden sm:block">
-                 <p className="text-sm font-bold text-white uppercase tracking-tight">Unlock {series?.totalTests} Premium Tests</p>
+                 <p className="text-sm font-bold text-white uppercase tracking-tight">Unlock {series?.totalTests || 'All'} Premium Tests</p>
                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Join 15,000+ Aspirants today</p>
               </div>
               <Button onClick={() => router.push('/pass')} className="w-full sm:w-auto h-12 px-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest shadow-xl">
@@ -226,9 +228,4 @@ export default function TestSeriesHub() {
       <Navbar />
     </AppLayout>
   );
-}
-
-// Needed because React.use(useParams()) is weird in Next.js versions
-function useParams() {
-  return React.useContext(require('next/dist/shared/lib/app-router-context.shared-runtime').PathnameContext);
 }
