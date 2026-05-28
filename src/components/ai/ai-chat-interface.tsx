@@ -19,11 +19,17 @@ import {
   Volume2, 
   VolumeX, 
   X, 
-  Image as ImageIcon 
+  Lock,
+  MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth-context';
+import { useAiLimits } from '@/hooks/use-ai-limits';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import Link from 'next/link';
 
 type Message = {
   role: 'user' | 'ai';
@@ -35,6 +41,9 @@ type Message = {
 };
 
 export default function AiChatInterface() {
+  const { user } = useAuth();
+  const { canUseAi, remaining, incrementUsage } = useAiLimits(user?.uid);
+  
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,6 +73,15 @@ export default function AiChatInterface() {
 
   const handleSend = async () => {
     if ((!input.trim() && !selectedImage) || loading) return;
+
+    if (!canUseAi) {
+      toast({
+        title: "Daily Limit Reached",
+        description: "Upgrade to CRACKLIX PASS for unlimited AI tutoring.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const userMessage: Message = {
       role: 'user',
@@ -101,7 +119,21 @@ export default function AiChatInterface() {
         id: (Date.now() + 1).toString(),
         suggestedTopics,
       };
+
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Persist to history
+      if (user) {
+        addDoc(collection(db, 'aiChats'), {
+          userId: user.uid,
+          message: input,
+          response: reply,
+          type: currentImage ? 'ocr' : 'text',
+          createdAt: Date.now()
+        });
+        incrementUsage();
+      }
+
     } catch (error) {
       console.error("AI Tutor Error:", error);
       toast({
@@ -148,15 +180,21 @@ export default function AiChatInterface() {
               <Bot className="text-white w-6 h-6" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold">CRACKLIX AI Studio</CardTitle>
-              <CardDescription className="text-xs uppercase tracking-widest font-bold text-primary/70">
-                OCR • Voice • 2.5 Flash
+              <CardTitle className="text-xl font-bold">Your AI Teacher</CardTitle>
+              <CardDescription className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Next-Gen Doubt Solver
               </CardDescription>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="rounded-xl border border-white/5" onClick={() => setMessages([])}>
-            <RotateCcw className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="bg-background/50 border-white/5 px-3 py-1 text-[10px] font-bold">
+              {remaining === Infinity ? "UNLIMITED" : `${remaining} CHATS LEFT`}
+            </Badge>
+            <Button variant="ghost" size="icon" className="rounded-xl border border-white/5" onClick={() => setMessages([])}>
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -172,8 +210,8 @@ export default function AiChatInterface() {
                 <BrainCircuit className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="text-lg font-bold">Next-Gen Doubt Solving</h3>
-                <p className="text-sm max-w-xs">Upload a photo of a question or ask any doubt in text. I can even speak the answers back to you.</p>
+                <h3 className="text-lg font-bold">Ask anything about Punjab Exams</h3>
+                <p className="text-sm max-w-xs">Upload a tricky math question or ask for a GK short trick.</p>
               </div>
             </motion.div>
           )}
@@ -226,7 +264,7 @@ export default function AiChatInterface() {
                 <Loader2 className="text-white w-5 h-5 animate-spin" />
               </div>
               <div className="bg-secondary/50 border border-white/5 p-5 rounded-[28px] rounded-tl-none italic text-muted-foreground text-sm">
-                AI is processing your request...
+                AI Teacher is analyzing...
               </div>
             </motion.div>
           )}
@@ -234,6 +272,18 @@ export default function AiChatInterface() {
       </CardContent>
 
       <div className="p-8 border-t border-white/5 bg-black/20">
+        {!canUseAi && (
+          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+               <Lock className="text-destructive w-4 h-4" />
+               <p className="text-xs font-bold text-destructive">Daily Free Limit reached</p>
+             </div>
+             <Link href="/pass">
+               <Button size="sm" className="h-8 bg-destructive hover:bg-destructive/90 text-[10px] font-black uppercase">Unlock Pass</Button>
+             </Link>
+          </div>
+        )}
+
         <AnimatePresence>
           {selectedImage && (
             <motion.div 
@@ -268,8 +318,9 @@ export default function AiChatInterface() {
           <Textarea 
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a doubt or upload a photo of a question..."
+            placeholder="Describe your doubt or upload a question photo..."
             className="min-h-[60px] max-h-[200px] rounded-3xl bg-zinc-900 border-white/10 pl-14 pr-16 focus:ring-primary/20"
+            disabled={!canUseAi}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -281,7 +332,7 @@ export default function AiChatInterface() {
             size="icon" 
             className="absolute right-3 bottom-3 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg"
             onClick={handleSend}
-            disabled={loading || (!input.trim() && !selectedImage)}
+            disabled={loading || (!input.trim() && !selectedImage) || !canUseAi}
           >
             <Send className="w-4 h-4" />
           </Button>
