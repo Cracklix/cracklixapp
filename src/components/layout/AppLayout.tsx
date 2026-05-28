@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -20,7 +21,9 @@ import {
   ShoppingBag,
   Sparkles,
   Briefcase,
-  Gift
+  Gift,
+  Keyboard,
+  Bookmark
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -77,11 +80,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: t('home') },
-    { href: '/live', icon: Radio, label: 'Live' },
+    { href: '/live', icon: Radio, label: 'Live Arena' },
     { href: '/exams', icon: BookOpen, label: t('mocks') },
+    { href: '/typing', icon: Keyboard, label: 'Typing Test' },
+    { href: '/bookmarks', icon: Bookmark, label: 'Saved' },
     { href: '/jobs', icon: Briefcase, label: t('jobs') },
     { href: '/marketplace', icon: ShoppingBag, label: t('market') },
-    { href: '/referral', icon: Gift, label: t('invites') },
     { href: '/leaderboard', icon: Trophy, label: t('leaderboard') },
     { href: '/ai', icon: BrainCircuit, label: t('ai_coach') },
   ];
