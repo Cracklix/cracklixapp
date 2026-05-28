@@ -1,26 +1,32 @@
-
 'use client';
 
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 /**
- * Service to check for duplicate questions in the bank.
- * Uses a basic text-matching logic for MVP, can be upgraded to vector search.
+ * Enterprise Service for Duplicate & Quality Management.
  */
+
 export async function findPotentialDuplicates(textEn: string) {
-  // Normalize text for search
-  const normalized = textEn.toLowerCase().trim().substring(0, 50);
+  if (!textEn || textEn.length < 10) return [];
   
+  // Normalize text for search: remove special chars and lowercase
+  const normalized = textEn.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 30);
+  
+  // Simple prefix search as a fallback for vector search in MVP
   const q = query(
     collection(db, 'questions'),
-    where('question_en', '>=', normalized),
-    where('question_en', '<=', normalized + '\uf8ff'),
-    limit(5)
+    where('question_en', '>=', textEn.substring(0, 20)),
+    where('question_en', '<=', textEn.substring(0, 20) + '\uf8ff'),
+    limit(3)
   );
 
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  try {
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    return [];
+  }
 }
 
 /**
@@ -29,10 +35,11 @@ export async function findPotentialDuplicates(textEn: string) {
 export function calculateQualityScore(q: any): number {
   let score = 100;
   
-  if (!q.question_pa) score -= 20;
+  if (!q.question_pa) score -= 25;
   if (!q.explanation_en) score -= 10;
-  if (q.options_en?.length !== 4) score -= 30;
-  if (!q.topic) score -= 5;
+  if (!q.options_en || q.options_en.length !== 4) score -= 30;
+  if (!q.correctAnswer) score -= 20;
+  if (!q.subject) score -= 5;
   
   return Math.max(0, score);
 }

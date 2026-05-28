@@ -1,8 +1,9 @@
-
 'use server';
 /**
- * @fileOverview AI Question Parser Flow.
- * Extracts structured bilingual MCQs from raw OCR text or study material.
+ * @fileOverview Enterprise AI Question Parser Flow.
+ * Optimized for messy, bilingual Punjab exam PDFs with layout awareness.
+ * 
+ * - parseQuestionsAi - Extracts structured atomic MCQs from raw OCR text.
  */
 
 import { ai } from '@/ai/genkit';
@@ -11,6 +12,7 @@ import { z } from 'genkit';
 const QuestionParserInputSchema = z.object({
   rawText: z.string().describe("The raw text extracted from a PDF or image."),
   preferredSubject: z.string().optional().describe("Hint for the subject context."),
+  sourceMetadata: z.string().optional().describe("Context like exam name or year."),
 });
 export type QuestionParserInput = z.infer<typeof QuestionParserInputSchema>;
 
@@ -26,6 +28,7 @@ const QuestionParserOutputSchema = z.object({
     subject: z.string(),
     topic: z.string(),
     difficulty: z.enum(['easy', 'medium', 'hard']),
+    confidenceScore: z.number().describe("AI confidence in the extraction (0-1)"),
   })),
 });
 export type QuestionParserOutput = z.infer<typeof QuestionParserOutputSchema>;
@@ -38,23 +41,26 @@ const prompt = ai.definePrompt({
   name: 'aiQuestionParserPrompt',
   input: { schema: QuestionParserInputSchema },
   output: { schema: QuestionParserOutputSchema },
-  prompt: `You are the CRACKLIX Ingestion AI. 
+  prompt: `You are the CRACKLIX Core Ingestion Engine. 
 
-Analyze the following raw text and extract all multiple choice questions.
-For every question, you MUST provide a bilingual version:
-1. English: Standard academic English.
-2. Punjabi: Formal Gurmukhi (Raavi style) as used in PPSC/PSSSB exams.
+Analyze the following raw OCR text which originates from a Punjab Government Exam paper (PPSC/PSSSB).
+Text is often messy, contains watermarks, headers, and footer noise.
 
-{{#if preferredSubject}}Subject Hint: {{{preferredSubject}}}{{/if}}
-
-Raw Text:
+INPUT DATA:
 {{{rawText}}}
 
-Instructions:
-- If the text is only in one language, translate it to the other to make it bilingual.
-- Ensure the 'correctAnswer' field matches one of the 'options_en' exactly.
-- Identify the most likely subject (Punjab GK, Math, Reasoning, etc.) and difficulty.
-- Format strictly as JSON.`,
+{{#if preferredSubject}}SUBJECT HINT: {{{preferredSubject}}}{{/if}}
+{{#if sourceMetadata}}METADATA: {{{sourceMetadata}}}{{/if}}
+
+INSTRUCTIONS:
+1. LAYOUT DETECTION: Ignore headers, page numbers, and instructions. Focus on MCQ blocks.
+2. BILINGUAL PAIRING: Detect English questions and their corresponding Punjabi (Gurmukhi) translations. 
+   - If only one language is present, you MUST generate the translation yourself in Raavi font style.
+3. OPTION DETECTION: Detect options in patterns like (A, B, C, D), (1, 2, 3, 4), or (a, b, c, d).
+4. CLEANUP: Fix common OCR artifacts (e.g. 'PunJab' -> 'Punjab', '0' -> 'O').
+5. QUALITY: Assign a confidence score based on how clear the question-answer mapping was.
+
+Structure your response as a strict JSON object matching the output schema.`,
 });
 
 const aiQuestionParserFlow = ai.defineFlow(
