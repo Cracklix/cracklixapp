@@ -36,7 +36,7 @@ import { Badge } from "@/components/ui/badge";
 
 /**
  * PRODUCTION CBT ENGINE
- * High-integrity examination environment with real-time Firestore synchronization.
+ * High-integrity examination environment with strict access validation.
  */
 export default function MockPage() {
   const { user, profile } = useAuth();
@@ -63,29 +63,34 @@ export default function MockPage() {
   useEffect(() => {
     async function init() {
       if (!user || !mockId) return;
+      
       try {
         setLoading(true);
+        // 1. Fetch Mock Metadata First
         const mockData = await getMockDetails(mockId);
         if (!mockData) {
           setErrorState("The requested simulation does not exist or has been archived.");
           setLoading(false);
           return;
         }
-        
-        // 1. Validate Subscription Access
+        setMock(mockData);
+
+        // 2. CRITICAL: Validate Access BEFORE loading questions or initializing engine
         const access = await checkMockAccess(user.uid, mockData);
         if (!access.allowed) {
-          toast({ title: "Access Denied", description: access.reason, variant: "destructive" });
-          router.push('/exams');
+          toast({ 
+            title: "Access Restricted", 
+            description: access.reason || "This mock requires a PASS+ subscription.", 
+            variant: "destructive" 
+          });
+          router.push('/pass');
           return;
         }
 
-        // 2. Load Artifacts
+        // 3. Load Engine Components ONLY after access is confirmed
         const qData = await getMockQuestions(mockId);
-        setMock(mockData);
         setQuestions(qData);
         
-        // 3. Initialize or Resume Attempt
         const id = await startAttempt(user.uid, mockData);
         setAttemptId(id);
 
@@ -110,7 +115,6 @@ export default function MockPage() {
     }
     init();
 
-    // Anti-Cheat: Log tab switching
     const handleVisibility = () => {
       if (document.hidden && phase === 'test' && attemptId) {
         updateAttemptActivity(attemptId, { cheatFlags: increment(1) });
@@ -211,7 +215,7 @@ export default function MockPage() {
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
             <div className="space-y-2">
               <h1 className="text-3xl font-black tracking-tight uppercase leading-none">{mock?.title || 'Unknown Test'}</h1>
-              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">{mock?.exam} • Production Entry</p>
+              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">{mock?.exam} • Official Simulation</p>
             </div>
             <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black text-[10px] px-3 py-1 uppercase">{mock?.accessType}</Badge>
           </header>

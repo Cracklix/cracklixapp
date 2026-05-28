@@ -23,7 +23,6 @@ import { MockTest, Question, ExamAttempt, AttemptAnswer } from '@/types';
 
 /**
  * PRODUCTION SERVICE: Mock Factory & CBT Management
- * Connects every UI interaction to a persistent Firestore state.
  */
 
 // 1. REGISTRY OPERATIONS
@@ -105,7 +104,6 @@ export async function publishMock(mockId: string) {
     publishedAt: Date.now()
   });
 
-  // Quarantine linked questions to prevent content overlap in future mocks
   questionIds.forEach((qId: string) => {
     const qRef = doc(db, 'questions', qId);
     batch.update(qRef, {
@@ -119,7 +117,7 @@ export async function publishMock(mockId: string) {
 }
 
 export async function setMockLive(mockId: string, isLive: boolean) {
-  const ref = doc(db, 'mocks', mockId);
+  const ref = doc(db, 'mocks', id);
   await updateDoc(ref, { 
     status: isLive ? 'live' : 'published',
     liveAt: isLive ? Date.now() : null
@@ -128,19 +126,25 @@ export async function setMockLive(mockId: string, isLive: boolean) {
 
 // 4. CBT ENGINE LOGIC (Student Side)
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
-  // Admin universal override for QA
+  // Admin universal override
   const userSnap = await getDoc(doc(db, 'users', userId));
   const userData = userSnap.data();
   if (userData?.role === 'admin' || userData?.role === 'superadmin' || userData?.email === 'arshdeepgrewal1122@gmail.com') {
     return { allowed: true };
   }
   
+  // Free access logic
   if (mock.accessType === 'free') return { allowed: true };
   
+  // Premium subscription logic
   const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
-  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
-    return { allowed: false, reason: `Requires PASS+ subscription.` };
+  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().endDate < Date.now()) {
+    return { 
+      allowed: false, 
+      reason: mock.accessType === 'pass_plus' ? "Requires PASS+ subscription." : "Requires Premium Access." 
+    };
   }
+  
   return { allowed: true };
 }
 
@@ -149,7 +153,6 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
   const attemptRef = doc(db, 'attempts', attemptId);
   const existing = await getDoc(attemptRef);
   
-  // Persistence Guard: Don't overwrite an existing ongoing attempt
   if (existing.exists() && existing.data().status === 'ongoing') {
     return attemptId;
   }
@@ -197,16 +200,12 @@ export async function updateAttemptActivity(attemptId: string, updates: any) {
     .catch(() => {});
 }
 
-/**
- * Finalizes the attempt by calculating scores and updating user stats.
- */
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any, xpGain: number) {
   const attemptRef = doc(db, 'attempts', attemptId);
   const userRef = doc(db, 'users', userId);
 
   const batch = writeBatch(db);
 
-  // 1. Mark attempt as completed with results
   batch.update(attemptRef, {
     status: 'completed',
     completedAt: Date.now(),
@@ -215,10 +214,9 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     analytics: analytics
   });
 
-  // 2. Award XP and engagement rewards
   batch.update(userRef, {
     xp: increment(xpGain),
-    coins: increment(10) // Completion bonus
+    coins: increment(10)
   });
 
   await batch.commit();
