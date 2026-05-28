@@ -2,11 +2,11 @@
 'use client';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, setDoc, getDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 
 /**
- * PRODUCTION PAYMENT SERVICE: Razorpay Integration v1.0
- * Handles तैयारी (Preparation) Pass acquisition and transaction logging.
+ * PRODUCTION PREPARATION PASS SERVICE
+ * Handles preparação (preparedness) pass acquisition and transaction logging.
  */
 
 export interface Transaction {
@@ -20,14 +20,12 @@ export interface Transaction {
 }
 
 export async function createPreparationOrder(userId: string, amount: number, passType: string) {
-  // In production, this would call your server-side API to create a Razorpay order
-  // For Studio, we log the pending intent
   const orderRef = await addDoc(collection(db, 'transactions'), {
     userId,
     amount,
     passType,
     status: 'pending',
-    createdAt: serverTimestamp()
+    createdAt: Date.now()
   });
   
   return orderRef.id;
@@ -37,7 +35,11 @@ export async function verifyAndActivatePass(userId: string, transactionId: strin
   const transactionRef = doc(db, 'transactions', transactionId);
   
   // 1. Mark transaction successful
-  await updateDoc(transactionRef, { status: 'success', paymentId: 'RZP_' + Date.now() });
+  await updateDoc(transactionRef, { 
+    status: 'success', 
+    paymentId: 'RZP_' + Date.now(),
+    updatedAt: serverTimestamp()
+  });
 
   // 2. Calculate expiry
   const duration = passDetails.durationDays || 30;
@@ -57,22 +59,24 @@ export async function verifyAndActivatePass(userId: string, transactionId: strin
     tier: passDetails.type,
     status: 'active',
     expiresAt: expiryDate,
-    access: passDetails.accessMatrix,
+    access: passDetails.accessMatrix || {},
     createdAt: serverTimestamp()
   }, { merge: true });
 
   return true;
 }
 
-export async function checkEntitlement(userId: string, requiredTier: string): Promise<boolean> {
+export async function checkEntitlement(userId: string, requiredTier: string): Promise<{ allowed: boolean; reason?: string }> {
   const userSnap = await getDoc(doc(db, 'users', userId));
-  if (!userSnap.exists()) return false;
+  if (!userSnap.exists()) return { allowed: false, reason: "Profile not found." };
   
   const userData = userSnap.data();
-  if (userData.role === 'admin' || userData.role === 'superadmin') return true;
+  
+  // Admin bypass
+  if (userData.role === 'admin' || userData.role === 'superadmin') return { allowed: true };
 
   const passExpiry = userData.passExpiry || 0;
-  if (passExpiry < Date.now()) return false;
+  if (passExpiry < Date.now()) return { allowed: false, reason: "Your Preparation Pass has expired." };
 
   const currentPass = userData.activePass || 'free';
   
@@ -81,5 +85,18 @@ export async function checkEntitlement(userId: string, requiredTier: string): Pr
   const userIndex = tiers.indexOf(currentPass);
   const requiredIndex = tiers.indexOf(requiredTier.toLowerCase());
 
-  return userIndex >= requiredIndex;
+  if (userIndex >= requiredIndex) {
+    return { allowed: true };
+  }
+
+  return { 
+    allowed: false, 
+    reason: `This content requires a ${requiredTier.toUpperCase()} Pass or higher.` 
+  };
+}
+
+export async function getActivePlans() {
+  const q = query(collection(db, "plans"), where("active", "==", true));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }

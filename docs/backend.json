@@ -19,7 +19,8 @@
         "targetExam": { "type": "string" },
         "referralCode": { "type": "string" },
         "createdAt": { "type": "number" },
-        "bookmarks": { "type": "array" }
+        "bookmarks": { "type": "array" },
+        "purchasedTests": { "type": "array" }
       }
     },
     "TestSeries": {
@@ -33,9 +34,10 @@
         "thumbnail": { "type": "string" },
         "totalTests": { "type": "number" },
         "freeTests": { "type": "number" },
-        "passRequired": { "type": "string" },
+        "passRequired": { "type": "string", "enum": ["free", "silver", "gold", "elite"] },
         "price": { "type": "number" },
-        "isActive": { "type": "boolean" }
+        "isActive": { "type": "boolean" },
+        "languages": { "type": "array" }
       }
     },
     "Transaction": {
@@ -50,6 +52,18 @@
         "orderId": { "type": "string" },
         "paymentId": { "type": "string" },
         "createdAt": { "type": "number" }
+      }
+    },
+    "PassPlan": {
+      "title": "Pass Plan",
+      "description": "Definition of preparation passes.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "duration": { "type": "number" },
+        "tier": { "type": "string" },
+        "active": { "type": "boolean" }
       }
     }
   },
@@ -68,6 +82,10 @@
     "/transactions/{txnId}": {
       "schema": "Transaction",
       "description": "Payment records for preparer passes."
+    },
+    "/plans/{planId}": {
+      "schema": "PassPlan",
+      "description": "Preparation pass tiers and pricing."
     }
   }
 }
