@@ -15,11 +15,15 @@ import { db } from "@/lib/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
+/**
+ * Service for Punjab State Ranking & Leaderboards.
+ */
+
 export async function getLeaderboard() {
   const q = query(
     collection(db, "leaderboards"),
     orderBy("xp", "desc"),
-    limit(50)
+    limit(100)
   );
 
   const snapshot = await getDocs(q);
@@ -33,20 +37,22 @@ export async function getLeaderboard() {
 export function updateUserRank(userId: string, name: string, xpGain: number, accuracy: number) {
   const rankRef = doc(db, "leaderboards", userId);
   
-  const data = {
+  const payload = {
     userId,
     name,
     xp: increment(xpGain),
-    accuracy: accuracy, // Latest accuracy
-    updatedAt: Date.now()
+    accuracy: accuracy,
+    lastUpdate: Date.now(),
+    status: "active"
   };
 
-  setDoc(rankRef, data, { merge: true })
+  // High-performance merge update for real-time standings
+  setDoc(rankRef, payload, { merge: true })
     .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: rankRef.path,
         operation: 'write',
-        requestResourceData: data,
+        requestResourceData: payload,
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     });

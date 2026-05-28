@@ -16,25 +16,25 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin');
     }
 
-    // User Profiles
+    // User Profiles & Operational Docs
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isOwner(userId) || isAdmin();
     }
-
-    // Leaderboards
-    match /leaderboards/{userId} {
-      allow read, list: if isAuthenticated();
+    match /dailyTargets/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
       allow write: if isOwner(userId) || isAdmin();
     }
-
-    // Mock Attempts
-    match /attempts/{id} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    match /readiness/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+    match /aiUsage/{id} {
+      allow read: if isAuthenticated() && (id.split('_')[0] == request.auth.uid || isAdmin());
+      allow write: if isAuthenticated() && (id.split('_')[0] == request.auth.uid || isAdmin());
     }
 
-    // Academic Infrastructure
+    // Global Academic Assets
     match /mocks/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -51,13 +51,39 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-
-    // Subscriptions & Payments
-    match /subscriptions/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+    match /currentAffairs/{id} {
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-    match /payments/{id} {
+    match /jobAlerts/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Competitive System
+    match /leaderboards/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+    match /liveRanks/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /liveActivity/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /attempts/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Support & Comms
+    match /notifications/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAdmin();
+    }
+    match /supportTickets/{id} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated();
     }
