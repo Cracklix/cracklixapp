@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -22,19 +21,23 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('en');
 
   useEffect(() => {
-    const saved = document.cookie.split('; ').find(row => row.startsWith('NEXT_LOCALE='))?.split('=')[1];
-    if (saved === 'pa' || saved === 'en') {
-      setLocaleState(saved as Locale);
+    if (typeof document !== 'undefined') {
+      const saved = document.cookie.split('; ').find(row => row.startsWith('NEXT_LOCALE='))?.split('=')[1];
+      if (saved === 'pa' || saved === 'en') {
+        setLocaleState(saved as Locale);
+      }
     }
   }, []);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
-    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
+    if (typeof document !== 'undefined') {
+      document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
+    }
   };
 
   const t = (key: keyof Translations) => {
-    return translations[locale][key] || key;
+    return translations[locale][key as keyof Translations] || key;
   };
 
   return (

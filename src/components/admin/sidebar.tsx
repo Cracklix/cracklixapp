@@ -20,7 +20,9 @@ import {
   BrainCircuit,
   Sparkles,
   Search,
-  BookOpen
+  BookOpen,
+  Lock,
+  Layers
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -32,7 +34,7 @@ export default function AdminSidebar() {
       items: [
         { name: "Command Center", href: "/admin", icon: LayoutDashboard },
         { name: "Aspirant Registry", href: "/admin/users", icon: Users },
-        { name: "Pass Management", href: "/admin/subscriptions", icon: CreditCard },
+        { name: "Pass Management", href: "/admin/pass-management", icon: Lock },
         { name: "Support Signals", href: "/admin/support", icon: LifeBuoy },
       ]
     },
@@ -68,13 +70,13 @@ export default function AdminSidebar() {
   ];
 
   return (
-    <div className="w-60 bg-zinc-950 border-r border-white/5 min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto no-scrollbar pb-6 shrink-0">
+    <div className="w-60 bg-[#05070a] border-r border-white/5 min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto no-scrollbar pb-6 shrink-0">
       <div className="p-6 pb-4 flex items-center gap-2 mb-4 group">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center blue-glow shrink-0">
           <ShieldCheck className="text-white w-4 h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="font-headline text-sm font-black text-white leading-none tracking-tight">CRACKLIX</span>
+          <span className="font-headline text-sm font-black text-white leading-none tracking-tight text-white uppercase">CRACKLIX</span>
           <span className="text-[7px] text-primary font-black uppercase mt-1 tracking-[0.2em]">Enterprise Admin</span>
         </div>
       </div>
