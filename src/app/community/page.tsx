@@ -27,7 +27,6 @@ import {
   Image as ImageIcon,
   ShieldCheck,
   Zap,
-  ChevronRight,
   Plus,
   ShieldAlert
 } from 'lucide-react';
@@ -44,9 +43,9 @@ const CHANNELS = [
   { id: 'general', name: 'General Arena', icon: Sparkles, desc: 'Punjab-wide aspirant discussions' },
   { id: 'punjab-police', name: 'Police Recruits', icon: ShieldCheck, desc: 'SI & Constable focus group' },
   { id: 'ppsc-pcs', name: 'PPSC PCS Elite', icon: CheckCircle2, desc: 'Civil Services strategy room' },
-  { id: 'patwari', name: 'Patwari Hub', icon: FileText, desc: 'Revenue Dept preparation' },
-  { id: 'clerk-steno', name: 'Clerk / Steno IT', icon: Search, desc: 'Typing & Clerical discussions' },
-  { id: 'current-affairs', name: 'Daily News Pulse', icon: Search, desc: 'Analysis & PDF sharing' },
+  { id: 'psssb-hub', name: 'PSSSB Command', icon: FileText, desc: 'Clerk, Patwari & VDO preparation' },
+  { id: 'ctet-pstet', name: 'Teacher Academy', icon: Search, desc: 'CDP & Pedagogy discussions' },
+  { id: 'current-affairs', name: 'Daily News Pulse', icon: Zap, desc: 'Analysis & PDF sharing' },
 ];
 
 const FOUNDER_EMAIL = 'arshdeepgrewal1122@gmail.com';
@@ -62,6 +61,7 @@ export default function CommunityPage() {
 
   useEffect(() => {
     setLoading(true);
+    // Realtime Listener for the selected channel
     const q = query(
       collection(db, 'community_messages'),
       where('channelId', '==', activeChannel.id),
@@ -73,17 +73,19 @@ export default function CommunityPage() {
       setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
       
+      // Auto-scroll logic
       setTimeout(() => {
         const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) viewport.scrollTop = viewport.scrollHeight;
       }, 100);
     }, (err) => {
-      console.error(err);
+      console.error("Community Stream Error:", err);
       setLoading(false);
+      toast({ title: "Stream Interrupted", description: "Could not sync with the live discussion board.", variant: "destructive" });
     });
 
     return () => unsub();
-  }, [activeChannel.id]);
+  }, [activeChannel.id, toast]);
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -103,13 +105,15 @@ export default function CommunityPage() {
         role: profile?.role || 'student'
       });
       
+      // Post to Live Activity for Dashboard Pulse
       await addDoc(collection(db, "liveActivity"), {
         message: `${profile?.name || 'An aspirant'} posted in #${activeChannel.id}`,
         type: 'community',
         createdAt: Date.now()
       });
-    } catch (e) {
-      toast({ title: "Signal Weak", description: "Failed to broadcast message.", variant: "destructive" });
+    } catch (e: any) {
+      console.error("Message Send Failure:", e);
+      toast({ title: "Signal Lost", description: "Failed to broadcast your message. Check your connection.", variant: "destructive" });
     }
   };
 
@@ -126,7 +130,7 @@ export default function CommunityPage() {
                 </div>
                 <div className="relative mt-4">
                    <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-600" />
-                   <Input placeholder="Search streams..." className="h-9 bg-black/20 border-white/5 pl-9 rounded-xl text-[10px] uppercase font-black tracking-widest" />
+                   <Input placeholder="Filter channels..." className="h-9 bg-black/20 border-white/5 pl-9 rounded-xl text-[10px] uppercase font-black tracking-widest" />
                 </div>
               </div>
               <ScrollArea className="flex-1 p-4">
@@ -149,16 +153,11 @@ export default function CommunityPage() {
                             <ch.icon size={16} />
                          </div>
                          <div className="overflow-hidden flex-1">
-                           <div className="flex justify-between items-center">
-                              <p className="font-bold text-xs truncate">{ch.name}</p>
-                              {activeChannel.id !== ch.id && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
-                              )}
-                           </div>
-                           <p className={cn(
+                            <p className="font-bold text-xs truncate">{ch.name}</p>
+                            <p className={cn(
                              "text-[9px] truncate font-bold uppercase tracking-tighter",
                              activeChannel.id === ch.id ? "text-white/60" : "text-zinc-700"
-                           )}>#{ch.id}</p>
+                            )}>#{ch.id}</p>
                          </div>
                       </button>
                     ))}
@@ -171,8 +170,8 @@ export default function CommunityPage() {
                        <Zap className="text-white w-5 h-5 fill-current" />
                     </div>
                     <div>
-                       <p className="text-[10px] font-black text-primary uppercase">Infrastructure</p>
-                       <p className="text-xs font-bold text-white">Elite Core v4.2</p>
+                       <p className="text-[10px] font-black text-primary uppercase">Identity Layer</p>
+                       <p className="text-xs font-bold text-white">v4.2 Production</p>
                     </div>
                  </div>
               </div>
@@ -188,10 +187,7 @@ export default function CommunityPage() {
                  </div>
                  <div>
                     <h2 className="text-xl font-bold tracking-tight">{activeChannel.name}</h2>
-                    <div className="flex items-center gap-2">
-                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                       <p className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em]">1.2k Aspirants Live • Founded by Arsh Grewal</p>
-                    </div>
+                    <p className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em]">Real-time Aspirant Signal • #{activeChannel.id}</p>
                  </div>
               </div>
               <div className="flex gap-2">
@@ -205,10 +201,10 @@ export default function CommunityPage() {
                  {loading ? (
                     <div className="py-20 text-center animate-pulse space-y-4">
                        <Bot className="w-12 h-12 mx-auto text-zinc-800" />
-                       <p className="text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Decrypting Stream...</p>
+                       <p className="text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Decrypting Channel Data...</p>
                     </div>
                  ) : messages.length > 0 ? (
-                   messages.map((msg, i) => {
+                   messages.map((msg) => {
                     const isMe = msg.senderId === user?.uid;
                     const isFounder = msg.senderEmail === FOUNDER_EMAIL;
                     const isAdmin = (msg.role === 'admin' || msg.role === 'superadmin') && !isFounder;
@@ -220,7 +216,7 @@ export default function CommunityPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className={cn("flex gap-4", isMe ? "flex-row-reverse" : "flex-row")}
                       >
-                         <Avatar className={cn("w-10 h-10 border shrink-0 shadow-lg", isFounder ? "border-primary shadow-primary/20 scale-110" : isAdmin ? "border-emerald-500/50" : "border-white/10")}>
+                         <Avatar className={cn("w-10 h-10 border shrink-0 shadow-lg", isFounder ? "border-primary shadow-primary/20" : isAdmin ? "border-emerald-500/50" : "border-white/10")}>
                             <AvatarImage src={`https://picsum.photos/seed/${msg.senderId}/100`} />
                             <AvatarFallback className="bg-zinc-800 text-[10px] font-black">{msg.senderName?.charAt(0)}</AvatarFallback>
                          </Avatar>
@@ -241,7 +237,7 @@ export default function CommunityPage() {
                             <div className={cn(
                               "p-5 rounded-[28px] text-sm leading-relaxed shadow-2xl relative group transition-all",
                               isFounder 
-                                ? "bg-primary/10 border border-primary/40 text-white rounded-tl-none shadow-primary/10"
+                                ? "bg-primary/10 border border-primary/40 text-white rounded-tl-none"
                                 : isMe 
                                   ? "bg-primary text-white rounded-tr-none shadow-primary/10" 
                                   : isAdmin 
@@ -249,25 +245,17 @@ export default function CommunityPage() {
                                     : "bg-white/5 border border-white/5 rounded-tl-none"
                             )}>
                                {msg.text}
-                               <div className={cn(
-                                 "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex gap-2",
-                                 isMe ? "-left-4 -translate-x-full" : "-right-4 translate-x-full"
-                               )}>
-                                  <button className="text-zinc-500 hover:text-white transition-colors">👍</button>
-                                  <button className="text-zinc-500 hover:text-white transition-colors">🔥</button>
-                                  <button className="text-zinc-500 hover:text-white transition-colors">💯</button>
-                               </div>
                             </div>
                          </div>
                       </motion.div>
                     );
                    })
                  ) : (
-                   <div className="py-40 text-center space-y-6 opacity-30">
+                   <div className="py-40 text-center space-y-6">
                       <MessageSquare size={64} className="mx-auto text-zinc-800" />
                       <div>
-                        <h3 className="text-2xl font-black uppercase tracking-tighter">Quiet Sector</h3>
-                        <p className="text-xs font-bold uppercase mt-1">Initialize the discussion stream below</p>
+                        <h3 className="text-2xl font-black uppercase tracking-tighter text-zinc-600">No discussions yet</h3>
+                        <p className="text-xs font-bold uppercase mt-1 text-zinc-700">Start the conversation in #{activeChannel.id}</p>
                       </div>
                    </div>
                  )}
@@ -277,19 +265,14 @@ export default function CommunityPage() {
            <footer className="p-6 md:p-8 bg-zinc-950/40 border-t border-white/5">
               <form onSubmit={sendMessage} className="flex gap-4">
                  <div className="relative flex-1 group">
-                    <div className="absolute left-3 top-3 flex gap-1 z-20">
-                       <Button type="button" variant="ghost" size="icon" className="rounded-xl text-zinc-500 hover:text-primary transition-all group-hover:scale-110">
-                          <Paperclip size={18} />
-                       </Button>
-                    </div>
                     <Input 
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       placeholder={`Broadcast to #${activeChannel.id}...`}
-                      className="h-14 bg-zinc-900 border-white/10 rounded-2xl pl-14 pr-16 focus:ring-primary/20 text-sm font-medium transition-all focus:bg-black/40"
+                      className="h-14 bg-zinc-900 border-white/10 rounded-2xl px-6 focus:ring-primary/20 text-sm font-medium transition-all"
                     />
                     <div className="absolute right-3 top-3 z-20">
-                       <Button type="button" variant="ghost" size="icon" className="rounded-xl text-zinc-500 hover:text-emerald-500 transition-all group-hover:rotate-12">
+                       <Button type="button" variant="ghost" size="icon" className="rounded-xl text-zinc-500 hover:text-emerald-500 transition-all">
                           <ImageIcon size={18} />
                        </Button>
                     </div>
@@ -300,13 +283,10 @@ export default function CommunityPage() {
               </form>
               <div className="mt-4 flex items-center justify-between text-[9px] font-black text-zinc-700 uppercase tracking-widest px-4">
                  <div className="flex items-center gap-4">
-                    <span>Identity Verified</span>
+                    <span>Signal Sync: Active</span>
                     <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                    <span>Founded by Arsh Grewal</span>
+                    <span>Founder Monitored</span>
                  </div>
-                 <button className="hover:text-primary transition-colors flex items-center gap-1.5">
-                    <ShieldCheck size={10} /> Community Guidelines
-                 </button>
               </div>
            </footer>
         </main>
