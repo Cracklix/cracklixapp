@@ -53,7 +53,6 @@ function QuestionBankContent() {
   async function loadQuestions() {
     setLoading(true);
     try {
-      // Index-free query: Remove orderBy when using where filters to prevent FirebaseError
       let q = query(
         collection(db, "questions"), 
         where("status", "==", view),
@@ -70,7 +69,6 @@ function QuestionBankContent() {
       }
       
       const snap = await getDocs(q);
-      // Sort client-side to maintain latest-first view without needing composite indexes
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       docs.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
       setQuestions(docs);
@@ -113,39 +111,39 @@ function QuestionBankContent() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
-        <div className="space-y-3">
+    <div className="max-w-7xl mx-auto space-y-8">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 border-b border-white/5 pb-6">
+        <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[20px] bg-primary/20 flex items-center justify-center shadow-lg blue-glow">
-                <Database className="text-primary w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shadow-lg blue-glow">
+                <Database className="text-primary w-5 h-5" />
               </div>
-              <h1 className="font-headline text-5xl font-black tracking-tighter leading-none uppercase">Atomic Bank</h1>
+              <h1 className="font-headline text-4xl font-black tracking-tighter leading-none uppercase">Atomic Bank</h1>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-2">
               <button 
                 onClick={() => router.push('/admin/question-bank?view=published')}
-                className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all", view === 'published' ? "bg-primary text-white" : "text-zinc-600 hover:text-zinc-400")}
+                className={cn("text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all", view === 'published' ? "bg-primary text-white shadow-lg" : "text-zinc-500 hover:text-zinc-400 bg-zinc-900/50")}
               >Production Bank</button>
               <button 
                 onClick={() => router.push('/admin/question-bank?view=draft')}
-                className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all", view === 'draft' ? "bg-orange-600 text-white" : "text-zinc-600 hover:text-zinc-400")}
+                className={cn("text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all", view === 'draft' ? "bg-orange-600 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-400 bg-zinc-900/50")}
               >Moderation Queue</button>
             </div>
         </div>
         
-        <div className="flex gap-4 w-full md:w-auto">
-            <div className="relative flex-1 md:w-80">
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-600" />
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <div className="relative flex-1 sm:w-80">
+              <Search className="absolute left-4 top-3 w-4 h-4 text-zinc-600" />
               <Input 
                 placeholder="Search bank assets..." 
-                className="pl-12 h-14 bg-zinc-900 border-white/5 rounded-2xl text-sm" 
+                className="pl-11 h-12 bg-zinc-900 border-white/5 rounded-2xl text-xs font-medium" 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <Select value={subject} onValueChange={setSubject}>
-              <SelectTrigger className="w-64 h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold">
+              <SelectTrigger className="w-full sm:w-56 h-12 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs">
                   <SelectValue placeholder="Filter Subject" />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-white/10 text-white max-h-[400px]">
@@ -159,32 +157,32 @@ function QuestionBankContent() {
       </header>
 
       {selectedIds.size > 0 && (
-        <div className="sticky top-4 z-50 flex items-center justify-between bg-primary/10 border border-primary/20 backdrop-blur-xl p-6 rounded-[32px] shadow-2xl animate-in slide-in-from-top-4">
-            <p className="text-sm font-bold text-primary">{selectedIds.size} Artifacts Selected</p>
-            <div className="flex gap-4">
-              <Button onClick={bulkApprove} className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 rounded-xl font-black text-xs uppercase tracking-widest">Approve All</Button>
-              <Button variant="ghost" onClick={() => setSelectedIds(new Set())} className="text-zinc-500 hover:text-white">Clear</Button>
+        <div className="sticky top-4 z-50 flex items-center justify-between bg-primary/10 border border-primary/20 backdrop-blur-xl p-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-4">
+            <p className="text-xs font-bold text-primary">{selectedIds.size} Artifacts Selected</p>
+            <div className="flex gap-2">
+              <Button onClick={bulkApprove} size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest">Approve All</Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-zinc-500 hover:text-white h-9">Clear</Button>
             </div>
         </div>
       )}
 
-      <div className="bg-zinc-900/40 border border-white/5 rounded-[48px] overflow-hidden">
+      <div className="bg-zinc-900/40 border border-white/5 rounded-[40px] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-                <thead className="bg-zinc-900/50 text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">
+                <thead className="bg-zinc-900/50 text-[9px] font-black uppercase tracking-[0.25em] text-zinc-500">
                   <tr>
-                      <th className="px-10 py-8 border-b border-white/5 w-10">#</th>
-                      <th className="px-10 py-8 border-b border-white/5">Classification</th>
-                      <th className="px-10 py-8 border-b border-white/5">Question Body</th>
-                      <th className="px-10 py-8 border-b border-white/5">Metadata</th>
-                      <th className="px-10 py-8 border-b border-white/5 text-right">Actions</th>
+                      <th className="px-8 py-6 border-b border-white/5 w-10">#</th>
+                      <th className="px-8 py-6 border-b border-white/5">Classification</th>
+                      <th className="px-8 py-6 border-b border-white/5">Question Body</th>
+                      <th className="px-8 py-6 border-b border-white/5">Metadata</th>
+                      <th className="px-8 py-6 border-b border-white/5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {loading ? (
                     <tr><td colSpan={5} className="p-40 text-center">
-                        <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-                        <p className="text-zinc-600 font-black uppercase tracking-widest text-[10px]">Scanning Atomic Vault</p>
+                        <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
+                        <p className="text-zinc-600 font-black uppercase tracking-widest text-[9px]">Scanning Atomic Vault</p>
                     </td></tr>
                   ) : filtered.length > 0 ? filtered.map(q => (
                     <tr 
@@ -195,56 +193,56 @@ function QuestionBankContent() {
                         selectedIds.has(q.id) && "bg-primary/[0.05]"
                       )}
                     >
-                        <td className="px-10 py-8 align-top">
+                        <td className="px-8 py-6 align-top">
                           <div className={cn(
-                            "w-6 h-6 rounded-lg border flex items-center justify-center transition-all",
+                            "w-5 h-5 rounded-lg border flex items-center justify-center transition-all",
                             selectedIds.has(q.id) ? "bg-primary border-primary" : "border-white/10"
                           )}>
-                              {selectedIds.has(q.id) && <CheckCircle2 size={14} className="text-white" />}
+                              {selectedIds.has(q.id) && <CheckCircle2 size={12} className="text-white" />}
                           </div>
                         </td>
-                        <td className="px-10 py-8 align-top">
-                          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase px-3 py-1 mb-2 block w-fit">{q.subject}</Badge>
-                          <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest italic">{q.topic || 'General'}</span>
+                        <td className="px-8 py-6 align-top">
+                          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[8px] font-black uppercase px-2 py-0.5 mb-1.5 block w-fit">{q.subject}</Badge>
+                          <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest italic">{q.topic || 'General'}</span>
                         </td>
-                        <td className="px-10 py-8 max-w-xl align-top">
+                        <td className="px-8 py-6 max-w-xl align-top">
                           <p className="text-sm font-bold text-white line-clamp-2 leading-relaxed">{q.question_en}</p>
-                          <p className="text-xs text-zinc-500 line-clamp-1 mt-2 italic font-medium">{q.question_pa}</p>
+                          <p className="text-xs text-zinc-500 line-clamp-1 mt-1.5 italic font-medium">{q.question_pa}</p>
                         </td>
-                        <td className="px-10 py-8 align-top">
-                          <div className="flex flex-wrap gap-2 mb-3">
-                              <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5">{q.difficulty}</Badge>
-                              <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5">{q.usageCount || 0} Uses</Badge>
-                              {q.qualityScore && <Badge variant="outline" className="text-[8px] uppercase font-black text-emerald-500 border-emerald-500/20">{q.qualityScore}% Q</Badge>}
+                        <td className="px-8 py-6 align-top">
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                              <Badge variant="outline" className="text-[7px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5 px-2">{q.difficulty}</Badge>
+                              <Badge variant="outline" className="text-[7px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5 px-2">{q.usageCount || 0} Uses</Badge>
+                              {q.qualityScore && <Badge variant="outline" className="text-[7px] uppercase font-black text-emerald-500 border-emerald-500/20 px-2">{q.qualityScore}% Q</Badge>}
                           </div>
-                          <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">#{q.id.substring(0, 8)}</p>
+                          <p className="text-[8px] text-zinc-700 font-bold uppercase tracking-widest">#{q.id.substring(0, 8)}</p>
                         </td>
-                        <td className="px-10 py-8 text-right align-top">
-                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <td className="px-8 py-6 text-right align-top">
+                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
                               <Button 
                                 onClick={(e) => { e.stopPropagation(); toggleStatus(q.id, q.status); }}
                                 variant="ghost" 
                                 size="icon" 
-                                className="rounded-xl hover:bg-emerald-500/10 text-emerald-500"
+                                className="h-8 w-8 rounded-xl hover:bg-emerald-500/10 text-emerald-500"
                                 title={q.status === 'published' ? "Move to Moderation" : "Approve and Publish"}
                               >
-                                {q.status === 'published' ? <RefreshCw className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                                {q.status === 'published' ? <RefreshCw className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                               </Button>
                               <Button 
                                 onClick={(e) => { e.stopPropagation(); if(confirm('Delete artifact?')) deleteDoc(doc(db, 'questions', q.id)); }}
                                 variant="ghost" 
                                 size="icon" 
-                                className="rounded-xl hover:bg-destructive/10 text-destructive"
+                                className="h-8 w-8 rounded-xl hover:bg-destructive/10 text-destructive"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                           </div>
                         </td>
                     </tr>
                   )) : (
                     <tr><td colSpan={5} className="p-40 text-center opacity-30">
-                        <Database className="w-16 h-16 mx-auto mb-4" />
-                        <p className="text-zinc-600 font-black uppercase tracking-widest">No artifacts found in this sector.</p>
+                        <Database className="w-12 h-12 mx-auto mb-4" />
+                        <p className="text-zinc-600 font-black uppercase tracking-widest text-[10px]">No artifacts found in this sector.</p>
                     </td></tr>
                   )}
                 </tbody>
@@ -260,10 +258,10 @@ export default function QuestionBankPage() {
     <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
-        <main className="flex-1 p-8 overflow-y-auto no-scrollbar">
+        <main className="flex-1 p-6 lg:p-10 overflow-y-auto no-scrollbar">
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[400px]">
-              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
             </div>
           }>
             <QuestionBankContent />
