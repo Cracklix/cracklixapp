@@ -15,7 +15,8 @@ import {
   deleteDoc,
   writeBatch,
   setDoc,
-  onSnapshot
+  onSnapshot,
+  DocumentData
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { MockTest, Question, AttemptAnswer } from '@/types';
@@ -24,7 +25,6 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade)
- * Strictly using the sovereign subcollection pattern for simulation questions.
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -107,12 +107,62 @@ export async function deleteMock(mockId: string) {
   return batch.commit();
 }
 
+/**
+ * ARTIFACT SUB-LAYER MANAGEMENT (Questions)
+ */
+
+export function subscribeMockQuestions(mockId: string, callback: (questions: Question[]) => void) {
+  const colRef = collection(db, 'mocks', mockId, 'questions');
+  const q = query(colRef, orderBy('order', 'asc'));
+
+  return onSnapshot(q, (snap) => {
+    const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+    callback(questions);
+  }, (err) => {
+    console.error("Mock Questions Sync Error:", err);
+  });
+}
+
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const snap = await getDocs(colRef);
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
+
+export async function addQuestionToMock(mockId: string, question: Question) {
+  const colRef = collection(db, 'mocks', mockId, 'questions');
+  const { id, ...data } = question;
+  const docRef = id ? doc(colRef, id) : doc(colRef);
+  
+  await setDoc(docRef, { ...data, updatedAt: Date.now() });
+  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(1) });
+  
+  return docRef.id;
+}
+
+export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
+  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  return updateDoc(qRef, { ...updates, updatedAt: Date.now() });
+}
+
+export async function deleteMockQuestion(mockId: string, questionId: string) {
+  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await deleteDoc(qRef);
+  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
+}
+
+export async function linkGlobalToMock(mockId: string, globalQuestionId: string) {
+  const globalSnap = await getDoc(doc(db, 'questions', globalQuestionId));
+  if (!globalSnap.exists()) throw new Error("Global artifact not found.");
+  
+  const data = globalSnap.data();
+  return addQuestionToMock(mockId, { ...data, id: globalQuestionId } as Question);
+}
+
+/**
+ * CBT LIFECYCLE
+ */
 
 export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
   const attemptRef = await addDoc(collection(db, 'attempts'), {
