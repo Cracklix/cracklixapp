@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -103,7 +102,7 @@ export default function MockFactoryPage() {
   }
 
   const applyPreset = (presetName: keyof typeof EXAM_PRESETS) => {
-    setBlueprints(EXAM_PRESETS[presetName]);
+    setBlueprints(EXAM_PRESETS[presetName] as any);
     setExam(presetName);
     setTitle(`${presetName} Full Mock - ${new Date().toLocaleDateString()}`);
   };
@@ -129,7 +128,7 @@ export default function MockFactoryPage() {
         allSelectedIds.push(...snap.docs.map(d => d.id));
       }
 
-      if (allSelectedIds.length === 0) throw new Error("Atomic Bank is currently empty for these subjects.");
+      if (allSelectedIds.length === 0) throw new Error("Production Bank is currently empty for these subjects.");
 
       await addDoc(collection(db, "mocks"), {
         title,
@@ -231,7 +230,7 @@ export default function MockFactoryPage() {
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                   <div className="w-12 h-12 rounded-[20px] bg-primary flex items-center justify-center blue-glow">
+                   <div className="w-12 h-12 rounded-[20px] bg-primary flex items-center justify-center blue-glow shadow-lg">
                       <Rocket className="text-white w-6 h-6" />
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
@@ -241,15 +240,13 @@ export default function MockFactoryPage() {
 
               <div className="flex flex-wrap gap-3">
                 {Object.keys(EXAM_PRESETS).map(p => (
-                  <Button 
+                  <button 
                     key={p} 
-                    variant="outline" 
-                    size="sm" 
                     onClick={() => applyPreset(p as any)}
-                    className="rounded-xl border-white/5 bg-zinc-900/50 text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white"
+                    className="px-4 py-2 rounded-xl border border-white/5 bg-zinc-900/50 text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
                   >
                     {p} Preset
-                  </Button>
+                  </button>
                 ))}
               </div>
             </header>
@@ -286,16 +283,14 @@ export default function MockFactoryPage() {
                <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Access Logic</p>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
+                    <button 
                       onClick={() => setIsPremium(true)}
-                      className={cn("flex-1 rounded-xl h-12 font-black text-[10px] uppercase", isPremium ? "bg-primary text-white border-primary" : "border-white/5 text-zinc-500")}
-                    >Premium</Button>
-                    <Button 
-                      variant="outline" 
+                      className={cn("flex-1 rounded-xl h-12 font-black text-[10px] uppercase border transition-all", isPremium ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "border-white/5 text-zinc-500")}
+                    >Premium</button>
+                    <button 
                       onClick={() => setIsPremium(false)}
-                      className={cn("flex-1 rounded-xl h-12 font-black text-[10px] uppercase", !isPremium ? "bg-emerald-600 text-white border-emerald-600" : "border-white/5 text-zinc-500")}
-                    >Free</Button>
+                      className={cn("flex-1 rounded-xl h-12 font-black text-[10px] uppercase border transition-all", !isPremium ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-900/20" : "border-white/5 text-zinc-500")}
+                    >Free</button>
                   </div>
                </div>
             </Card>
@@ -347,11 +342,6 @@ export default function MockFactoryPage() {
                                        </div>
                                     </div>
                                  ))}
-                                 <Button 
-                                   variant="ghost" 
-                                   onClick={() => setBlueprints([...blueprints, { subject: 'English', count: 10 }])}
-                                   className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-primary"
-                                 >+ Add Payload</Button>
                               </div>
                            </div>
 
@@ -370,8 +360,8 @@ export default function MockFactoryPage() {
                            <div className="absolute top-0 right-0 p-6 opacity-10">
                               <Database size={100} />
                            </div>
-                           <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-1">Atomic Inventory</p>
-                           <h2 className="text-4xl font-black">24,500+ <span className="text-sm text-emerald-500/50">QS</span></h2>
+                           <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-1">Production Inventory</p>
+                           <h2 className="text-4xl font-black text-white">Live Assets</h2>
                            <div className="pt-4 border-t border-emerald-500/10 flex items-center gap-2 text-[9px] font-black text-emerald-500/60 uppercase">
                               <Zap size={12} /> Sync: 100% Validated
                            </div>
@@ -383,7 +373,7 @@ export default function MockFactoryPage() {
                               Quality Protocol
                            </h4>
                            <p className="text-xs text-zinc-500 leading-relaxed italic">
-                              "Smart generation uses randomized selection from approved assets. Ensure subject blueprints match official recruitment board notifications."
+                              "Smart generation uses randomized selection from approved Production Bank assets. This ensures every simulation follows recruitment board logic."
                            </p>
                         </div>
                      </div>
@@ -397,17 +387,17 @@ export default function MockFactoryPage() {
                            <div className="relative flex-1 max-w-md">
                               <Search className="absolute left-4 top-3 h-4 w-4 text-zinc-500" />
                               <Input 
-                                placeholder="Search bank..." 
+                                placeholder="Search production bank..." 
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                className="bg-black/40 border-white/5 pl-12 rounded-xl"
+                                className="bg-black/40 border-white/5 pl-12 rounded-xl h-12"
                               />
                            </div>
                            <Select value={filterSubject} onValueChange={setFilterSubject}>
-                              <SelectTrigger className="w-48 bg-black/40 border-white/5 rounded-xl">
+                              <SelectTrigger className="w-48 bg-black/40 border-white/5 rounded-xl h-12">
                                  <SelectValue placeholder="Subject" />
                               </SelectTrigger>
-                              <SelectContent className="bg-zinc-900 text-white">
+                              <SelectContent className="bg-zinc-950 text-white border-white/10">
                                  <SelectItem value="All">All Subjects</SelectItem>
                                  {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                               </SelectContent>
@@ -420,7 +410,7 @@ export default function MockFactoryPage() {
                            <Button 
                              onClick={handleManualDeploy}
                              disabled={loading || selectedIds.size === 0}
-                             className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 font-black text-xs uppercase"
+                             className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 font-black text-xs uppercase shadow-xl shadow-primary/20"
                            >Deploy Custom Mock</Button>
                         </div>
                      </div>
@@ -437,17 +427,16 @@ export default function MockFactoryPage() {
                            </thead>
                            <tbody className="divide-y divide-white/5">
                               {bankQuestions.filter(q => q.question_en.toLowerCase().includes(search.toLowerCase())).map(q => (
-                                <tr key={q.id} className="hover:bg-white/[0.01] transition-colors group">
+                                <tr key={q.id} className="hover:bg-white/[0.01] transition-colors group cursor-pointer" onClick={() => toggleSelect(q.id)}>
                                    <td className="p-6 px-10">
-                                      <button 
-                                        onClick={() => toggleSelect(q.id)}
+                                      <div 
                                         className={cn(
                                           "w-6 h-6 rounded-lg border transition-all flex items-center justify-center",
                                           selectedIds.has(q.id) ? "bg-primary border-primary" : "border-white/10"
                                         )}
                                       >
-                                         {selectedIds.has(q.id) && <CheckCircle2 size={14} />}
-                                      </button>
+                                         {selectedIds.has(q.id) && <CheckCircle2 size={14} className="text-white" />}
+                                      </div>
                                    </td>
                                    <td className="p-6">
                                       <Badge variant="outline" className="bg-primary/5 text-primary border-none text-[8px] font-black uppercase">{q.subject}</Badge>
@@ -458,8 +447,8 @@ export default function MockFactoryPage() {
                                    </td>
                                    <td className="p-6">
                                       <div className="flex gap-2">
-                                         <Badge className="bg-zinc-800 text-zinc-500 text-[8px] font-black">{q.difficulty}</Badge>
-                                         {q.pyq && <Badge className="bg-orange-500/10 text-orange-500 border-none text-[8px] font-black">PYQ</Badge>}
+                                         <Badge className="bg-zinc-800 text-zinc-500 text-[8px] font-black uppercase">{q.difficulty}</Badge>
+                                         {q.pyq && <Badge className="bg-orange-500/10 text-orange-500 border-none text-[8px] font-black uppercase">PYQ</Badge>}
                                       </div>
                                    </td>
                                 </tr>
@@ -497,7 +486,7 @@ B. Option 2..."
                         <Button 
                            onClick={handleDirectBuild}
                            disabled={loading || !pastedContent.trim()}
-                           className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl font-black shadow-2xl transition-transform active:scale-95"
+                           className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl font-black shadow-2xl transition-transform active:scale-95 shadow-emerald-900/20"
                         >
                            {loading ? <Loader2 className="animate-spin" /> : "Deploy Express Mock"}
                         </Button>
@@ -511,4 +500,3 @@ B. Option 2..."
     </AdminProtect>
   );
 }
-

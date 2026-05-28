@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -62,7 +61,7 @@ export default function AdminSidebar() {
         { name: "PYQ Archive", href: "/admin/pyqs", icon: History },
         { name: "Daily Pulse", href: "/admin/current-affairs", icon: Newspaper },
         { name: "State Ranks", href: "/admin/leaderboards", icon: Trophy },
-        { name: "AI Factory", href: "/admin/ai-assistant", icon: Zap },
+        { name: "AI Studio", href: "/admin/ai-assistant", icon: Zap },
       ]
     },
     {
@@ -93,7 +92,7 @@ export default function AdminSidebar() {
             <nav className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (pathname + pathname.split('?')[1] === item.href);
 
                 return (
                   <Link key={item.href} href={item.href}>
@@ -132,4 +131,3 @@ export default function AdminSidebar() {
     </div>
   );
 }
-

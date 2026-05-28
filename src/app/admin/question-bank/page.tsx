@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   XCircle,
   FileSearch,
-  Filter
+  Filter,
+  ShieldCheck
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -91,7 +92,7 @@ function QuestionBankContent() {
     const next = current === 'published' ? 'draft' : 'published';
     await updateDoc(doc(db, "questions", id), { status: next });
     setQuestions(prev => prev.filter(q => q.id !== id));
-    toast({ title: "Status Updated" });
+    toast({ title: "Status Updated", description: `Artifact moved to ${next} storage.` });
   }
 
   const toggleSelect = (id: string) => {
@@ -111,7 +112,7 @@ function QuestionBankContent() {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
         <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[20px] bg-primary/20 flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 rounded-[20px] bg-primary/20 flex items-center justify-center shadow-lg blue-glow">
                 <Database className="text-primary w-6 h-6" />
               </div>
               <h1 className="font-headline text-5xl font-black tracking-tighter leading-none uppercase">Atomic Bank</h1>
@@ -123,7 +124,7 @@ function QuestionBankContent() {
               >Production Bank</button>
               <button 
                 onClick={() => router.push('/admin/question-bank?view=draft')}
-                className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all", view === 'draft' ? "bg-orange-500 text-white" : "text-zinc-600 hover:text-zinc-400")}
+                className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all", view === 'draft' ? "bg-orange-600 text-white" : "text-zinc-600 hover:text-zinc-400")}
               >Moderation Queue</button>
             </div>
         </div>
@@ -209,6 +210,7 @@ function QuestionBankContent() {
                           <div className="flex flex-wrap gap-2 mb-3">
                               <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5">{q.difficulty}</Badge>
                               <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black bg-zinc-800/50 border-white/5">{q.usageCount || 0} Uses</Badge>
+                              {q.qualityScore && <Badge variant="outline" className="text-[8px] uppercase font-black text-emerald-500 border-emerald-500/20">{q.qualityScore}% Q</Badge>}
                           </div>
                           <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">#{q.id.substring(0, 8)}</p>
                         </td>
@@ -219,10 +221,16 @@ function QuestionBankContent() {
                                 variant="ghost" 
                                 size="icon" 
                                 className="rounded-xl hover:bg-emerald-500/10 text-emerald-500"
+                                title={q.status === 'published' ? "Move to Moderation" : "Approve and Publish"}
                               >
-                                <CheckCircle2 className="w-4 h-4" />
+                                {q.status === 'published' ? <RefreshCw className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                               </Button>
-                              <Button variant="ghost" size="icon" className="rounded-xl hover:bg-destructive/10 text-destructive">
+                              <Button 
+                                onClick={(e) => { e.stopPropagation(); if(confirm('Delete artifact?')) deleteDoc(doc(db, 'questions', q.id)); }}
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-xl hover:bg-destructive/10 text-destructive"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                           </div>

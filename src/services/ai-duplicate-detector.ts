@@ -11,13 +11,12 @@ export async function findPotentialDuplicates(textEn: string) {
   if (!textEn || textEn.length < 10) return [];
   
   // Normalize text for search: remove special chars and lowercase
-  const normalized = textEn.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 30);
+  const normalizedSearch = textEn.toLowerCase().substring(0, 30);
   
-  // Simple prefix search as a fallback for vector search in MVP
   const q = query(
     collection(db, 'questions'),
-    where('question_en', '>=', textEn.substring(0, 20)),
-    where('question_en', '<=', textEn.substring(0, 20) + '\uf8ff'),
+    where('question_en', '>=', normalizedSearch),
+    where('question_en', '<=', normalizedSearch + '\uf8ff'),
     limit(3)
   );
 
