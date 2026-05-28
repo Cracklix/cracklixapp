@@ -1,4 +1,3 @@
-
 import AdminSidebar from "@/components/admin/sidebar";
 import AdminProtect from "@/components/admin/admin-protect";
 import { Users, FileText, IndianRupee, Activity } from "lucide-react";

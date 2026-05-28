@@ -1,4 +1,3 @@
-
 import AdminSidebar from "@/components/admin/sidebar";
 import AdminProtect from "@/components/admin/admin-protect";
 import { BarChart3, TrendingUp, PieChart, Users } from "lucide-react";
