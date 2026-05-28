@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,49 +29,67 @@ export default function SignupPage() {
   const initializeUserProfile = async (uid: string, userEmail: string, userName: string) => {
     const today = new Date().toISOString().split('T')[0];
     
-    // 1. Core Profile
+    // 1. Core Profile (Use merge: true to avoid overwriting existing data if re-initializing)
     const profileRef = doc(db, "users", uid);
-    await setDoc(profileRef, {
-      uid,
-      name: userName || 'Aspirant',
-      email: userEmail,
-      role: "student",
-      xp: 0,
-      streak: 0,
-      coins: 100, // Launch Bonus
-      targetExam: "Punjab Police SI",
-      referralCode: `CLX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      createdAt: Date.now(),
-    });
+    const profileSnap = await getDoc(profileRef);
+    
+    if (!profileSnap.exists()) {
+      await setDoc(profileRef, {
+        uid,
+        name: userName || 'Aspirant',
+        email: userEmail,
+        role: "student",
+        xp: 0,
+        streak: 0,
+        coins: 100, // Launch Bonus
+        district: "Ludhiana",
+        targetExam: "Punjab Police SI",
+        referralCode: `CLX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        createdAt: Date.now(),
+        bookmarks: []
+      }, { merge: true });
+    }
 
     // 2. Daily Targets Initialization
-    await setDoc(doc(db, "dailyTargets", uid), {
-      userId: uid,
-      questionsGoal: 50,
-      questionsCompleted: 0,
-      mockGoal: 1,
-      mockCompleted: 0,
-      studyMinutesGoal: 120,
-      studyMinutesCompleted: 0,
-      date: today,
-      updatedAt: Date.now()
-    });
+    const targetRef = doc(db, "dailyTargets", uid);
+    const targetSnap = await getDoc(targetRef);
+    if (!targetSnap.exists()) {
+      await setDoc(targetRef, {
+        userId: uid,
+        questionsGoal: 50,
+        questionsCompleted: 0,
+        mockGoal: 1,
+        mockCompleted: 0,
+        studyMinutesGoal: 120,
+        studyMinutesCompleted: 0,
+        date: today,
+        updatedAt: Date.now()
+      });
+    }
 
     // 3. AI Usage Limit Initiation
-    await setDoc(doc(db, "aiUsage", `${uid}_${today}`), {
-      userId: uid,
-      count: 0,
-      date: today,
-      lastUpdated: Date.now()
-    });
+    const usageRef = doc(db, "aiUsage", `${uid}_${today}`);
+    const usageSnap = await getDoc(usageRef);
+    if (!usageSnap.exists()) {
+      await setDoc(usageRef, {
+        userId: uid,
+        count: 0,
+        date: today,
+        lastUpdated: Date.now()
+      });
+    }
 
     // 4. Readiness Predictor initiation
-    await setDoc(doc(db, "readiness", uid), {
-      userId: uid,
-      overallScore: 0,
-      subjectPerformance: {},
-      lastUpdated: Date.now()
-    });
+    const readinessRef = doc(db, "readiness", uid);
+    const readinessSnap = await getDoc(readinessRef);
+    if (!readinessSnap.exists()) {
+      await setDoc(readinessRef, {
+        userId: uid,
+        overallScore: 0,
+        subjectPerformance: {},
+        lastUpdated: Date.now()
+      });
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -89,11 +107,21 @@ export default function SignupPage() {
       toast({ title: "Enrollment Successful", description: "Welcome to Punjab's elite preparation engine." });
       router.push('/dashboard');
     } catch (error: any) {
-      toast({
-        title: "Enrollment Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Signup error:", error);
+      
+      if (error.code === 'auth/email-already-in-use') {
+        toast({
+          title: "Account Already Exists",
+          description: "This email is already registered. Please login or use a different email.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Enrollment Failed",
+          description: error.message || "An unexpected error occurred during signup.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -103,7 +131,6 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
-      // Initialize if document doesn't exist (merge approach)
       await initializeUserProfile(res.user.uid, res.user.email!, res.user.displayName || 'Student');
       router.push('/dashboard');
     } catch (error: any) {

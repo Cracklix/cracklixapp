@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,11 +27,44 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const checkRoleAndRedirect = async (uid: string) => {
+  const checkRoleAndRedirect = async (uid: string, userEmail: string) => {
     const userRef = doc(db, "users", uid);
     try {
       const userDoc = await getDoc(userRef);
-      const data = userDoc.data();
+      
+      // Resilient Profile Check: If Auth user exists but Firestore profile is missing, initialize it.
+      if (!userDoc.exists()) {
+        const today = new Date().toISOString().split('T')[0];
+        await setDoc(userRef, {
+          uid,
+          name: email.split('@')[0] || 'Aspirant',
+          email: userEmail,
+          role: "student",
+          xp: 0,
+          streak: 0,
+          coins: 100,
+          district: "Ludhiana",
+          targetExam: "Punjab Police SI",
+          referralCode: `CLX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          createdAt: Date.now(),
+          bookmarks: []
+        }, { merge: true });
+        
+        // Also ensure sub-collections are ready
+        await setDoc(doc(db, "dailyTargets", uid), {
+          userId: uid,
+          questionsGoal: 50,
+          questionsCompleted: 0,
+          mockGoal: 1,
+          mockCompleted: 0,
+          studyMinutesGoal: 120,
+          studyMinutesCompleted: 0,
+          date: today,
+          updatedAt: Date.now()
+        }, { merge: true });
+      }
+
+      const data = userDoc.data() || (await getDoc(userRef)).data();
       
       if (data?.role === 'admin' || data?.role === 'superadmin') {
         router.push('/admin');
@@ -39,7 +72,6 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      // If it's a permission error, surface it contextually
       if (err.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
           path: userRef.path,
@@ -57,7 +89,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await signInWithEmailAndPassword(auth, email, password);
-      await checkRoleAndRedirect(res.user.uid);
+      await checkRoleAndRedirect(res.user.uid, res.user.email!);
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -73,7 +105,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
-      await checkRoleAndRedirect(res.user.uid);
+      await checkRoleAndRedirect(res.user.uid, res.user.email!);
     } catch (error: any) {
       toast({
         title: "Google Auth Failed",
