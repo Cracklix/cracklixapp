@@ -51,23 +51,6 @@ export interface BookmarkItem {
   savedAt: number;
 }
 
-export interface Exam {
-  id: string;
-  name: string;
-  slug: string;
-  department: string;
-  category: 'Punjab';
-  icon: string;
-  totalMocks: number;
-  activeStudents: number;
-  premium: boolean;
-  duration?: number;
-  totalMarks?: number;
-  eligibility?: string;
-  salary?: string;
-  createdAt?: number;
-}
-
 export interface Question {
   id: string;
   question_en: string;
@@ -84,21 +67,11 @@ export interface Question {
   explanation_en?: string;
   explanation_pa?: string;
   qualityScore?: number;
-  status?: 'draft' | 'published';
+  status: 'draft' | 'published' | 'rejected';
   usageCount?: number;
   isMath?: boolean;
+  source?: string;
   createdAt?: number;
-}
-
-export interface DISet {
-  id: string;
-  passage: string;
-  tableData?: string;
-  chartUrl?: string;
-  questions: Question[];
-  subject: Subject;
-  difficulty: 'easy' | 'medium' | 'hard';
-  createdAt: number;
 }
 
 export interface MockTest {
@@ -112,6 +85,10 @@ export interface MockTest {
   published: boolean;
   aiGenerated?: boolean;
   questionIds?: string[];
-  diSetIds?: string[];
+  sections?: {
+    subject: Subject;
+    count: number;
+  }[];
+  status: 'draft' | 'published';
   createdAt: number;
 }
