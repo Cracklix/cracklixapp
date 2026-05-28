@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, orderBy, limit, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AdminSidebar from "@/components/admin/sidebar";
-import AdminGuard from "@/components/admin-guard";
+import AdminProtect from "@/components/admin/admin-protect";
 import { Users, Search, MoreVertical, Shield, Ban, Star, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export default function AdminUsersPage() {
     async function loadUsers() {
       const q = query(collection(db, "users"), orderBy("createdAt", "desc"), limit(100));
       const snap = await getDocs(q);
-      setUsers(snap.docs.map(d => ({ id: doc.id, ...d.data() })));
+      setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }
     loadUsers();
@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
   );
 
   return (
-    <AdminGuard>
+    <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
         <main className="flex-1 p-8 overflow-y-auto">
@@ -121,6 +121,6 @@ export default function AdminUsersPage() {
           </div>
         </main>
       </div>
-    </AdminGuard>
+    </AdminProtect>
   );
 }

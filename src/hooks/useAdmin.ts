@@ -9,12 +9,17 @@ import { User } from 'firebase/auth';
  * Prioritizes the hardcoded developer email and then checks Firestore roles.
  */
 export function checkIsAdmin(user: User | null, profile: UserProfile | null): boolean {
-  // 1. Check Auth User directly (Most secure for hardcoded access)
-  if (user?.email === 'arshdeepgrewal1122@gmail.com') return true;
+  if (!user) return false;
   
-  // 2. Fallback to Firestore profile role
-  if (!profile) return false;
-  if (profile.email === 'arshdeepgrewal1122@gmail.com') return true;
+  // 1. Primary check: Hardcoded Super Admin Email
+  if (user.email === 'arshdeepgrewal1122@gmail.com') return true;
   
-  return profile.role === 'admin' || (profile.role as any) === 'superadmin';
+  // 2. Fallback check: Firestore role
+  if (profile) {
+    if (profile.role === 'admin' || (profile.role as any) === 'superadmin') {
+      return true;
+    }
+  }
+  
+  return false;
 }

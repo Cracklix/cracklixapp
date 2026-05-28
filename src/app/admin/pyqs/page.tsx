@@ -1,12 +1,12 @@
 
 import AdminSidebar from "@/components/admin/sidebar";
-import AdminGuard from "@/components/admin-guard";
+import AdminProtect from "@/components/admin/admin-protect";
 import PYQForm from "@/components/admin/pyq-form";
 import { History } from "lucide-react";
 
 export default function AdminPYQsPage() {
   return (
-    <AdminGuard>
+    <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
         <main className="flex-1 p-8 overflow-y-auto">
@@ -23,6 +23,6 @@ export default function AdminPYQsPage() {
           </div>
         </main>
       </div>
-    </AdminGuard>
+    </AdminProtect>
   );
 }

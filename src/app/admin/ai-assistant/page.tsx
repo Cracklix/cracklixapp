@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import AdminSidebar from '@/components/admin/sidebar';
-import AdminGuard from '@/components/admin-guard';
+import AdminProtect from '@/components/admin/admin-protect';
 import { draftAiContent, ContentAssistantOutput } from '@/ai/flows/ai-content-assistant-flow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,7 +49,7 @@ export default function AiAssistantPage() {
   }
 
   return (
-    <AdminGuard>
+    <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
         <main className="flex-1 p-8 overflow-y-auto">
@@ -164,6 +164,6 @@ export default function AiAssistantPage() {
           </div>
         </main>
       </div>
-    </AdminGuard>
+    </AdminProtect>
   );
 }

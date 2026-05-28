@@ -1,12 +1,12 @@
 
 import AdminSidebar from "@/components/admin/sidebar";
-import AdminGuard from "@/components/admin-guard";
+import AdminProtect from "@/components/admin/admin-protect";
 import NotificationSender from "@/components/admin/notification-sender";
 import { Bell } from "lucide-react";
 
 export default function AdminNotificationsPage() {
   return (
-    <AdminGuard>
+    <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
         <main className="flex-1 p-8 overflow-y-auto">
@@ -23,6 +23,6 @@ export default function AdminNotificationsPage() {
           </div>
         </main>
       </div>
-    </AdminGuard>
+    </AdminProtect>
   );
 }

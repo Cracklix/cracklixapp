@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AdminSidebar from "@/components/admin/sidebar";
-import AdminGuard from "@/components/admin-guard";
+import AdminProtect from "@/components/admin/admin-protect";
 import { IndianRupee, TrendingUp, Calendar, ArrowUpRight, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ export default function AdminPaymentsPage() {
   const totalRevenue = payments.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
   return (
-    <AdminGuard>
+    <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
         <main className="flex-1 p-8 overflow-y-auto">
@@ -111,6 +111,6 @@ export default function AdminPaymentsPage() {
           </div>
         </main>
       </div>
-    </AdminGuard>
+    </AdminProtect>
   );
 }
