@@ -14,16 +14,10 @@ import {
   Loader2, 
   Star, 
   ShieldCheck, 
-  ShieldAlert, 
-  BookOpen, 
-  Activity, 
   Terminal, 
   Target, 
   Languages, 
   BrainCircuit,
-  ChevronRight,
-  TrendingUp,
-  Clock,
   Lock,
   ArrowRight
 } from 'lucide-react';
@@ -34,7 +28,6 @@ import { getActivePlans, Plan } from '@/services/subscriptions';
 import { getPublicPaymentConfig } from '@/services/payment-settings';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 
 export default function PassPage() {
   const { user, profile } = useAuth();
@@ -194,7 +187,6 @@ export default function PassPage() {
                       { f: "AI Performance Coach", free: "❌", pro: "✅ Included" },
                       { f: "Punjab State Ranking", free: "❌", pro: "✅ Realtime" },
                       { f: "PYQ Archives (10Y)", free: "Recent Only", pro: "Complete Vault" },
-                      { f: "Typing Skill Arena", free: "5 Mins", pro: "Full Sessions" },
                       { f: "Selection Predictor", free: "❌", pro: "✅ Powered by AI" },
                     ].map((row, i) => (
                       <tr key={i} className="hover:bg-white/[0.01] transition-colors">
@@ -293,34 +285,6 @@ export default function PassPage() {
            )}
         </div>
 
-        {/* PREMIUM MOCK PREVIEW (BLURRED) */}
-        <div className="px-4">
-           <div className="bg-zinc-900/50 rounded-[64px] p-12 border border-white/5 relative overflow-hidden text-center space-y-10">
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-10 flex flex-col items-center justify-center space-y-6">
-                 <div className="w-20 h-20 rounded-[32px] bg-primary flex items-center justify-center shadow-2xl blue-glow">
-                    <Lock className="text-white w-10 h-10" />
-                 </div>
-                 <div className="space-y-2">
-                    <h3 className="text-3xl font-black uppercase">500+ Premium Simulations Locked</h3>
-                    <p className="text-zinc-400 font-medium">Upgrade your identity level to unlock the full repository.</p>
-                 </div>
-                 <Button 
-                   className="h-14 px-10 rounded-2xl bg-white text-black font-black hover:bg-zinc-200 shadow-xl"
-                   onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                 >
-                    UNLOCK ALL CONTENT
-                 </Button>
-              </div>
-
-              {/* Blurred background cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 opacity-20 pointer-events-none">
-                 {[1,2,3].map(i => (
-                   <div key={i} className="h-40 rounded-3xl bg-zinc-800" />
-                 ))}
-              </div>
-           </div>
-        </div>
-
         {/* SECURITY & FOUNDER VISION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center border-t border-white/5 pt-24 px-4">
            <div className="space-y-10">
@@ -348,7 +312,6 @@ export default function PassPage() {
            </div>
 
            <Card className="rounded-[64px] p-12 md:p-16 cracklix-glass border-white/5 text-center relative overflow-hidden">
-              <Star className="text-primary/20 w-40 h-40 absolute -top-10 -right-10 rotate-12" />
               <p className="text-2xl text-zinc-400 italic leading-relaxed font-medium relative z-10">
                 "The PASS+ isn't just a subscription; it's the digital infrastructure required to compete at the highest level of Punjab's state governance."
               </p>
