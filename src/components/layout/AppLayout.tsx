@@ -96,7 +96,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-black overflow-hidden font-body text-white">
-      {/* Sidebar - Testbook Compact Style */}
+      {/* Sidebar - Testbook Style */}
       <motion.aside
         initial={false}
         animate={{ width: sidebarOpen ? 240 : 80 }}
@@ -171,14 +171,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-5">
-            {!isAdmin && !isPremium && (
-              <Link href="/pass" className="hidden sm:block">
-                <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-primary text-[10px] font-black uppercase tracking-widest blue-glow animate-pulse">
-                   <Crown className="w-3.5 h-3.5 mr-2 fill-current" />
-                   Get Pass+
-                </Button>
-              </Link>
-            )}
+            {/* GET PASS BUTTON - TESTBOOK STYLE */}
+            <Link href="/pass">
+              <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-primary text-[10px] font-black uppercase tracking-widest blue-glow shadow-xl animate-pulse hover:animate-none">
+                 <Crown className="w-3.5 h-3.5 mr-2 fill-current" />
+                 Get Pass+
+              </Button>
+            </Link>
             
             <LanguageSwitcher />
             

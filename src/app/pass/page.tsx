@@ -256,7 +256,7 @@ export default function PassPage() {
                          <div className="space-y-4 mt-2">
                             {plan.features.map((f, idx) => (
                               <div key={idx} className="flex gap-4 items-start group/feat">
-                                 <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5 group-hover/feat:bg-emerald-500/20 transition-colors">
+                                 <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5 group/feat:bg-emerald-500/20 transition-colors">
                                     <Check className="w-3 h-3 text-emerald-500" strokeWidth={4} />
                                  </div>
                                  <span className="text-sm text-zinc-400 font-bold group-hover/feat:text-white transition-colors">{f}</span>
@@ -322,38 +322,6 @@ export default function PassPage() {
            </Card>
         </div>
       </div>
-
-      {/* STICKY PURCHASE BAR */}
-      <AnimatePresence>
-        {scrolled && (
-          <motion.div
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 w-full bg-zinc-950/90 backdrop-blur-2xl border-t border-primary/30 z-[70] p-4 md:p-6"
-          >
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
-               <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center hidden sm:flex">
-                     <Crown className="text-white w-5 h-5 fill-current" />
-                  </div>
-                  <div>
-                     <p className="text-xs font-black text-primary uppercase tracking-widest leading-none">Unlock Punjab Dominance</p>
-                     <p className="text-lg font-black text-white mt-1">PASS+ <span className="text-zinc-500 text-sm font-bold">Starts at ₹99</span></p>
-                  </div>
-               </div>
-               <Button 
-                 size="lg" 
-                 className="h-12 md:h-14 px-8 md:px-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xs md:text-sm blue-glow"
-                 onClick={() => document.getElementById('pricing-matrix')?.scrollIntoView({ behavior: 'smooth' })}
-               >
-                  UPGRADE NOW
-                  <ArrowRight className="ml-2 w-4 h-4" />
-               </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <Navbar />
     </AppLayout>
