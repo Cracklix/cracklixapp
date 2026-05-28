@@ -43,7 +43,8 @@
         "negativeMarking": { "type": "number" },
         "language": { "type": "array", "items": { "type": "string" } },
         "premium": { "type": "boolean" },
-        "published": { "type": "boolean" }
+        "published": { "type": "boolean" },
+        "aiGenerated": { "type": "boolean" }
       }
     },
     "Question": {
@@ -57,7 +58,11 @@
         "subject": { "type": "string" },
         "topic": { "type": "string" },
         "difficulty": { "type": "string" },
-        "marks": { "type": "number" }
+        "marks": { "type": "number" },
+        "pyq": { "type": "boolean" },
+        "year": { "type": "number" },
+        "qualityScore": { "type": "number" },
+        "weightage": { "type": "number" }
       }
     },
     "Attempt": {
@@ -89,37 +94,29 @@
       "schema": "Mock",
       "description": "Mock tests."
     },
+    "/aiGeneratedMocks/{mockId}": {
+      "schema": "Mock",
+      "description": "AI-generated mock tests."
+    },
     "/mocks/{mockId}/questions/{questionId}": {
       "schema": "Question",
       "description": "Questions within a mock test."
+    },
+    "/aiGeneratedMocks/{mockId}/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Questions within an AI mock test."
     },
     "/attempts/{attemptId}": {
       "schema": "Attempt",
       "description": "User test attempts and scores."
     },
-    "/subjects/{subjectId}": {
+    "/recommendations/{recId}": {
       "schema": "object",
-      "description": "Subject categories."
+      "description": "AI-driven study recommendations."
     },
-    "/topics/{topicId}": {
-      "schema": "object",
-      "description": "Specific study topics."
-    },
-    "/leaderboards/{rankId}": {
-      "schema": "object",
-      "description": "Ranking data."
-    },
-    "/analytics/{statId}": {
-      "schema": "object",
-      "description": "Usage and performance analytics."
-    },
-    "/notifications/{notifId}": {
-      "schema": "object",
-      "description": "User notifications."
-    },
-    "/vacancies/{vacancyId}": {
-      "schema": "object",
-      "description": "Job vacancy updates."
+    "/pyqs/{pyqId}": {
+      "schema": "Question",
+      "description": "Previous Year Questions repository."
     }
   }
 }
