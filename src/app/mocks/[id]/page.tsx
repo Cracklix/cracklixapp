@@ -1,16 +1,15 @@
-
 'use client';
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   getMockDetails, 
   getMockQuestions, 
   startAttempt, 
   saveAnswer, 
-  finalizeAttempt,
-  checkMockAccess
+  finalizeAttempt
 } from "@/services/mocks";
+import { checkMockEntitlement } from "@/services/payment";
 import QuestionCard from "@/components/mock/question-card";
 import PaletteDrawer from "@/components/mock/palette-drawer";
 import Timer from "@/components/mock/timer";
@@ -20,58 +19,64 @@ import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
   ArrowLeft, 
-  CheckCircle2, 
-  Zap, 
-  Monitor, 
   Menu,
-  Timer as TimerIcon,
   AlertTriangle,
-  Cloud,
+  Monitor,
+  Zap,
+  Globe,
+  Settings,
   ChevronLeft,
-  Settings
+  ChevronRight,
+  ShieldCheck,
+  LayoutGrid
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { MockTest, Question, AttemptAnswer } from "@/types";
+import { MockTest, Question, AttemptAnswer, LanguageMode } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function AdvancedCBTPlayer() {
+/**
+ * PRODUCTION CBT ENGINE v16.0
+ * Mobile-first, Independent Bilingual Scrolling, Cloud Auto-Save.
+ */
+export default function TestbookCBTPlayer() {
   const { user, profile } = useAuth();
   const router = useRouter();
   const params = useParams();
   const mockId = params?.id as string;
   const { toast } = useToast();
   
-  const [phase, setPhase] = useState<'booting' | 'instructions' | 'engine' | 'result'>('booting');
+  const [phase, setPhase] = useState<'booting' | 'engine'>('booting');
   const [mock, setMock] = useState<MockTest | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, AttemptAnswer>>({});
   const [attemptId, setAttemptId] = useState<string | null>(null);
-  const [activeLang, setActiveLang] = useState<'en' | 'pa' | 'bilingual'>('en');
+  const [activeLang, setActiveLang] = useState<LanguageMode>('en');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const initializeSession = useCallback(async () => {
+  // Auto-Save Reference
+  const lastSyncRef = useRef<number>(Date.now());
+
+  const bootSession = useCallback(async () => {
     if (!user || !mockId) return;
     try {
       const mockData = await getMockDetails(mockId);
       if (!mockData) throw new Error("Simulation not found");
 
-      const access = await checkMockAccess(user.uid, mockData);
-      if (!access.allowed) {
-        toast({ 
-          title: "Access Restricted", 
-          description: access.reason || "Upgrade to PASS+ for full access.", 
-          variant: "destructive" 
-        });
+      // 1. Entitlement Gate
+      const entitlement = await checkMockEntitlement(user.uid, mockData);
+      if (!entitlement.allowed) {
+        toast({ title: "Access Restricted", description: entitlement.reason, variant: "destructive" });
         router.push('/pass');
         return;
       }
 
+      // 2. Load Artifacts
       const qData = await getMockQuestions(mockId);
       if (qData.length === 0) {
         toast({ title: "Registry Empty", description: "This simulation has no artifacts linked." });
@@ -82,18 +87,23 @@ export default function AdvancedCBTPlayer() {
       setMock(mockData);
       setQuestions(qData);
       
+      // 3. Initialize Cloud Attempt
       const id = await startAttempt(user.uid, mockData);
       setAttemptId(id);
-      setPhase('instructions');
+      setPhase('engine');
+      
+      // Pre-set user language preference
+      if (profile?.languageMode) setActiveLang(profile.languageMode as any);
+      
     } catch (e: any) {
-      toast({ title: "Signal Lost", description: "Failed to load simulation node.", variant: "destructive" });
+      toast({ title: "Boot Error", description: e.message, variant: "destructive" });
       router.push('/dashboard');
     }
-  }, [mockId, user, router, toast]);
+  }, [mockId, user, profile, router, toast]);
 
   useEffect(() => {
-    initializeSession();
-  }, [initializeSession]);
+    bootSession();
+  }, [bootSession]);
 
   const handleSelect = (option: string) => {
     if (!attemptId) return;
@@ -101,11 +111,16 @@ export default function AdvancedCBTPlayer() {
       questionId: questions[current].id,
       selectedOption: option,
       status: 'ANSWERED',
-      timeSpent: 0,
-      lastSavedAt: Date.now()
+      timeSpent: 0
     };
     setAnswers(prev => ({ ...prev, [current]: payload }));
-    saveAnswer(attemptId, current, payload);
+    
+    // Periodic Auto-Sync Logic (Every 15s)
+    const now = Date.now();
+    if (now - lastSyncRef.current > 15000) {
+       saveAnswer(attemptId, current, payload);
+       lastSyncRef.current = now;
+    }
   };
 
   const markForReview = () => {
@@ -115,8 +130,7 @@ export default function AdvancedCBTPlayer() {
       questionId: questions[current].id,
       selectedOption: currentAns?.selectedOption || null,
       status: currentAns?.selectedOption ? 'ANSWERED_AND_MARKED' : 'MARKED_FOR_REVIEW',
-      timeSpent: 0,
-      lastSavedAt: Date.now()
+      timeSpent: 0
     };
     setAnswers(prev => ({ ...prev, [current]: payload }));
     saveAnswer(attemptId, current, payload);
@@ -138,103 +152,63 @@ export default function AdvancedCBTPlayer() {
 
   if (phase === 'booting') return (
     <div className="h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
-       <div className="relative mb-8">
-          <div className="w-20 h-20 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary w-6 h-6 fill-current animate-pulse" />
-       </div>
-       <p className="text-zinc-500 font-black uppercase tracking-[0.4em] text-[10px]">Initializing High-Fidelity Simulation...</p>
-    </div>
-  );
-
-  if (phase === 'instructions') return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-body text-slate-900">
-       <header className="h-[70px] px-8 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-             <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10">
-                <ArrowLeft size={18} />
-             </Button>
-             <span className="font-black text-xl tracking-tighter uppercase">Instructions Registry</span>
-          </div>
-          <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-200 px-3 py-1 font-bold">CBT CORE v15.5</Badge>
-       </header>
-       
-       <main className="flex-1 overflow-y-auto p-6 md:p-12 flex justify-center no-scrollbar">
-          <div className="max-w-4xl w-full bg-white border border-slate-200 rounded-[48px] p-8 md:p-16 shadow-sm space-y-12">
-             <div className="text-center space-y-6">
-                <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-none uppercase text-slate-900">{mock?.title}</h1>
-                <div className="flex flex-wrap justify-center gap-10 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                   <span className="flex items-center gap-2"><Monitor size={14} className="text-primary" /> {questions.length} Items</span>
-                   <span className="flex items-center gap-2"><TimerIcon size={14} className="text-primary" /> {mock?.duration} Mins</span>
-                   <span className="flex items-center gap-2"><AlertTriangle size={14} className="text-red-500" /> Negative Scheme Active</span>
-                </div>
-             </div>
-
-             <div className="p-10 rounded-[40px] bg-primary/5 border border-primary/10 space-y-8">
-                <div className="text-center space-y-2">
-                   <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Initialize Translation Layer</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   {['en', 'pa', 'bilingual'].map(l => (
-                     <button
-                       key={l}
-                       onClick={() => setActiveLang(l as any)}
-                       className={cn(
-                         "h-16 rounded-[24px] font-black text-xs uppercase tracking-widest border-2 transition-all duration-300",
-                         activeLang === l 
-                            ? "bg-primary text-white border-primary shadow-2xl" 
-                            : "bg-white border-slate-100 text-slate-400 hover:border-primary/20"
-                       )}
-                     >
-                       {l === 'en' ? 'English' : l === 'pa' ? 'ਪੰਜਾਬੀ' : 'Bilingual'}
-                     </button>
-                   ))}
-                </div>
-             </div>
-
-             <Button onClick={() => setPhase('engine')} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-black shadow-2xl">
-                AGREE & START ASSESSMENT
-             </Button>
-          </div>
-       </main>
+       <Loader2 className="w-12 h-12 animate-spin text-primary mb-6" />
+       <h2 className="text-xl font-black uppercase tracking-tighter text-white">Initializing High-Fidelity Signal</h2>
+       <p className="text-zinc-600 text-xs font-bold uppercase tracking-widest mt-2">Checking Access Tiers & Preloading Artifacts</p>
     </div>
   );
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden font-body text-slate-900 select-none">
-       <header className="h-[70px] px-8 bg-slate-900 text-white flex items-center justify-between shrink-0 z-50 shadow-2xl">
-          <div className="flex items-center gap-6">
-             <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="h-10 w-10 rounded-xl bg-white/5 border border-white/5">
-                <Menu size={18} />
+    <div className="h-screen bg-[#F8FAFC] flex flex-col overflow-hidden font-body text-slate-900 select-none">
+       {/* CBT Header */}
+       <header className="h-[65px] px-4 md:px-8 bg-slate-900 text-white flex items-center justify-between shrink-0 z-50 shadow-xl">
+          <div className="flex items-center gap-4">
+             <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="h-9 w-9 rounded-lg bg-white/5 border border-white/5">
+                <LayoutGrid size={16} />
              </Button>
-             <div className="flex flex-col border-l border-white/10 pl-6">
-                <span className="font-black text-sm uppercase tracking-tight truncate max-w-[280px]">{mock?.title}</span>
-                <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black px-2 py-0.5 uppercase w-fit">{mock?.exam}</Badge>
+             <div className="flex flex-col border-l border-white/10 pl-4 hidden md:flex">
+                <span className="font-black text-xs uppercase tracking-tight truncate max-w-[250px]">{mock?.title}</span>
+                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none mt-1">{mock?.exam}</span>
              </div>
           </div>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 md:gap-8">
+             <div className="flex items-center gap-3 bg-white/5 px-3 py-1 rounded-lg border border-white/5">
+                <Globe size={12} className="text-primary" />
+                <select 
+                  value={activeLang} 
+                  onChange={(e) => setActiveLang(e.target.value as any)}
+                  className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
+                >
+                   <option value="en" className="bg-slate-900">EN</option>
+                   <option value="pa" className="bg-slate-900">ਪੰ</option>
+                   <option value="hi" className="bg-slate-900">हिं</option>
+                   <option value="bilingual" className="bg-slate-900">Bilingual</option>
+                </select>
+             </div>
              <Timer duration={mock?.duration || 60} onFinish={submitTest} />
-             <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-10 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl">SUBMIT</Button>
+             <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-xl">SUBMIT</Button>
           </div>
        </header>
 
        <div className="flex-1 flex overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-[#f8fafc] relative">
-             <div className="max-w-7xl mx-auto">
+          {/* Main Question Terminal */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-white relative">
+             <div className="max-w-6xl mx-auto h-full flex flex-col">
                 <AnimatePresence mode="wait">
                    {questions[current] && (
                      <motion.div
                        key={questions[current].id}
-                       initial={{ opacity: 0, x: 20 }}
-                       animate={{ opacity: 1, x: 0 }}
-                       exit={{ opacity: 0, x: -20 }}
-                       transition={{ duration: 0.3 }}
+                       initial={{ opacity: 0, y: 5 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       exit={{ opacity: 0, y: -5 }}
+                       className="flex-1"
                      >
                         <QuestionCard 
                           question={questions[current]} 
                           selected={answers[current]?.selectedOption || null} 
                           onSelect={handleSelect}
-                          activeLanguage={activeLang as any}
+                          activeLanguage={activeLang}
                           sideBySide={activeLang === 'bilingual'}
                         />
                      </motion.div>
@@ -243,43 +217,53 @@ export default function AdvancedCBTPlayer() {
              </div>
           </main>
 
-          <aside className="w-[400px] bg-white border-l border-slate-200 hidden lg:flex flex-col shrink-0 shadow-2xl">
-             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-full border-2 border-slate-100 p-0.5 overflow-hidden">
-                      <img src={`https://picsum.photos/seed/${user?.uid}/100`} className="w-full h-full rounded-full object-cover" alt="" />
-                   </div>
-                   <div>
-                      <p className="text-xs font-black text-slate-900 uppercase">{profile?.name}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID: {user?.uid.substring(0,8)}</p>
-                   </div>
+          {/* Desktop Palette Sidebar */}
+          <aside className="w-[320px] bg-slate-50 border-l border-slate-200 hidden lg:flex flex-col shrink-0">
+             <div className="p-6 border-b border-slate-100 flex items-center gap-4">
+                <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                   <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100`} />
+                   <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                   <p className="text-[10px] font-black uppercase text-slate-900 leading-none">{profile?.name}</p>
+                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Recruitment ID: {user?.uid.substring(0,8)}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-xl border border-slate-100"><Settings size={16} className="text-slate-400" /></Button>
              </div>
 
-             <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-12">
-                <div className="space-y-6">
-                   <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">
-                      <span>Grid Navigation</span>
+             <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                      <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Answered</p>
+                      <p className="text-xl font-black text-emerald-700">{Object.values(answers).filter(a => a.status === 'ANSWERED').length}</p>
                    </div>
-                   <div className="grid grid-cols-5 gap-3">
+                   <div className="bg-slate-100 p-3 rounded-xl border border-slate-200">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Not Visited</p>
+                      <p className="text-xl font-black text-slate-500">{questions.length - Object.keys(answers).length}</p>
+                   </div>
+                </div>
+
+                <div className="space-y-4">
+                   <div className="flex items-center justify-between text-[9px] font-black uppercase text-slate-400 tracking-widest">
+                      <span>Item Navigator</span>
+                   </div>
+                   <div className="grid grid-cols-5 gap-2">
                       {questions.map((_, i) => {
                         const ans = answers[i];
                         const isCurrent = current === i;
                         const status = ans?.status || 'NOT_VISITED';
 
-                        let bg = "bg-slate-100 text-slate-400 border-slate-200";
-                        if (status === 'ANSWERED') bg = "bg-emerald-500 text-white border-emerald-600 shadow-lg";
-                        if (status === 'MARKED_FOR_REVIEW') bg = "bg-purple-600 text-white border-purple-700 shadow-lg";
+                        let bg = "bg-white text-slate-400 border-slate-200";
+                        if (status === 'ANSWERED') bg = "bg-emerald-500 text-white border-emerald-600 shadow-md";
+                        if (status === 'MARKED_FOR_REVIEW') bg = "bg-purple-600 text-white border-purple-700 shadow-md";
 
                         return (
                           <button
                             key={i}
                             onClick={() => setCurrent(i)}
                             className={cn(
-                              "h-12 w-full rounded-xl font-black text-[11px] transition-all border flex items-center justify-center",
+                              "h-9 w-full rounded-lg font-black text-[10px] transition-all border flex items-center justify-center",
                               bg,
-                              isCurrent && "ring-2 ring-primary ring-offset-2 scale-110 z-10"
+                              isCurrent && "ring-2 ring-primary ring-offset-1 scale-105 z-10"
                             )}
                           >
                             {i + 1}
@@ -290,26 +274,25 @@ export default function AdvancedCBTPlayer() {
                 </div>
              </div>
              
-             <div className="p-8 bg-slate-50 border-t border-slate-200">
-                <div className="flex items-center gap-3 text-emerald-600">
-                   <Cloud size={16} className="animate-pulse" />
-                   <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sync Active</p>
-                </div>
+             <div className="p-6 bg-white border-t border-slate-100 mt-auto flex items-center gap-3">
+                <ShieldCheck size={14} className="text-emerald-500 animate-pulse" />
+                <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Secure Preparation Buffer</p>
              </div>
           </aside>
        </div>
 
-       <footer className="h-[85px] px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
-          <div className="flex gap-4">
-             <Button variant="outline" onClick={markForReview} className="h-14 px-8 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all">MARK FOR REVIEW</Button>
-             <Button onClick={() => setAnswers(prev => { const n = {...prev}; delete n[current]; return n; })} variant="ghost" className="h-14 px-8 rounded-2xl text-slate-400 font-black text-[11px] uppercase tracking-widest">CLEAR</Button>
+       {/* Bottom Control Dock */}
+       <footer className="h-[75px] px-4 md:px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
+          <div className="flex gap-2">
+             <Button variant="outline" onClick={markForReview} className="h-11 px-4 md:px-8 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">MARK FOR REVIEW</Button>
+             <Button variant="ghost" onClick={() => setAnswers(prev => { const n = {...prev}; delete n[current]; return n; })} className="h-11 px-4 rounded-xl text-slate-400 font-black text-[10px] uppercase tracking-widest hidden md:flex">CLEAR</Button>
           </div>
-          <div className="flex gap-4 items-center">
-             <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="flex items-center gap-2 px-6 h-14 rounded-2xl text-slate-500 font-black text-[11px] uppercase hover:bg-slate-50 disabled:opacity-30">
-                <ChevronLeft size={20} /> PREVIOUS
+          <div className="flex gap-3 items-center">
+             <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="flex items-center gap-2 px-4 h-11 rounded-xl text-slate-500 font-black text-[10px] uppercase hover:bg-slate-50 disabled:opacity-30">
+                <ChevronLeft size={16} /> PREV
              </button>
-             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-14 px-24 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl">
-                SAVE & NEXT
+             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-12 px-10 md:px-20 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase tracking-[0.15em] shadow-xl">
+                SAVE & NEXT <ChevronRight className="ml-1" size={16} />
              </Button>
           </div>
        </footer>
@@ -324,20 +307,20 @@ export default function AdvancedCBTPlayer() {
        />
 
        <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
-         <DialogContent className="bg-white text-slate-900 max-w-md rounded-[48px] p-10">
-            <DialogHeader className="text-center space-y-6">
-               <div className="w-20 h-20 rounded-[32px] bg-emerald-500/10 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="text-emerald-500 w-10 h-10" />
+         <DialogContent className="bg-white text-slate-900 max-w-md rounded-[40px] p-8">
+            <DialogHeader className="text-center space-y-4">
+               <div className="w-16 h-16 rounded-[24px] bg-emerald-500/10 flex items-center justify-center mx-auto">
+                  <ShieldCheck className="text-emerald-500 w-8 h-8" />
                </div>
-               <DialogTitle className="text-3xl font-black uppercase tracking-tighter">Submit Simulation?</DialogTitle>
-               <DialogDescription className="text-slate-400 font-medium text-sm">
-                  Your artifacts are synced to the registry. Submitting will end the test and generate your preparation analytics.
+               <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Submit Simulation?</DialogTitle>
+               <DialogDescription className="text-slate-500 font-medium text-xs leading-relaxed">
+                  Final submission will initiate a performance audit. Total Attempted: {Object.values(answers).length} / {questions.length}.
                </DialogDescription>
             </DialogHeader>
 
             <DialogFooter className="gap-3 flex flex-col md:flex-row mt-6">
-               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-16 rounded-2xl flex-1 font-black uppercase text-[11px]">RESUME</Button>
-               <Button onClick={submitTest} disabled={isSubmitting} className="h-16 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[11px]">
+               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-14 rounded-xl flex-1 font-black uppercase text-[10px]">RESUME</Button>
+               <Button onClick={submitTest} disabled={isSubmitting} className="h-14 rounded-xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px]">
                   {isSubmitting ? <Loader2 className="animate-spin" /> : "FINAL SUBMIT"}
                </Button>
             </DialogFooter>

@@ -1,9 +1,8 @@
-
 {
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "User account, pass status, and performance metrics.",
+      "description": "Student account, pass status, and performance metrics.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
@@ -12,58 +11,38 @@
         "role": { "type": "string", "enum": ["student", "admin", "superadmin", "creator"] },
         "activePass": { "type": "string", "enum": ["free", "silver", "gold", "elite"] },
         "passExpiry": { "type": "number" },
-        "xp": { "type": "number" },
-        "streak": { "type": "number" },
-        "coins": { "type": "number" },
-        "district": { "type": "string" },
-        "targetExam": { "type": "string" },
-        "referralCode": { "type": "string" },
+        "purchasedTests": { "type": "array" },
+        "languageMode": { "type": "string" },
         "createdAt": { "type": "number" },
-        "bookmarks": { "type": "array" },
-        "purchasedTests": { "type": "array" }
+        "updatedAt": { "type": "number" }
       }
     },
     "TestSeries": {
       "title": "Test Series",
-      "description": "A collection of mocks and materials for a specific exam.",
+      "description": "Board-specific simulation clusters.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "exam": { "type": "string" },
         "category": { "type": "string" },
         "thumbnail": { "type": "string" },
         "totalTests": { "type": "number" },
         "freeTests": { "type": "number" },
-        "passRequired": { "type": "string", "enum": ["free", "silver", "gold", "elite"] },
         "price": { "type": "number" },
-        "isActive": { "type": "boolean" },
-        "languages": { "type": "array" }
+        "passRequired": { "type": "string" },
+        "isActive": { "type": "boolean" }
       }
     },
     "Transaction": {
-      "title": "Transaction Record",
-      "description": "Logs for prepare pass purchases.",
+      "title": "Transaction Signal",
+      "description": "Audited preparation pass purchases.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
         "amount": { "type": "number" },
         "passType": { "type": "string" },
         "status": { "type": "string" },
-        "orderId": { "type": "string" },
         "paymentId": { "type": "string" },
         "createdAt": { "type": "number" }
-      }
-    },
-    "PassPlan": {
-      "title": "Pass Plan",
-      "description": "Definition of preparation passes.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "price": { "type": "number" },
-        "duration": { "type": "number" },
-        "tier": { "type": "string" },
-        "active": { "type": "boolean" }
       }
     }
   },
@@ -73,19 +52,19 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Student profiles and roles."
+      "description": "Student identity nodes."
     },
     "/testSeries/{seriesId}": {
       "schema": "TestSeries",
-      "description": "Official preparation test series."
+      "description": "Recruitment preparation clusters."
+    },
+    "/mocks/{mockId}": {
+      "schema": "MockTest",
+      "description": "High-fidelity preparing simulations."
     },
     "/transactions/{txnId}": {
       "schema": "Transaction",
-      "description": "Payment records for preparer passes."
-    },
-    "/plans/{planId}": {
-      "schema": "PassPlan",
-      "description": "Preparation pass tiers and pricing."
+      "description": "Preparatory acquisition ledger."
     }
   }
 }

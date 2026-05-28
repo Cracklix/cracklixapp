@@ -1,9 +1,11 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v15.0 (Testbook Standard)
+ * Production-grade Architecture Layer v16.0 (Testbook Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
+export type PassTier = 'free' | 'pass_plus' | 'premium' | 'elite';
+export type LanguageMode = 'en' | 'pa' | 'hi' | 'bilingual';
 
 export type Subject = 
   | 'General Knowledge' 
@@ -29,15 +31,40 @@ export const SUBJECTS: Subject[] = [
   'General Knowledge', 'Current Affairs', 'Punjab History', 'Punjab Culture', 'Punjabi Language', 'English Language', 'Hindi Language', 'Reasoning', 'Quantitative Aptitude', 'Data Interpretation', 'ICT & Computers', 'Science', 'Environmental Studies', 'Child Development & Pedagogy', 'Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering', 'Other'
 ];
 
-export type QuestionStatus = 'NOT_VISITED' | 'NOT_ANSWERED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
+export interface UserProfile {
+  uid: string;
+  email: string;
+  name: string;
+  xp: number;
+  streak: number;
+  role: UserRole;
+  activePass: PassTier;
+  passExpiry: number;
+  purchasedTests: string[];
+  languageMode: LanguageMode;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface TestSeries {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  thumbnail: string;
+  totalTests: number;
+  freeTests: number;
+  price: number;
+  passRequired: PassTier;
+  isActive: boolean;
+  createdAt: number;
+}
 
 export interface QuestionContent {
   question: string;
   options: string[];
   explanation?: string;
 }
-
-export type QuestionType = 'MCQ' | 'MULTI_SELECT' | 'NUMERICAL' | 'MATCH_FOLLOWING';
 
 export interface Question {
   id: string;
@@ -46,90 +73,40 @@ export interface Question {
   hi?: QuestionContent | null;
   correctAnswer: string; 
   subject: string;
-  chapter?: string;
-  topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  questionType: QuestionType;
   marks: number;
   negativeMarks: number;
-  status: 'draft' | 'published';
-  usageCount: number;
-  qualityScore?: number;
-  createdAt: number;
-  updatedAt: number;
   order?: number;
 }
 
-export interface TestSeries {
-  id: string;
-  title: string;
-  category: string; // PSSSB, Punjab Police, PPSC
-  description: string;
-  thumbnail: string;
-  totalTests: number;
-  freeTests: number;
-  languages: string[]; // ["English", "Punjabi", "Bilingual"]
-  isActive: boolean;
-  createdAt: number;
-}
-
-export interface ExamSubject {
-  id: string;
-  seriesId: string;
-  name: string;
-  icon?: string;
-  totalTests: number;
-  freeTests: number;
-  difficulty: string;
-  weightage?: number;
-  progress?: number;
-}
-
-export type MockStatus = 'draft' | 'published' | 'live' | 'archived';
-export type MockAccessType = 'free' | 'pass_plus' | 'premium' | 'elite';
-export type MockCategory = 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
-
 export interface MockTest {
   id: string;
-  seriesId?: string;
-  subjectId?: string;
+  seriesId: string;
   title: string;
   exam: string;
-  category: MockCategory;
+  category: 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
   duration: number;
   totalQuestions: number;
   negativeMarking: number;
-  accessType: MockAccessType;
-  status: MockStatus;
+  accessType: PassTier;
+  status: 'draft' | 'published';
   createdAt: number;
-  updatedAt: number;
-  publishedAt?: number | null;
   attemptCount?: number;
-  questionIds?: string[];
-  aiGenerated?: boolean;
-  languageMode?: 'en' | 'pa' | 'bilingual';
 }
 
 export interface ExamAttempt {
   id: string;
   userId: string;
   mockId: string;
-  mockTitle: string;
   status: 'ongoing' | 'completed';
   startedAt: number;
   completedAt?: number;
-  expiresAt: number;
-  currentQuestionIndex: number;
-  score?: number;
-  accuracy?: number;
-  analytics?: any;
-  deviceInfo: string;
+  answers: Record<string, any>;
 }
 
 export interface AttemptAnswer {
   questionId: string;
   selectedOption: string | null;
-  status: QuestionStatus;
+  status: 'NOT_VISITED' | 'NOT_ANSWERED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
   timeSpent: number;
-  lastSavedAt: number;
 }

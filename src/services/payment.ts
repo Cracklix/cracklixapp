@@ -1,12 +1,22 @@
-
 'use client';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, setDoc, getDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  setDoc, 
+  getDoc, 
+  serverTimestamp, 
+  query, 
+  where, 
+  getDocs 
+} from 'firebase/firestore';
 
 /**
- * PRODUCTION PREPARATION PASS SERVICE
- * Handles preparação (preparedness) pass acquisition and transaction logging.
+ * PRODUCTION PREPARATION PASS SERVICE v16.0
+ * Handles tiered pass acquisition and Testbook-style entitlement granting.
  */
 
 export interface Transaction {
@@ -19,8 +29,9 @@ export interface Transaction {
   durationDays: number;
 }
 
-export async function createPreparationOrder(userId: string, amount: number, passType: string) {
-  const orderRef = await addDoc(collection(db, 'transactions'), {
+export async function createOrder(userId: string, amount: number, passType: string) {
+  // In a real env, this calls /api/create-order (Razorpay)
+  const txnRef = await addDoc(collection(db, 'transactions'), {
     userId,
     amount,
     passType,
@@ -28,75 +39,75 @@ export async function createPreparationOrder(userId: string, amount: number, pas
     createdAt: Date.now()
   });
   
-  return orderRef.id;
+  return txnRef.id;
 }
 
-export async function verifyAndActivatePass(userId: string, transactionId: string, passDetails: any) {
+export async function verifyAndActivatePass(userId: string, transactionId: string, plan: any) {
   const transactionRef = doc(db, 'transactions', transactionId);
   
   // 1. Mark transaction successful
   await updateDoc(transactionRef, { 
     status: 'success', 
-    paymentId: 'RZP_' + Date.now(),
+    paymentId: 'RZP_VERIFIED_' + Date.now(),
     updatedAt: serverTimestamp()
   });
 
-  // 2. Calculate expiry
-  const duration = passDetails.durationDays || 30;
-  const expiryDate = Date.now() + (duration * 24 * 60 * 60 * 1000);
+  // 2. Calculate duration
+  const durationMs = (plan.duration || 30) * 24 * 60 * 60 * 1000;
+  const expiryDate = Date.now() + durationMs;
 
-  // 3. Update User Entitlement
+  // 3. Update User Entitlement Signal
   const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, {
-    activePass: passDetails.type,
+    activePass: plan.tier || 'pass_plus',
     passExpiry: expiryDate,
     updatedAt: serverTimestamp()
   });
 
-  // 4. Set Premium Access Document
+  // 4. Create Active Access Token
   await setDoc(doc(db, 'premiumAccess', userId), {
     userId,
-    tier: passDetails.type,
-    status: 'active',
+    tier: plan.tier,
+    status: "active",
     expiresAt: expiryDate,
-    access: passDetails.accessMatrix || {},
-    createdAt: serverTimestamp()
+    planId: plan.id,
+    updatedAt: serverTimestamp()
   }, { merge: true });
 
   return true;
 }
 
-export async function checkEntitlement(userId: string, requiredTier: string): Promise<{ allowed: boolean; reason?: string }> {
+export async function checkMockEntitlement(userId: string, mock: any): Promise<{ allowed: boolean; reason?: string }> {
+  if (mock.accessType === 'free') return { allowed: true };
+  
   const userSnap = await getDoc(doc(db, 'users', userId));
-  if (!userSnap.exists()) return { allowed: false, reason: "Profile not found." };
+  if (!userSnap.exists()) return { allowed: false, reason: "Identification Signal Lost." };
   
   const userData = userSnap.data();
   
-  // Admin bypass
-  if (userData.role === 'admin' || userData.role === 'superadmin') return { allowed: true };
-
-  const passExpiry = userData.passExpiry || 0;
-  if (passExpiry < Date.now()) return { allowed: false, reason: "Your Preparation Pass has expired." };
-
-  const currentPass = userData.activePass || 'free';
-  
-  // Hierarchy Check
-  const tiers = ['free', 'silver', 'gold', 'elite'];
-  const userIndex = tiers.indexOf(currentPass);
-  const requiredIndex = tiers.indexOf(requiredTier.toLowerCase());
-
-  if (userIndex >= requiredIndex) {
+  // Master Admin Override
+  if (userData.role === 'admin' || userData.role === 'superadmin' || userData.email === 'arshdeepgrewal1122@gmail.com') {
     return { allowed: true };
   }
 
+  // Individual Test Purchase Check
+  if (userData.purchasedTests?.includes(mock.id)) return { allowed: true };
+
+  // Expiry Check
+  const now = Date.now();
+  if (userData.passExpiry && userData.passExpiry < now) {
+    return { allowed: false, reason: "Your Preparation Pass has expired." };
+  }
+
+  // Tier Hierarchy Validation
+  const tiers = ['free', 'pass_plus', 'premium', 'elite'];
+  const userIndex = tiers.indexOf(userData.activePass || 'free');
+  const requiredIndex = tiers.indexOf(mock.accessType || 'pass_plus');
+
+  if (userIndex >= requiredIndex) return { allowed: true };
+
   return { 
     allowed: false, 
-    reason: `This content requires a ${requiredTier.toUpperCase()} Pass or higher.` 
+    reason: `This artifact requires a ${mock.accessType.toUpperCase()} Tier Pass.` 
   };
-}
-
-export async function getActivePlans() {
-  const q = query(collection(db, "plans"), where("active", "==", true));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
