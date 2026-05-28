@@ -1,10 +1,10 @@
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyCXXoUGojTRz0iuxzispTCrasNPRJDXjJA",
-  authDomain: "studio-4007402736-dd858.firebaseapp.com",
-  projectId: "studio-4007402736-dd858",
-  storageBucket: "studio-4007402736-dd858.firebasestorage.app",
-  messagingSenderId: "130551790638",
-  appId: "1:130551790638:web:c95ca3ac844dc031bdb3bf",
-  measurementId: "G-XXXXXXXXXX"
+  apiKey: "AIzaSyDJ39VgqQ35l7HpJHS3tKohrlsy3QiyE5E",
+  authDomain: "cracklixapp.firebaseapp.com",
+  projectId: "cracklixapp",
+  storageBucket: "cracklixapp.firebasestorage.app",
+  messagingSenderId: "714566850912",
+  appId: "1:714566850912:web:8286886e73deeb5007e605",
+  measurementId: "G-F6DBVRK0BK"
 };
