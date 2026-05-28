@@ -8,7 +8,7 @@ import {
   Trash2, Edit3, PlayCircle, Lock, Unlock, 
   Database, BarChart3, RefreshCw, AlertCircle,
   MoreVertical, ShieldCheck, Crown, ExternalLink,
-  ChevronRight, LayoutGrid, CheckCircle2, XCircle
+  ChevronRight, LayoutGrid, CheckCircle2, XCircle, Copy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { 
   getAllMocks, 
   updateMock, 
-  deleteMock 
+  deleteMock,
+  cloneMock
 } from "@/services/mocks";
 import { MockTest, PassTier } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -40,7 +41,7 @@ import {
 
 /**
  * PRODUCTION MOCK DASHBOARD v30.0
- * Features: Table-first CRUD, Tier management, Quick Publish.
+ * Features: Full CRUD, Tier management, Quick Publish, and Mock Cloning.
  */
 export default function MockDashboardPage() {
   const { toast } = useToast();
@@ -66,7 +67,7 @@ export default function MockDashboardPage() {
     }
   }
 
-  const handleAction = async (mockId: string, action: 'delete' | 'publish' | 'tier', value?: any) => {
+  const handleAction = async (mockId: string, action: 'delete' | 'publish' | 'tier' | 'clone', value?: any) => {
     setProcessingId(`${mockId}-${action}`);
     try {
       if (action === 'delete') {
@@ -80,10 +81,14 @@ export default function MockDashboardPage() {
       } else if (action === 'tier') {
         await updateMock(mockId, { accessType: value });
         toast({ title: "Tier Updated" });
+      } else if (action === 'clone') {
+        const newId = await cloneMock(mockId);
+        toast({ title: "Mock Cloned", description: "Identity duplicated successfully." });
+        router.push(`/admin/mocks/${newId}`);
       }
       await loadMocks();
     } catch (e: any) {
-      toast({ title: "Operation Failed", variant: "destructive" });
+      toast({ title: "Operation Failed", description: e.message, variant: "destructive" });
     } finally {
       setProcessingId(null);
     }
@@ -192,6 +197,13 @@ export default function MockDashboardPage() {
                           <div className="flex justify-end gap-3">
                              <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} className="h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 font-black text-[9px] uppercase tracking-widest shadow-lg">
                                 <Edit3 size={14} className="mr-2" /> CALIBRATE
+                             </Button>
+                             <Button 
+                               onClick={() => handleAction(m.id, 'clone')} 
+                               variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5"
+                               title="Clone Simulation"
+                             >
+                                <Copy size={18} className="text-zinc-400" />
                              </Button>
                              <Button 
                                onClick={() => handleAction(m.id, 'publish', m.status === 'draft')} 

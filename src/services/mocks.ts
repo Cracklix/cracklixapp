@@ -23,7 +23,6 @@ import { MockTest, Question, AttemptAnswer, ExamAttempt, PassTier } from '@/type
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v30.0)
- * Rebuilt for real CRUD, sectional navigation, and Testbook-style flow.
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -70,6 +69,35 @@ export async function deleteMock(mockId: string) {
   qSnap.forEach(d => batch.delete(d.ref));
   batch.delete(mockRef);
   return batch.commit();
+}
+
+/**
+ * CLONE PROTOCOL: Duplicates a mock and its entire question subcollection.
+ */
+export async function cloneMock(mockId: string) {
+  const original = await getMockDetails(mockId);
+  if (!original) throw new Error("Source mock missing.");
+
+  const { id, ...data } = original;
+  const newMockId = await createMock({
+    ...data,
+    title: `${data.title} (Copy)`,
+    publishedAt: null,
+    attemptCount: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  });
+
+  // Copy questions
+  const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
+  const batch = writeBatch(db);
+  qSnap.forEach(qDoc => {
+    const newQRef = doc(db, 'mocks', newMockId, 'questions', qDoc.id);
+    batch.set(newQRef, qDoc.data());
+  });
+
+  await batch.commit();
+  return newMockId;
 }
 
 /**
@@ -167,4 +195,10 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
   await setDoc(docRef, payload);
   await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(1) });
   return docRef.id;
+}
+
+export async function deleteQuestionFromMock(mockId: string, questionId: string) {
+  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await deleteDoc(qRef);
+  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
 }
