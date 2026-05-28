@@ -71,11 +71,9 @@ export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
   
-  // Clean up subcollection questions
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
   
-  // Delete mock doc
   batch.delete(mockRef);
   
   return batch.commit().catch(async (e) => {
@@ -84,10 +82,6 @@ export async function deleteMock(mockId: string) {
   });
 }
 
-/**
- * DEEP CLONE: Institutional Copying Protocol
- * Duplicates both metadata and the entire subcollection of artifacts.
- */
 export async function duplicateMock(mockId: string) {
   const sourceMock = await getMockDetails(mockId);
   if (!sourceMock) throw new Error("Source simulation artifact missing.");
@@ -103,8 +97,6 @@ export async function duplicateMock(mockId: string) {
   };
 
   const newMockRef = await addDoc(collection(db, 'mocks'), newMock);
-  
-  // Copy questions payload
   const questions = await getMockQuestions(mockId);
   const batch = writeBatch(db);
   questions.forEach((q, idx) => {
@@ -116,7 +108,7 @@ export async function duplicateMock(mockId: string) {
   return batch.commit();
 }
 
-// 2. QUESTION MANAGEMENT (Subcollection Pattern)
+// 2. QUESTION MANAGEMENT
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const q = query(collection(db, 'mocks', mockId, 'questions'), orderBy('order', 'asc'));
   const snap = await getDocs(q);
@@ -149,9 +141,6 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
   return batch.commit();
 }
 
-/**
- * AUTO-LINKER: Scans global bank and ports relevant artifacts.
- */
 export async function autoLinkFromBank(mockId: string, exam: string) {
   const q = query(
     collection(db, "questions"),
@@ -204,7 +193,73 @@ export async function updateMockQuestion(mockId: string, questionId: string, upd
   return updateDoc(qRef, { ...updates, updatedAt: Date.now() });
 }
 
-// 3. ANALYTICS AGGREGATOR
+// 3. STUDENT CBT OPERATIONS
+export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
+  const attemptRef = await addDoc(collection(db, 'attempts'), {
+    userId,
+    mockId: mock.id,
+    mockTitle: mock.title,
+    status: 'ongoing',
+    startedAt: Date.now(),
+    expiresAt: Date.now() + (mock.duration * 60 * 1000),
+    currentQuestionIndex: 0,
+    deviceInfo: navigator.userAgent
+  });
+  
+  await updateDoc(doc(db, 'mocks', mock.id), {
+    attemptCount: increment(1)
+  });
+
+  return attemptRef.id;
+}
+
+export function saveAnswer(attemptId: string, questionIndex: number, answer: AttemptAnswer) {
+  const ref = doc(db, 'attempts', attemptId, 'answers', questionIndex.toString());
+  setDoc(ref, answer, { merge: true })
+    .catch(async (e) => {
+      const pErr = new FirestorePermissionError({ path: ref.path, operation: 'write', requestResourceData: answer });
+      errorEmitter.emit('permission-error', pErr);
+    });
+}
+
+export async function finalizeAttempt(userId: string, attemptId: string, analytics: any) {
+  const ref = doc(db, 'attempts', attemptId);
+  await updateDoc(ref, {
+    status: 'completed',
+    completedAt: Date.now(),
+    ...analytics
+  });
+
+  // Increment user XP based on accuracy
+  const xpGain = Math.round(analytics.score || 10);
+  await updateDoc(doc(db, 'users', userId), {
+    xp: increment(xpGain),
+    streak: increment(1)
+  });
+
+  // Update Global Leaderboard
+  const rankRef = doc(db, 'leaderboards', userId);
+  await setDoc(rankRef, {
+    xp: increment(xpGain),
+    lastAttempt: Date.now(),
+    accuracy: analytics.accuracy
+  }, { merge: true });
+}
+
+export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
+  if (mock.accessType === 'free') return { allowed: true };
+  
+  const userSnap = await getDoc(doc(db, 'users', userId));
+  const userData = userSnap.data();
+  if (userData?.role === 'admin' || userData?.role === 'superadmin') return { allowed: true };
+
+  const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
+  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
+    return { allowed: false, reason: "Membership required. Unlock with PASS+." };
+  }
+  return { allowed: true };
+}
+
 export async function getMockAnalytics(mockId: string) {
   const q = query(collection(db, 'attempts'), where('mockId', '==', mockId));
   const snap = await getDocs(q);
@@ -221,19 +276,4 @@ export async function getMockAnalytics(mockId: string) {
     avgScore: Number(avgScore.toFixed(2)),
     avgAccuracy: Math.round(avgAccuracy)
   };
-}
-
-// 4. ACCESS CONTROL
-export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
-  if (mock.accessType === 'free') return { allowed: true };
-  
-  const userSnap = await getDoc(doc(db, 'users', userId));
-  const userData = userSnap.data();
-  if (userData?.role === 'admin' || userData?.role === 'superadmin') return { allowed: true };
-
-  const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
-  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
-    return { allowed: false, reason: "Membership required. Unlock with PASS+." };
-  }
-  return { allowed: true };
 }
