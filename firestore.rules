@@ -15,6 +15,12 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin');
     }
 
+    // Admins registry (Strict)
+    match /admins/{id} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only manageable via Firebase Console or internal superadmin functions
+    }
+
     // User Profiles
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -66,24 +72,16 @@ service cloud.firestore {
       allow write: if isAuthenticated() && id.startsWith(request.auth.uid);
     }
 
-    // Content: Mocks, Questions, Daily Quizzes
-    match /mocks/{id} {
+    // Content
+    match /currentAffairs/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
-      match /questions/{qId} {
-        allow read: if isAuthenticated();
-        allow write: if isAdmin();
-      }
     }
     match /dailyQuizzes/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
     match /questions/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    match /currentAffairs/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
@@ -103,80 +101,21 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Social & Live Features
-    match /leaderboards/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
-    }
-    match /liveRanks/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-    match /liveActivity/{id} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-    }
-    match /referrals/{id} {
-      allow read, write: if isAuthenticated();
-    }
+    // System Communications
     match /notifications/{id} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if isAdmin();
-    }
-
-    // System
-    match /premiumAccess/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isAdmin();
-    }
-    match /userWallets/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      match /transactions/{id} {
-        allow read: if isOwner(userId) || isAdmin();
-      }
-    }
-    match /mistakeNotebook/{id} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow write: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-    }
-    match /admins/{id} {
-      allow read, write: if isAdmin();
     }
     match /cms/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-    match /pdfs/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    match /aiGeneratedMocks/{id} {
-       allow read: if isAuthenticated();
-       allow write: if isAuthenticated();
-       match /questions/{qId} {
-         allow read: if isAuthenticated();
-         allow write: if isAuthenticated();
-       }
-    }
-    match /jobAlerts/{id} {
-       allow read: if isAuthenticated();
-       allow write: if isAdmin();
-    }
+
+    // Support
     match /supportTickets/{id} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated();
-    }
-    match /liveClasses/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    match /classChats/{id} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-    }
-    match /attendance/{id} {
-      allow read: if isAdmin();
-      allow create: if isAuthenticated();
+      allow update: if isAdmin();
     }
   }
 }

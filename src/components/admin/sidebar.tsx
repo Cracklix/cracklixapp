@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -11,7 +12,11 @@ import {
   Users, 
   BarChart3,
   Zap,
-  Newspaper
+  Newspaper,
+  History,
+  Bell,
+  IndianRupee,
+  ShieldCheck
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -21,22 +26,28 @@ export default function AdminSidebar() {
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Questions", href: "/admin/questions", icon: FileQuestion },
     { name: "Mocks", href: "/admin/mocks", icon: FileText },
-    { name: "Exams", href: "/admin/exams", icon: BookOpen },
+    { name: "PYQ Bank", href: "/admin/pyqs", icon: History },
+    { name: "Exams Hub", href: "/admin/exams", icon: BookOpen },
     { name: "Content", href: "/admin/current-affairs", icon: Newspaper },
-    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "User Base", href: "/admin/users", icon: Users },
+    { name: "Revenue", href: "/admin/payments", icon: IndianRupee },
+    { name: "Alerts", href: "/admin/notifications", icon: Bell },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   ];
 
   return (
-    <div className="w-72 bg-zinc-950 border-r border-white/5 min-h-screen p-6 flex flex-col">
+    <div className="w-72 bg-zinc-950 border-r border-white/5 min-h-screen p-6 flex flex-col sticky top-0 h-screen overflow-y-auto no-scrollbar">
       <div className="flex items-center gap-2 mb-10 px-2">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-          <Zap className="text-white w-5 h-5 fill-current" />
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center blue-glow">
+          <ShieldCheck className="text-white w-5 h-5" />
         </div>
-        <span className="font-headline text-xl font-bold tracking-tight text-white uppercase">Cracklix Admin</span>
+        <div className="flex flex-col">
+          <span className="font-headline text-lg font-bold text-white leading-none">CRACKLIX</span>
+          <span className="text-[10px] text-primary font-black uppercase tracking-widest">Admin Control</span>
+        </div>
       </div>
 
-      <nav className="space-y-2 flex-1">
+      <nav className="space-y-1.5 flex-1">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -50,7 +61,7 @@ export default function AdminSidebar() {
                   : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
               )}>
                 <Icon className={cn("w-5 h-5", isActive ? "text-white" : "group-hover:text-primary")} />
-                <span className="font-medium">{item.name}</span>
+                <span className="font-bold tracking-tight text-sm">{item.name}</span>
               </div>
             </Link>
           );
@@ -61,7 +72,7 @@ export default function AdminSidebar() {
         <Link href="/dashboard">
           <div className="flex items-center gap-3 p-4 rounded-2xl text-zinc-500 hover:bg-zinc-900 hover:text-white transition-all">
             <Zap className="w-5 h-5" />
-            <span className="font-medium">Exit to App</span>
+            <span className="font-bold text-sm">Student Mode</span>
           </div>
         </Link>
       </div>
