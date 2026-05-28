@@ -38,13 +38,8 @@ export default function SuperAdminPage() {
           <div className="max-w-7xl mx-auto space-y-10">
             <div className="flex justify-between items-start">
               <div>
-                <motion-div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                >
-                  <h1 className="font-headline text-5xl font-bold text-white tracking-tight">Executive SaaS Panel</h1>
-                  <p className="text-zinc-500 mt-2">National ecosystem oversight and multi-region analytics.</p>
-                </motion-div>
+                <h1 className="font-headline text-5xl font-bold text-white tracking-tight">Executive SaaS Panel</h1>
+                <p className="text-zinc-500 mt-2">National ecosystem oversight and multi-region analytics.</p>
               </div>
               <div className="flex items-center gap-4">
                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-4 py-2 font-black">SYSTEM NOMINAL</Badge>
@@ -124,10 +119,9 @@ export default function SuperAdminPage() {
                   </h3>
                   <div className="h-64 flex items-end gap-3 px-4">
                     {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
-                      <div key={i} className="flex-1 bg-primary/20 rounded-t-xl relative group">
+                      <div key={i} className="flex-1 bg-primary/20 rounded-t-xl relative group" style={{ height: `${h}%` }}>
                         <div 
-                          className="absolute bottom-0 left-0 w-full bg-primary rounded-t-xl transition-all duration-1000 group-hover:bg-accent" 
-                          style={{ height: `${h}%` }} 
+                          className="absolute bottom-0 left-0 w-full bg-primary rounded-t-xl transition-all duration-1000 group-hover:bg-accent h-full" 
                         />
                       </div>
                     ))}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from "react";
@@ -10,12 +11,13 @@ import { addDoc, collection, doc, updateDoc, increment } from "firebase/firestor
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Send, Loader2, WifiOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Loader2, WifiOff, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { saveActiveMockState, getActiveMockState, clearActiveMockState } from "@/services/offline-sync";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MockPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, profile } = useAuth();
@@ -32,6 +34,8 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [cheatAlert, setCheatAlert] = useState(false);
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -40,14 +44,32 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
+    // Anti-Cheat: Detect Tab Switching
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setTabSwitchCount(prev => prev + 1);
+        setCheatAlert(true);
+        setTimeout(() => setCheatAlert(false), 5000);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     async function load() {
       try {
         const [mockData, questionData] = await Promise.all([
           getMock(mockId),
           getQuestions(mockId)
         ]);
+        
+        // Anti-Cheat: Randomize Option Order for each question
+        const randomizedQuestions = questionData.map(q => ({
+          ...q,
+          options_en: q.options_en ? [...q.options_en].sort(() => Math.random() - 0.5) : q.options_en,
+          options_pa: q.options_pa ? [...q.options_pa].sort(() => Math.random() - 0.5) : q.options_pa,
+        }));
+
         setMock(mockData);
-        setQuestions(questionData);
+        setQuestions(randomizedQuestions);
 
         const saved = getActiveMockState(mockId);
         if (saved) {
@@ -70,6 +92,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [mockId, toast]);
 
@@ -116,6 +139,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
       mockId: mock.id,
       answers,
       score,
+      cheatFlags: tabSwitchCount, // Record anti-cheat data
       createdAt: Date.now(),
     }).catch(async (serverError) => {
        const permissionError = new FirestorePermissionError({
@@ -178,6 +202,25 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <div className="min-h-screen bg-background text-white p-4 md:p-8 flex flex-col">
+      <AnimatePresence>
+        {cheatAlert && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-6"
+          >
+            <div className="bg-destructive text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20">
+               <ShieldAlert className="w-6 h-6 animate-pulse" />
+               <div>
+                 <p className="font-bold">Anti-Cheat Warning</p>
+                 <p className="text-xs opacity-90">Tab switching detected. This incident will be logged in your final report.</p>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pb-6 border-b border-white/5">
         <div>
           <h1 className="text-3xl font-bold font-headline">{mock.title}</h1>
