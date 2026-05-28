@@ -47,18 +47,21 @@ export default function MockPage() {
 
   const timerRef = useRef<number>(Date.now());
 
-  // STABILIZED INITIALIZATION (Mount only)
+  // STABILIZED INITIALIZATION (Mount-Only Protocol)
   useEffect(() => {
-    if (!user || !mockId || initializing) return;
+    if (!user || !mockId) return;
     
+    // Prevent double execution during mounting
+    if (initializing) return;
+
     async function init() {
       setInitializing(true);
-      console.count("Mock Engine Init");
+      console.count("CBT Engine Mount Sequence");
       
       try {
         const mockData = await mockService.getMock(mockId);
         if (!mockData) {
-          setErrorMsg("Test artifact not found.");
+          setErrorMsg("Artifact signal not found in registry.");
           setPhase('error');
           return;
         }
@@ -89,7 +92,8 @@ export default function MockPage() {
           setPhase('instructions');
         }
       } catch (err) {
-        setErrorMsg("Session synchronization failed.");
+        console.error("CBT Engine Critical Error:", err);
+        setErrorMsg("Session synchronization failure.");
         setPhase('error');
       } finally {
         setInitializing(false);
@@ -97,7 +101,7 @@ export default function MockPage() {
     }
 
     init();
-  }, [mockId, user]); // Empty init dependency if possible, but params/user needed once.
+  }, [mockId, user?.uid]); // Only rerun if user identity or mock artifact changes
 
   const handleAction = async (isReview = false) => {
     if (!attemptId || !questions[current]) return;
@@ -144,7 +148,7 @@ export default function MockPage() {
   if (phase === 'loading') return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      <p className="text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Securing Connection...</p>
+      <p className="text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Securing Session Matrix...</p>
     </div>
   );
 
@@ -154,7 +158,7 @@ export default function MockPage() {
           <FileSearch className="text-red-500 w-12 h-12 mx-auto" />
           <h2 className="text-xl font-bold uppercase">Signal Lost</h2>
           <p className="text-zinc-500 text-sm">{errorMsg}</p>
-          <Button onClick={() => router.push('/exams')} className="w-full h-12 rounded-xl bg-primary">Back to Arena</Button>
+          <Button onClick={() => router.push('/exams')} className="w-full h-12 rounded-xl bg-primary">Return to Factory</Button>
        </div>
     </div>
   );
@@ -180,7 +184,7 @@ export default function MockPage() {
                <Checkbox id="c" checked={hasConfirmed} onCheckedChange={(v) => setHasConfirmed(!!v)} />
                <label htmlFor="c" className="text-xs text-zinc-500 cursor-pointer">I acknowledge the rules and agree to start.</label>
             </div>
-            <Button onClick={() => { setPhase('engine'); updateAttemptActivity(attemptId!, { status: 'ongoing' }); }} disabled={!hasConfirmed} className="w-full h-16 rounded-[24px] bg-primary font-black">START SESSION</Button>
+            <Button onClick={() => { setPhase('engine'); updateAttemptActivity(attemptId!, { status: 'ongoing' }); }} disabled={!hasConfirmed} className="w-full h-16 rounded-[24px] bg-primary font-black shadow-xl blue-glow">START SESSION</Button>
          </div>
       </div>
     </div>
@@ -192,7 +196,7 @@ export default function MockPage() {
         <header className="h-16 px-6 bg-zinc-950 border-b border-white/5 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
              <Button variant="ghost" size="icon" onClick={() => router.push('/exams')}><ArrowLeft className="w-4 h-4" /></Button>
-             <span className="font-black text-sm uppercase tracking-tight">{mock?.title}</span>
+             <span className="font-black text-xs uppercase tracking-tight truncate max-w-[200px]">{mock?.title}</span>
           </div>
           <div className="flex items-center gap-6">
              <Timer duration={mock?.duration || 60} onFinish={submitTest} />
@@ -203,12 +207,16 @@ export default function MockPage() {
         <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
             <div className="max-w-4xl mx-auto">
-               {questions[current] && (
+               {questions[current] ? (
                  <QuestionCard 
                    question={questions[current]} 
                    selected={answers[current]?.selectedOption || null} 
                    onSelect={(opt) => setAnswers(prev => ({...prev, [current]: { ...prev[current], selectedOption: opt }}))} 
                  />
+               ) : (
+                 <div className="py-20 text-center animate-pulse">
+                   <p className="text-zinc-600 font-black uppercase text-xs">Awaiting Artifact Payload...</p>
+                 </div>
                )}
             </div>
           </main>
@@ -220,8 +228,8 @@ export default function MockPage() {
         </div>
 
         <footer className="h-20 px-8 bg-zinc-950 border-t border-white/5 flex items-center justify-between shrink-0">
-           <Button variant="outline" onClick={() => setCurrent(Math.max(0, current - 1))} disabled={current === 0}>PREV</Button>
-           <Button className="h-10 px-10 rounded-xl bg-primary text-[10px] font-black" onClick={() => handleAction(false)}>SAVE & NEXT</Button>
+           <Button variant="outline" onClick={() => setCurrent(Math.max(0, current - 1))} disabled={current === 0} className="rounded-xl font-bold border-white/10">PREV</Button>
+           <Button className="h-12 px-10 rounded-xl bg-primary hover:bg-primary/90 text-[10px] font-black blue-glow shadow-lg" onClick={() => handleAction(false)}>SAVE & NEXT</Button>
         </footer>
       </div>
     </AppErrorBoundary>
