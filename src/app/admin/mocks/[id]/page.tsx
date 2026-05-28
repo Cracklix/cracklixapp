@@ -7,7 +7,7 @@ import {
   ArrowLeft, Settings, Database, ShieldCheck, Zap, 
   BarChart3, Loader2, Save, Plus, Search, Trash2, 
   Eye, Lock, Unlock, Sparkles, Filter, ChevronDown, 
-  ChevronUp, Languages, CheckCircle2, AlertCircle
+  ChevronUp, Languages, CheckCircle2, AlertCircle, Edit3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
   addQuestionToMock
 } from "@/services/mocks";
 import { getRecentQuestions } from "@/services/questions";
-import { MockTest, Question, SUBJECTS } from "@/types";
+import { MockTest, Question, SUBJECTS, MockAccessType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -29,8 +29,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 
 /**
- * HIGH-DENSITY SIMULATION CALIBRATION CENTER v4
- * Expanded Workspace (480px Utility Panel)
+ * HIGH-DENSITY SIMULATION CALIBRATION CENTER v12
+ * Deep question editor + real-time calibration console.
  */
 export default function MockEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -49,7 +49,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   const [bankSubject, setBankSubject] = useState("All");
   const [activeTab, setActiveTab] = useState("questions");
   
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<Partial<Question> | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [expandedQs, setExpandedQs] = useState<Set<string>>(new Set());
 
@@ -68,7 +68,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     }
 
     loadMock();
-    const unsubQs = subscribeMockQuestions(mockId, setQuestions);
+    const unsubQs = subscribeMockQuestions(mockId, (qs) => setQuestions(qs));
     loadBank();
 
     return () => unsubQs();
@@ -101,7 +101,6 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
 
   const handleLinkFromBank = async (q: Question) => {
     try {
-      // Prevents adding the same question twice
       if (questions.some(item => item.id === q.id)) {
         toast({ title: "Signal Detected", description: "This artifact is already part of the simulation.", variant: "destructive" });
         return;
@@ -119,15 +118,44 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     try {
       if (editingQuestion.id) {
         await updateMockQuestion(mockId, editingQuestion.id, editingQuestion);
+        toast({ title: "Artifact Calibrated" });
       } else {
-        // New question creation logic
-        await addQuestionToMock(mockId, { ...editingQuestion, id: `q_${Date.now()}` });
+        await addQuestionToMock(mockId, editingQuestion);
+        toast({ title: "New Artifact Injected" });
       }
       setEditorOpen(false);
-      toast({ title: "Artifact Synchronized" });
+    } catch (e: any) {
+      toast({ title: "Sync Error", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveMock = async () => {
+    if (!mock) return;
+    setSaving(true);
+    try {
+      await updateMock(mockId, mock);
+      toast({ title: "Simulation Parameters Synced" });
+    } catch (e: any) {
+      toast({ title: "Save Failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openNewQuestionEditor = () => {
+    setEditingQuestion({
+      en: { question: "", options: ["", "", "", ""], explanation: "" },
+      pa: { question: "", options: ["", "", "", ""], explanation: "" },
+      correctAnswer: "",
+      subject: mock?.exam || "General",
+      difficulty: "medium",
+      marks: 1,
+      negativeMarks: 0.25,
+      status: "published"
+    });
+    setEditorOpen(true);
   };
 
   if (loading) return (
@@ -140,7 +168,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen text-white overflow-hidden">
-        {/* Panel 1: Slim Tactical Navigation (240px) */}
+        {/* Side Tactical Nav */}
         <aside className="w-60 border-r border-white/5 flex flex-col bg-zinc-950 shrink-0">
           <div className="p-6 border-b border-white/5 flex items-center gap-3">
              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-white/5" onClick={() => router.push('/admin/mocks')}>
@@ -151,8 +179,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
           <div className="p-3 space-y-1 flex-1">
              {[
                { id: 'questions', label: 'Artifacts', icon: Database },
-               { id: 'metadata', label: 'Calibration', icon: Settings },
-               { id: 'analytics', label: 'Performance', icon: BarChart3 },
+               { id: 'metadata', label: 'Parameters', icon: Settings },
                { id: 'settings', label: 'Access Tier', icon: ShieldCheck },
              ].map(tab => (
                <button
@@ -160,7 +187,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                  onClick={() => setActiveTab(tab.id)}
                  className={cn(
                    "w-full flex items-center gap-3 p-3.5 rounded-xl transition-all font-bold text-[11px] uppercase tracking-tight",
-                   activeTab === tab.id ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-zinc-500 hover:bg-white/5"
+                   activeTab === tab.id ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-zinc-400 hover:bg-white/5"
                  )}
                >
                  <tab.icon size={16} />
@@ -169,13 +196,13 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
              ))}
           </div>
           <div className="p-5 border-t border-white/5">
-             <Button onClick={() => updateMock(mockId, mock!)} disabled={saving} className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl text-[10px] font-black uppercase tracking-widest blue-glow">
+             <Button onClick={handleSaveMock} disabled={saving} className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl text-[10px] font-black uppercase tracking-widest blue-glow">
                 {saving ? <Loader2 size={14} className="animate-spin" /> : "Commit Sync"}
              </Button>
           </div>
         </aside>
 
-        {/* Panel 2: Expanded Artifact Workspace */}
+        {/* Workspace */}
         <main className="flex-1 overflow-y-auto no-scrollbar bg-[#050816] flex flex-col">
           <header className="h-16 px-10 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl sticky top-0 z-30">
              <div className="flex items-center gap-4">
@@ -183,11 +210,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                 <Badge className="bg-primary/20 text-primary border-none text-[8px] px-3 py-1 uppercase">{mock?.status}</Badge>
              </div>
              <div className="flex items-center gap-3">
-                <Button variant="ghost" size="sm" className="h-10 px-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white">
-                   <Eye size={14} className="mr-2" /> Live Preview
-                </Button>
-                <div className="h-4 w-px bg-white/10 mx-2" />
-                <Button onClick={() => { setEditingQuestion({ en: { question: "", options: ["","","",""] }, pa: { question: "", options: ["","","",""] }, marks: 1, negativeMarks: 0.25, difficulty: 'medium', subject: 'Punjab GK' } as any); setEditorOpen(true); }} className="bg-primary h-10 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest blue-glow shadow-xl">
+                <Button onClick={openNewQuestionEditor} className="bg-emerald-600 h-10 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl">
                    <Plus size={14} className="mr-2" /> New Artifact
                 </Button>
              </div>
@@ -211,9 +234,9 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                            </div>
                            <div className="flex items-center gap-2">
                               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-white/5" onClick={(e) => { e.stopPropagation(); setEditingQuestion(q); setEditorOpen(true); }}>
-                                 <Settings size={12} />
+                                 <Edit3 size={12} className="text-primary" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-500" onClick={(e) => { e.stopPropagation(); deleteMockQuestion(mockId, q.id); }}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-500" onClick={(e) => { e.stopPropagation(); if(confirm('Purge this artifact?')) deleteMockQuestion(mockId, q.id); }}>
                                  <Trash2 size={12} />
                               </Button>
                               {isExpanded ? <ChevronUp size={14} className="text-zinc-600" /> : <ChevronDown size={14} className="text-zinc-600" />}
@@ -244,10 +267,6 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                            </div>
                                          ))}
                                       </div>
-                                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                                         <p className="text-[8px] font-black text-zinc-600 uppercase mb-2">Rationalization</p>
-                                         <p className="text-[11px] leading-relaxed text-zinc-400">{q.en?.explanation || "No explanation added."}</p>
-                                      </div>
                                    </div>
                                    <div className="space-y-3 border-l border-white/5 pl-10">
                                       <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">ਵਿਕਲਪ ਮੈਟ੍ਰਿਕਸ (PA)</p>
@@ -269,7 +288,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                          <Database className="w-12 h-12 text-zinc-800 mx-auto" />
                          <div className="space-y-2">
                            <h3 className="text-2xl font-black uppercase tracking-tighter">Payload Buffer Empty</h3>
-                           <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-widest">Start linking artifacts from the Atomic Bank →</p>
+                           <p className="text-zinc-600 text-[11px] font-bold uppercase tracking-widest">Start linking artifacts or create new ones.</p>
                          </div>
                       </div>
                     )}
@@ -298,11 +317,49 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                     </div>
                   </Card>
                 )}
+
+                {activeTab === 'settings' && (
+                  <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 p-10 space-y-10 shadow-2xl">
+                     <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Access Entitlement</label>
+                        <Select 
+                          value={mock?.accessType} 
+                          onValueChange={(val: any) => setMock({...mock!, accessType: val})}
+                        >
+                          <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl font-black text-sm uppercase px-6">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-950 text-white border-white/10">
+                            <SelectItem value="free">FREE HUB</SelectItem>
+                            <SelectItem value="pass_plus">PASS+ ONLY</SelectItem>
+                            <SelectItem value="premium">PREMIUM ONLY</SelectItem>
+                            <SelectItem value="elite">ELITE ONLY</SelectItem>
+                          </SelectContent>
+                        </Select>
+                     </div>
+                     <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Simulation Signal</label>
+                        <Select 
+                          value={mock?.status} 
+                          onValueChange={(val: any) => setMock({...mock!, status: val})}
+                        >
+                          <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl font-black text-sm uppercase px-6">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-950 text-white border-white/10">
+                            <SelectItem value="draft">DRAFT / STAGING</SelectItem>
+                            <SelectItem value="published">PUBLISHED / LIVE</SelectItem>
+                            <SelectItem value="archived">ARCHIVED</SelectItem>
+                          </SelectContent>
+                        </Select>
+                     </div>
+                  </Card>
+                )}
              </div>
           </div>
         </main>
 
-        {/* Panel 3: Tactical Utility Panel (480px) */}
+        {/* Atomic Bank Utility */}
         <aside className="w-[480px] border-l border-white/5 bg-zinc-950 flex flex-col shrink-0">
           <header className="p-6 border-b border-white/5 space-y-6 bg-zinc-950">
              <div className="flex items-center justify-between">
@@ -312,14 +369,14 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                    </div>
                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">Atomic Bank</span>
                 </div>
-                <Badge className="bg-emerald-600/10 text-emerald-500 text-[8px] font-black px-3 py-1">v4 LIVE</Badge>
+                <Badge className="bg-emerald-600/10 text-emerald-500 text-[8px] font-black px-3 py-1">GLOBAL REPOSITORY</Badge>
              </div>
              
              <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
                    <Search size={14} className="absolute left-4 top-3.5 text-zinc-600" />
                    <Input 
-                     placeholder="Scan payload..." 
+                     placeholder="Search..." 
                      value={bankSearch}
                      onChange={e => setBankSearch(e.target.value)}
                      className="pl-11 h-11 bg-black/40 border-white/5 rounded-xl text-[10px] font-bold uppercase" 
@@ -328,7 +385,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                 <Select value={bankSubject} onValueChange={setBankSubject}>
                    <SelectTrigger className="h-11 bg-black/40 border-white/5 rounded-xl text-[10px] font-bold uppercase"><SelectValue /></SelectTrigger>
                    <SelectContent className="bg-zinc-950 border-white/10 text-white">
-                      <SelectItem value="All">Global Sector</SelectItem>
+                      <SelectItem value="All">All Subjects</SelectItem>
                       {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                    </SelectContent>
                 </Select>
@@ -345,14 +402,14 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                      <Button 
                        variant="ghost" 
                        size="icon" 
-                       className="h-8 w-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-lg"
+                       className="h-8 w-8 rounded-lg bg-primary/10 text-primary hover:bg-primary transition-all"
                        onClick={() => handleLinkFromBank(bq)}
                      >
                         <Plus size={14} />
                      </Button>
                   </div>
                   <div className="p-4 space-y-3">
-                     <p className="text-[11px] font-bold text-zinc-300 line-clamp-3 leading-relaxed group-hover:text-white">{bq.en?.question}</p>
+                     <p className="text-[11px] font-bold text-zinc-300 line-clamp-3 leading-relaxed">{bq.en?.question}</p>
                      <div className="flex items-center justify-between text-[8px] font-black text-zinc-600 uppercase tracking-widest pt-2 border-t border-white/[0.03]">
                         <span className="flex items-center gap-1.5"><Languages size={10} className="text-orange-500" /> Bilingual</span>
                         <span className={cn(bq.difficulty === 'hard' ? "text-red-500" : "text-emerald-500")}>{bq.difficulty}</span>
@@ -360,44 +417,26 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                   </div>
                </Card>
              ))}
-             {filteredBank.length === 0 && (
-               <div className="py-20 text-center space-y-4">
-                  <AlertCircle className="w-8 h-8 text-zinc-800 mx-auto" />
-                  <p className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Sector Inactive</p>
-               </div>
-             )}
-          </div>
-
-          <div className="p-6 border-t border-white/5 bg-zinc-950 space-y-5">
-             <div className="flex justify-between items-center text-[10px] font-black uppercase text-zinc-500 tracking-widest">
-                <span>Payload Status</span>
-                <span className="text-white">{questions.length} / {mock?.totalQuestions} Linked</span>
-             </div>
-             <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden">
-                <div className="h-full bg-primary transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(37,99,235,0.4)]" style={{ width: `${Math.min((questions.length / (mock?.totalQuestions || 1)) * 100, 100)}%` }} />
-             </div>
           </div>
         </aside>
 
-        {/* Full-Fidelity Editor Modal */}
+        {/* Deep Editor Modal */}
         <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
           <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-5xl p-0 rounded-[48px] shadow-2xl overflow-hidden">
-             <DialogHeader className="p-10 pb-0 flex flex-row items-center justify-between">
-                <div>
-                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-[20px] bg-primary/20 flex items-center justify-center blue-glow"><Zap size={24} className="text-primary" /></div>
-                    Calibration Terminal
-                  </DialogTitle>
-                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-2">Adjusting artifact sub-layer v4.2</p>
-                </div>
+             <DialogHeader className="p-10 pb-0">
+                <DialogTitle className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-[20px] bg-primary/20 flex items-center justify-center blue-glow"><Zap size={24} className="text-primary" /></div>
+                  Artifact Calibration
+                </DialogTitle>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-2">Adjusting question sub-layer</p>
              </DialogHeader>
 
              <Tabs defaultValue="en" className="flex flex-col">
                 <div className="px-10 mt-10">
                   <TabsList className="bg-zinc-900 border-white/5 p-1 rounded-2xl h-12 w-fit">
-                    <TabsTrigger value="en" className="rounded-xl px-10 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">English Core</TabsTrigger>
-                    <TabsTrigger value="pa" className="rounded-xl px-10 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-orange-600">Raavi Punjabi</TabsTrigger>
-                    <TabsTrigger value="meta" className="rounded-xl px-10 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-zinc-800">Metadata</TabsTrigger>
+                    <TabsTrigger value="en" className="rounded-xl px-10 font-black text-[10px] uppercase tracking-widest">English Core</TabsTrigger>
+                    <TabsTrigger value="pa" className="rounded-xl px-10 font-black text-[10px] uppercase tracking-widest">Punjabi Raavi</TabsTrigger>
+                    <TabsTrigger value="meta" className="rounded-xl px-10 font-black text-[10px] uppercase tracking-widest">Metadata</TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -406,7 +445,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                      <>
                        <TabsContent value="en" className="m-0 space-y-8">
                           <div className="space-y-3">
-                             <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Question Narrative (EN)</label>
+                             <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Question (EN)</label>
                              <Textarea 
                                value={editingQuestion.en?.question} 
                                onChange={e => setEditingQuestion({...editingQuestion, en: {...editingQuestion.en!, question: e.target.value}})}
@@ -429,19 +468,11 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                </div>
                              ))}
                           </div>
-                          <div className="space-y-3">
-                             <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Logical Explanation (EN)</label>
-                             <Textarea 
-                               value={editingQuestion.en?.explanation} 
-                               onChange={e => setEditingQuestion({...editingQuestion, en: {...editingQuestion.en!, explanation: e.target.value}})}
-                               className="min-h-[120px] bg-zinc-900/50 border-white/10 rounded-3xl p-6 text-sm"
-                             />
-                          </div>
                        </TabsContent>
 
                        <TabsContent value="pa" className="m-0 space-y-8">
                           <div className="space-y-3">
-                             <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">ਪ੍ਰਸ਼ਨ (Raavi Punjabi)</label>
+                             <label className="text-[10px] font-black uppercase text-zinc-500 px-2">ਪ੍ਰਸ਼ਨ (PA)</label>
                              <Textarea 
                                value={editingQuestion.pa?.question} 
                                onChange={e => setEditingQuestion({...editingQuestion, pa: {...editingQuestion.pa!, question: e.target.value}})}
@@ -469,22 +500,13 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                        <TabsContent value="meta" className="m-0 space-y-10">
                           <div className="grid md:grid-cols-3 gap-8">
                              <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Correct Answer Match</label>
+                                <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Correct Answer</label>
                                 <Input 
                                   value={editingQuestion.correctAnswer} 
                                   onChange={e => setEditingQuestion({...editingQuestion, correctAnswer: e.target.value})}
-                                  placeholder="Exact English match"
+                                  placeholder="Match EN option exactly"
                                   className="h-14 bg-emerald-600/10 border-emerald-500/20 text-emerald-500 font-black rounded-2xl"
                                 />
-                             </div>
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Subject Class</label>
-                                <Select value={editingQuestion.subject} onValueChange={(v: any) => setEditingQuestion({...editingQuestion, subject: v})}>
-                                   <SelectTrigger className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
-                                   <SelectContent className="bg-zinc-950 border-white/10 text-white">
-                                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                   </SelectContent>
-                                </Select>
                              </div>
                              <div className="space-y-2">
                                 <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Complexity</label>
@@ -497,15 +519,14 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                    </SelectContent>
                                 </Select>
                              </div>
-                          </div>
-                          <div className="grid md:grid-cols-2 gap-8">
                              <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Marks</label>
-                                <Input type="number" value={editingQuestion.marks || 1} onChange={e => setEditingQuestion({...editingQuestion, marks: Number(e.target.value)})} className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-black" />
-                             </div>
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Negative Coefficient</label>
-                                <Input type="number" step="0.01" value={editingQuestion.negativeMarks || 0.25} onChange={e => setEditingQuestion({...editingQuestion, negativeMarks: Number(e.target.value)})} className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-black text-red-500" />
+                                <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Subject Class</label>
+                                <Select value={editingQuestion.subject} onValueChange={(v: any) => setEditingQuestion({...editingQuestion, subject: v})}>
+                                   <SelectTrigger className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
+                                   <SelectContent className="bg-zinc-950 border-white/10 text-white">
+                                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                   </SelectContent>
+                                </Select>
                              </div>
                           </div>
                        </TabsContent>
@@ -514,10 +535,10 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 <DialogFooter className="p-10 border-t border-white/5 bg-white/[0.01]">
-                   <Button variant="ghost" onClick={() => setEditorOpen(false)} className="rounded-xl h-14 px-10 font-bold text-zinc-500 text-[11px] uppercase tracking-widest">Discard Artifact</Button>
-                   <Button onClick={handleSaveQuestion} disabled={saving} className="h-14 px-16 rounded-[24px] bg-primary hover:bg-primary/90 text-white font-black text-[11px] uppercase tracking-widest shadow-xl blue-glow ml-4">
+                   <Button variant="ghost" onClick={() => setEditorOpen(false)} className="rounded-xl h-14 px-10 font-bold text-zinc-500 text-[11px] uppercase tracking-widest">Discard</Button>
+                   <Button onClick={handleSaveQuestion} disabled={saving} className="h-14 px-16 rounded-[24px] bg-primary hover:bg-primary/90 text-white font-black text-[11px] uppercase tracking-widest shadow-xl ml-4">
                       {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 w-4 h-4" />}
-                      Synchronize Payload
+                      Sync Artifact
                    </Button>
                 </DialogFooter>
              </Tabs>

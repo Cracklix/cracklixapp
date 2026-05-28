@@ -18,12 +18,13 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { MockTest, Question, AttemptAnswer, ExamAttempt } from '@/types';
+import { MockTest, Question, AttemptAnswer, ExamAttempt, MockAccessType } from '@/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /**
- * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v11)
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v12)
+ * Includes deep question calibration and tier gating.
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -56,6 +57,14 @@ export async function publishMock(mockId: string, publish: boolean) {
   return updateMock(mockId, { status: publish ? 'published' : 'draft', publishedAt: publish ? Date.now() : null });
 }
 
+export async function toggleMockLock(mockId: string, locked: boolean) {
+  return updateMock(mockId, { status: locked ? 'draft' : 'published' });
+}
+
+export async function updateMockAccess(mockId: string, tier: MockAccessType) {
+  return updateMock(mockId, { accessType: tier });
+}
+
 export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
@@ -69,18 +78,14 @@ export async function deleteMock(mockId: string) {
 }
 
 /**
- * ARTIFACT MANAGEMENT
+ * ARTIFACT MANAGEMENT (CALIBRATION)
  */
 
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
-  // Defensive fetching to prevent CBT crashes
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const snap = await getDocs(colRef);
   
-  if (snap.empty) {
-    console.warn(`[MockService] Empty subcollection for ${mockId}`);
-    return [];
-  }
+  if (snap.empty) return [];
 
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -96,10 +101,17 @@ export function subscribeMockQuestions(mockId: string, callback: (questions: Que
   });
 }
 
-export async function addQuestionToMock(mockId: string, question: Question) {
+export async function addQuestionToMock(mockId: string, question: Partial<Question>) {
   const colRef = collection(db, 'mocks', mockId, 'questions');
-  const docRef = question.id ? doc(colRef, question.id) : doc(colRef);
-  await setDoc(docRef, { ...question, id: docRef.id, updatedAt: Date.now() });
+  const docRef = doc(colRef);
+  const payload = { 
+    ...question, 
+    id: docRef.id, 
+    order: Date.now(),
+    createdAt: Date.now(),
+    updatedAt: Date.now() 
+  };
+  await setDoc(docRef, payload);
   await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(1) });
   return docRef.id;
 }
@@ -172,7 +184,6 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     streak: increment(1)
   });
 
-  // Real-time rank update
   await setDoc(doc(db, 'leaderboards', userId), {
     xp: increment(xpGain),
     lastAttempt: Date.now(),
@@ -193,7 +204,14 @@ export async function checkMockAccess(userId: string, mock: MockTest): Promise<{
 
   const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
   if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
-    return { allowed: false, reason: "PASS+ Membership Required." };
+    return { allowed: false, reason: `${mock.accessType.toUpperCase()} Required.` };
   }
-  return { allowed: true };
+  
+  // Tier Check
+  const sub = subSnap.data();
+  if (sub.tier === 'elite' || sub.tier === 'vip') return { allowed: true };
+  
+  if (mock.accessType === 'pass_plus' && sub.tier !== 'free') return { allowed: true };
+
+  return { allowed: false, reason: "Insufficient Access Tier." };
 }

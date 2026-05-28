@@ -8,8 +8,7 @@ import {
   startAttempt, 
   saveAnswer, 
   finalizeAttempt,
-  checkMockAccess,
-  getAttemptAnswers
+  checkMockAccess
 } from "@/services/mocks";
 import QuestionCard from "@/components/mock/question-card";
 import QuestionPalette from "@/components/mock/question-palette";
@@ -17,12 +16,16 @@ import Timer from "@/components/mock/timer";
 import { generateAnalytics } from "@/services/analytics-engine";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Info, CheckCircle2, AlertCircle, Database, Timer as TimerIcon } from "lucide-react";
+import { Loader2, ArrowLeft, Info, CheckCircle2, AlertCircle, Database, Timer as TimerIcon, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+/**
+ * HIGH-INTEGRITY CBT PLAYER v12
+ * Production-grade exam engine with strict access gating.
+ */
 export default function TestbookStyleCBT() {
   const { user, profile } = useAuth();
   const router = useRouter();
@@ -30,7 +33,7 @@ export default function TestbookStyleCBT() {
   const mockId = params?.id as string;
   const { toast } = useToast();
   
-  const [phase, setPhase] = useState<'loading' | 'instructions' | 'engine' | 'result' | 'error'>('loading');
+  const [phase, setPhase] = useState<'loading' | 'instructions' | 'engine' | 'result' | 'error' | 'locked'>('loading');
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [mock, setMock] = useState<MockTest | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -51,10 +54,11 @@ export default function TestbookStyleCBT() {
           return;
         }
 
+        // Tier Gating Enforcement
         const access = await checkMockAccess(user!.uid, mockData);
         if (!access.allowed) {
-          toast({ title: "Access Denied", description: access.reason, variant: "destructive" });
-          router.push('/pass');
+          setErrorMsg(access.reason || "Insufficient Access Tier.");
+          setPhase('locked');
           return;
         }
 
@@ -65,6 +69,7 @@ export default function TestbookStyleCBT() {
           return;
         }
 
+        // Session creation for CBT flow
         const id = await startAttempt(user!.uid, mockData);
         setAttemptId(id);
         setMock(mockData);
@@ -127,6 +132,25 @@ export default function TestbookStyleCBT() {
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-12 h-12 text-primary animate-spin" />
       <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Establishing Secure Signal...</p>
+    </div>
+  );
+
+  if (phase === 'locked') return (
+    <div className="h-screen bg-[#050816] text-white flex flex-col items-center justify-center p-6 text-center">
+       <div className="max-w-md space-y-10">
+          <div className="w-24 h-24 rounded-[32px] bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto shadow-2xl">
+             <Lock className="text-primary w-10 h-10" />
+          </div>
+          <div className="space-y-4">
+             <Badge className="bg-primary/20 text-primary border-none px-4 py-1.5 rounded-full font-black text-xs uppercase">Restricted Tier</Badge>
+             <h2 className="text-4xl font-black uppercase tracking-tighter">Access Required</h2>
+             <p className="text-zinc-500 font-medium leading-relaxed italic">"{errorMsg}"</p>
+          </div>
+          <div className="flex flex-col gap-4">
+             <Button onClick={() => router.push('/pass')} className="h-16 w-full rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg blue-glow shadow-xl">Upgrade Account</Button>
+             <Button variant="ghost" onClick={() => router.push('/exams')} className="text-zinc-600 uppercase font-black text-[10px] tracking-widest">Back to Arena</Button>
+          </div>
+       </div>
     </div>
   );
 
@@ -218,10 +242,9 @@ export default function TestbookStyleCBT() {
         <aside className="w-[380px] bg-white border-l border-slate-200 hidden lg:flex flex-col">
            <div className="p-8 space-y-10 flex-1 overflow-y-auto no-scrollbar">
               <div className="flex items-center gap-3">
-                 <Avatar className="w-10 h-10 border border-slate-100">
-                    <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100`} />
-                    <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
-                 </Avatar>
+                 <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-slate-100 border border-slate-100">
+                    <img src={`https://picsum.photos/seed/${user?.uid}/100`} className="w-full h-full object-cover" />
+                 </div>
                  <div>
                     <p className="text-xs font-bold text-slate-800">{profile?.name}</p>
                     <p className="text-[10px] font-black uppercase text-slate-400">Candidate Terminal</p>
@@ -259,9 +282,3 @@ export default function TestbookStyleCBT() {
     </div>
   );
 }
-
-function Avatar({ children, className }: any) {
-   return <div className={cn("rounded-full overflow-hidden flex items-center justify-center bg-slate-100", className)}>{children}</div>;
-}
-function AvatarImage({ src }: any) { return <img src={src} className="w-full h-full object-cover" />; }
-function AvatarFallback({ children, className }: any) { return <span className={className}>{children}</span>; }

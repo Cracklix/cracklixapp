@@ -8,7 +8,7 @@ import {
   Trash2, Edit3, Copy, PlayCircle, Lock, Unlock, 
   Database, BarChart3, ShieldCheck, CheckCircle2,
   Filter, ChevronRight, RefreshCw,
-  Clock, Sparkles, AlertCircle
+  Clock, Sparkles, AlertCircle, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,17 +17,34 @@ import {
   getAllMocks, 
   publishMock, 
   deleteMock, 
-  duplicateMock, 
   updateMock,
+  updateMockAccess
 } from "@/services/mocks";
-import { MockTest } from "@/types";
+import { MockTest, MockAccessType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /**
- * SIMULATION FACTORY (Operations Hub v9)
- * High-density registry for simulation tracking and lifecycle control.
+ * SIMULATION FACTORY (Operations Hub v12)
+ * High-density registry with deep management actions.
  */
 export default function SimulationFactoryPage() {
   const { toast } = useToast();
@@ -36,6 +53,8 @@ export default function SimulationFactoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
+  
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMocks();
@@ -53,20 +72,17 @@ export default function SimulationFactoryPage() {
     }
   }
 
-  const handleAction = async (mockId: string, action: string) => {
+  const handleAction = async (mockId: string, action: string, value?: any) => {
     setActionId(`${mockId}-${action}`);
     try {
       if (action === 'delete') {
-        if (!confirm("Permanently purge this simulation artifact?")) return;
         await deleteMock(mockId);
       } else if (action === 'publish') {
         await publishMock(mockId, true);
       } else if (action === 'unpublish') {
         await publishMock(mockId, false);
-      } else if (action === 'lock') {
-        await updateMock(mockId, { accessType: 'pass_plus' });
-      } else if (action === 'unlock') {
-        await updateMock(mockId, { accessType: 'free' });
+      } else if (action === 'tier') {
+        await updateMockAccess(mockId, value as MockAccessType);
       }
       
       toast({ title: "Signal Synced", description: `Operation ${action} complete.` });
@@ -112,7 +128,7 @@ export default function SimulationFactoryPage() {
             <header className="flex justify-between items-end border-b border-white/5 pb-8">
               <div className="space-y-1">
                 <h1 className="font-headline text-4xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Lifecycle Operations Board v9.0</p>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Lifecycle Operations Board v12.0</p>
               </div>
               <Button onClick={() => router.push('/admin/ai-mock-studio')} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] uppercase tracking-widest blue-glow">
                  <Plus className="mr-2 w-4 h-4" /> Forge New Mock
@@ -140,7 +156,7 @@ export default function SimulationFactoryPage() {
                           <th className="px-10 py-8">Simulation Identity</th>
                           <th className="px-10 py-8">Board Class</th>
                           <th className="px-10 py-8 text-center">Payload</th>
-                          <th className="px-10 py-8">Signal Status</th>
+                          <th className="px-10 py-8">Access Tier</th>
                           <th className="px-10 py-8 text-right">Operations</th>
                        </tr>
                     </thead>
@@ -164,6 +180,13 @@ export default function SimulationFactoryPage() {
                             </td>
                             <td className="px-10 py-8">
                                <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase mb-1">{m.exam}</Badge>
+                               <div className="mt-2">
+                                  {m.status === 'published' ? (
+                                    <Badge className="bg-emerald-600 text-white border-none text-[7px] font-black uppercase">PUBLISHED</Badge>
+                                  ) : (
+                                    <Badge className="bg-zinc-800 text-zinc-500 border-none text-[7px] font-black uppercase">DRAFT</Badge>
+                                  )}
+                               </div>
                             </td>
                             <td className="px-10 py-8 text-center">
                                <p className="text-sm font-black text-white">{m.totalQuestions || 0} Qs</p>
@@ -171,23 +194,33 @@ export default function SimulationFactoryPage() {
                             </td>
                             <td className="px-10 py-8">
                                <div className="flex flex-col gap-2">
-                                  <Badge className={cn("text-[8px] font-black uppercase w-fit px-3 py-1", m.accessType === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/20 text-primary')}>
-                                     {m.accessType === 'free' ? 'FREE ACCESS' : 'PASS+ ONLY'}
-                                  </Badge>
-                                  <Badge className={cn("text-[8px] font-black uppercase w-fit px-3 py-1", m.status === 'published' ? 'bg-emerald-600' : 'bg-zinc-800 text-zinc-500')}>
-                                     {m.status}
-                                  </Badge>
+                                  <Select 
+                                    defaultValue={m.accessType} 
+                                    onValueChange={(val) => handleAction(m.id, 'tier', val)}
+                                  >
+                                    <SelectTrigger className="h-8 bg-zinc-900 border-white/5 rounded-lg font-black text-[9px] uppercase px-3 w-32">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-zinc-950 text-white border-white/10">
+                                      <SelectItem value="free" className="text-[10px] font-bold">FREE</SelectItem>
+                                      <SelectItem value="pass_plus" className="text-[10px] font-bold">PASS+</SelectItem>
+                                      <SelectItem value="premium" className="text-[10px] font-bold">PREMIUM</SelectItem>
+                                      <SelectItem value="elite" className="text-[10px] font-bold">ELITE</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                </div>
                             </td>
                             <td className="px-10 py-8 text-right">
                                <div className="flex justify-end gap-2">
-                                  <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-white/5"><Edit3 size={16} /></Button>
+                                  <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-white/5" title="Edit Mock"><Edit3 size={16} /></Button>
+                                  
                                   {m.status === 'draft' ? (
-                                    <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-emerald-600/10 text-emerald-500"><PlayCircle size={16} /></Button>
+                                    <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-emerald-600/10 text-emerald-500" title="Publish Live"><PlayCircle size={16} /></Button>
                                   ) : (
-                                    <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-orange-500/10 text-orange-500"><RefreshCw size={16} /></Button>
+                                    <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-orange-500/10 text-orange-500" title="Unpublish to Draft"><Lock size={16} /></Button>
                                   )}
-                                  <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-red-500/10 text-red-500"><Trash2 size={16} /></Button>
+                                  
+                                  <Button onClick={() => setDeleteConfirmId(m.id)} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-red-500/10 text-red-500" title="Delete Permanent"><Trash2 size={16} /></Button>
                                </div>
                             </td>
                          </tr>
@@ -205,6 +238,26 @@ export default function SimulationFactoryPage() {
           </div>
         </main>
       </div>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent className="bg-zinc-950 border-white/10 text-white rounded-[32px] p-10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-black uppercase tracking-tighter">Purge Simulation?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500 font-medium">
+              This will permanently delete the simulation artifact and all its linked questions. Students will no longer be able to attempt this test.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-8 gap-4">
+            <AlertDialogCancel className="h-12 rounded-xl bg-zinc-900 border-white/5 text-white hover:bg-white/5">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteConfirmId && handleAction(deleteConfirmId, 'delete')}
+              className="h-12 rounded-xl bg-red-600 hover:bg-red-700 font-black text-xs uppercase"
+            >
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminProtect>
   );
 }
