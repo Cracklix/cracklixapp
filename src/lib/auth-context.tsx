@@ -1,10 +1,9 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export interface UserProfile {
   uid: string;
@@ -12,9 +11,11 @@ export interface UserProfile {
   name: string;
   xp: number;
   streak: number;
-  role: 'student' | 'admin';
+  role: 'student' | 'admin' | 'superadmin';
   createdAt: number;
-  lastActive?: any;
+  referralCode?: string;
+  targetExam?: string;
+  bookmarks?: any[];
 }
 
 interface AuthContextType {
@@ -42,7 +43,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
-      // Clear any existing profile listener if the user changes or logs out
       if (unsubProfile) {
         unsubProfile();
         unsubProfile = null;
@@ -54,10 +54,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         unsubProfile = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as UserProfile);
+          } else {
+            // Profile missing - handled by Auto-Repair in Login/Signup
+            setProfile(null);
           }
           setLoading(false);
         }, (error) => {
-          console.error("Profile listener error:", error);
+          console.error("Auth context listener error:", error);
           setLoading(false);
         });
       } else {

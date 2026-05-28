@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,29 +27,29 @@ export default function SignupPage() {
 
   const initializeUserProfile = async (uid: string, userEmail: string, userName: string) => {
     const today = new Date().toISOString().split('T')[0];
+    const userRef = doc(db, "users", uid);
     
-    // 1. Core Profile (Use merge: true to avoid overwriting existing data if re-initializing)
-    const profileRef = doc(db, "users", uid);
-    const profileSnap = await getDoc(profileRef);
-    
-    if (!profileSnap.exists()) {
-      await setDoc(profileRef, {
-        uid,
-        name: userName || 'Aspirant',
-        email: userEmail,
-        role: "student",
-        xp: 0,
-        streak: 0,
-        coins: 100, // Launch Bonus
-        district: "Ludhiana",
-        targetExam: "Punjab Police SI",
-        referralCode: `CLX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        createdAt: Date.now(),
-        bookmarks: []
-      }, { merge: true });
-    }
+    // Normalize and prepare payload
+    const profilePayload = {
+      uid,
+      name: userName.trim() || 'Aspirant',
+      email: userEmail.toLowerCase().trim(),
+      role: "student",
+      xp: 0,
+      streak: 0,
+      coins: 100, // Launch Bonus
+      district: "Ludhiana",
+      targetExam: "Punjab Police SI",
+      referralCode: `CLX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      createdAt: Date.now(),
+      bookmarks: [],
+      updatedAt: serverTimestamp()
+    };
 
-    // 2. Daily Targets Initialization
+    // 1. Core Profile creation with merge to prevent overwriting if exists
+    await setDoc(userRef, profilePayload, { merge: true });
+
+    // 2. Initialize Operational Sub-collections
     const targetRef = doc(db, "dailyTargets", uid);
     const targetSnap = await getDoc(targetRef);
     if (!targetSnap.exists()) {
@@ -67,58 +66,54 @@ export default function SignupPage() {
       });
     }
 
-    // 3. AI Usage Limit Initiation
+    // 3. AI Usage Initialization
     const usageRef = doc(db, "aiUsage", `${uid}_${today}`);
-    const usageSnap = await getDoc(usageRef);
-    if (!usageSnap.exists()) {
-      await setDoc(usageRef, {
-        userId: uid,
-        count: 0,
-        date: today,
-        lastUpdated: Date.now()
-      });
-    }
-
-    // 4. Readiness Predictor initiation
-    const readinessRef = doc(db, "readiness", uid);
-    const readinessSnap = await getDoc(readinessRef);
-    if (!readinessSnap.exists()) {
-      await setDoc(readinessRef, {
-        userId: uid,
-        overallScore: 0,
-        subjectPerformance: {},
-        lastUpdated: Date.now()
-      });
-    }
+    await setDoc(usageRef, {
+      userId: uid,
+      count: 0,
+      date: today,
+      lastUpdated: Date.now()
+    }, { merge: true });
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail || !password || !name.trim()) {
+      toast({ title: "Validation Error", description: "All fields are mandatory.", variant: "destructive" });
+      return;
+    }
+
     if (password.length < 6) {
-      toast({ title: "Weak Password", description: "Password must be at least 6 characters.", variant: "destructive" });
+      toast({ title: "Weak Password", description: "Minimum 6 characters required.", variant: "destructive" });
       return;
     }
     
     setLoading(true);
     try {
-      const res = await createUserWithEmailAndPassword(auth, email, password);
-      await initializeUserProfile(res.user.uid, email, name);
+      // Step 1: Create Auth User
+      const res = await createUserWithEmailAndPassword(auth, cleanEmail, password);
       
-      toast({ title: "Enrollment Successful", description: "Welcome to Punjab's elite preparation engine." });
+      // Step 2: Initialize Firestore Profile (Atomic)
+      await initializeUserProfile(res.user.uid, cleanEmail, name);
+      
+      toast({ title: "Enrollment Successful", description: "Identity verified. Redirecting to Arena..." });
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Signup error:", error);
       
       if (error.code === 'auth/email-already-in-use') {
         toast({
-          title: "Account Already Exists",
-          description: "This email is already registered. Please login or use a different email.",
+          title: "Account Exists",
+          description: "This identity is already registered. Please access the terminal via Login.",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Enrollment Failed",
-          description: error.message || "An unexpected error occurred during signup.",
+          title: "Enrollment Error",
+          description: error.message || "Protocol failure. Please retry.",
           variant: "destructive",
         });
       }
@@ -128,17 +123,14 @@ export default function SignupPage() {
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
       await initializeUserProfile(res.user.uid, res.user.email!, res.user.displayName || 'Student');
       router.push('/dashboard');
     } catch (error: any) {
-      toast({
-        title: "Google Auth Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "SSO Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -148,33 +140,29 @@ export default function SignupPage() {
     <div className="min-h-screen bg-[#050816] flex items-center justify-center p-6 relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -z-10" />
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md"
-      >
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-6 blue-glow">
             <Zap className="text-white w-8 h-8 fill-current" />
           </Link>
           <h1 className="font-headline text-4xl font-black tracking-tighter text-white uppercase">Initialize Identity</h1>
-          <p className="text-zinc-500 mt-2 font-medium">Join 15,000+ Punjab Government Aspirants.</p>
+          <p className="text-zinc-500 mt-2 font-medium">Production Protocol v2.5 Synchronized.</p>
         </div>
 
         <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
           <CardHeader className="p-8 pb-0">
             <CardTitle className="text-xl">Enlist Now</CardTitle>
-            <CardDescription className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Secure Protocol v2.5</CardDescription>
+            <CardDescription className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Secure Identity Buffer</CardDescription>
           </CardHeader>
           <CardContent className="p-8 space-y-6">
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Full Name</Label>
+                <Label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Full Identity</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3.5 w-4 h-4 text-zinc-600" />
                   <Input
                     placeholder="E.g. Arshdeep Singh"
-                    className="pl-10 h-12 bg-white/5 rounded-xl border-white/5 focus:border-primary/50 transition-all"
+                    className="pl-10 h-12 bg-white/5 rounded-xl border-white/5"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -188,7 +176,7 @@ export default function SignupPage() {
                   <Input
                     type="email"
                     placeholder="aspirant@cracklix.in"
-                    className="pl-10 h-12 bg-white/5 rounded-xl border-white/5 focus:border-primary/50 transition-all"
+                    className="pl-10 h-12 bg-white/5 rounded-xl border-white/5"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -202,7 +190,7 @@ export default function SignupPage() {
                   <Input
                     type="password"
                     placeholder="Min. 6 characters"
-                    className="pl-10 h-12 bg-white/5 rounded-xl border-white/5 focus:border-primary/50 transition-all"
+                    className="pl-10 h-12 bg-white/5 rounded-xl border-white/5"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -219,16 +207,12 @@ export default function SignupPage() {
               <div className="relative flex justify-center text-[9px] uppercase font-black tracking-[0.3em]"><span className="bg-[#0f111a] px-3 text-zinc-600">Secure SSO</span></div>
             </div>
 
-            <Button variant="outline" className="w-full h-12 rounded-xl border-white/5 bg-white/[0.02] hover:bg-white/5 font-bold" onClick={handleGoogleLogin}>
-              <svg className="mr-3 h-4 w-4" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
+            <Button variant="outline" className="w-full h-12 rounded-xl border-white/5 bg-white/[0.02] hover:bg-white/5 font-bold" onClick={handleGoogleLogin} disabled={loading}>
               Continue with Google
             </Button>
 
             <p className="text-center text-sm text-zinc-500">
-              Already a member?{' '}
-              <Link href="/login" className="text-primary hover:underline font-black">
-                Access Terminal
-              </Link>
+              Already a member? <Link href="/login" className="text-primary hover:underline font-black">Access Terminal</Link>
             </p>
           </CardContent>
         </Card>

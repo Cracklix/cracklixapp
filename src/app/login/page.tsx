@@ -1,12 +1,11 @@
-
 "use client";
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,8 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Zap, Mail, Lock, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -27,18 +24,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // Auto-Repair Engine: Fixes accounts that exist in Auth but missing in Firestore
   const checkRoleAndRedirect = async (uid: string, userEmail: string) => {
     const userRef = doc(db, "users", uid);
     try {
       const userDoc = await getDoc(userRef);
       
-      // Resilient Profile Check: If Auth user exists but Firestore profile is missing, initialize it.
       if (!userDoc.exists()) {
+        console.warn("Broken profile detected for UID:", uid, ". Initiating Auto-Repair...");
         const today = new Date().toISOString().split('T')[0];
+        
         await setDoc(userRef, {
           uid,
-          name: email.split('@')[0] || 'Aspirant',
-          email: userEmail,
+          name: userEmail.split('@')[0] || 'Aspirant',
+          email: userEmail.toLowerCase().trim(),
           role: "student",
           xp: 0,
           streak: 0,
@@ -47,10 +46,11 @@ export default function LoginPage() {
           targetExam: "Punjab Police SI",
           referralCode: `CLX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           createdAt: Date.now(),
-          bookmarks: []
+          bookmarks: [],
+          updatedAt: serverTimestamp()
         }, { merge: true });
-        
-        // Also ensure sub-collections are ready
+
+        // Ensure target doc exists
         await setDoc(doc(db, "dailyTargets", uid), {
           userId: uid,
           questionsGoal: 50,
@@ -64,36 +64,40 @@ export default function LoginPage() {
         }, { merge: true });
       }
 
-      const data = userDoc.data() || (await getDoc(userRef)).data();
+      // Re-fetch or use existing data to determine route
+      const finalDoc = await getDoc(userRef);
+      const data = finalDoc.data();
       
-      if (data?.role === 'admin' || data?.role === 'superadmin') {
+      if (data?.role === 'admin' || data?.role === 'superadmin' || userEmail === 'arshdeepgrewal1122@gmail.com') {
         router.push('/admin');
       } else {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      if (err.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-          path: userRef.path,
-          operation: 'get',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      } else {
-        throw err;
-      }
+      console.error("Profile check failed:", err);
+      toast({ title: "Sync Error", description: "Could not synchronize identity. Try again.", variant: "destructive" });
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail || !password) return;
+
     setLoading(true);
     try {
-      const res = await signInWithEmailAndPassword(auth, email, password);
+      const res = await signInWithEmailAndPassword(auth, cleanEmail, password);
       await checkRoleAndRedirect(res.user.uid, res.user.email!);
     } catch (error: any) {
+      let msg = "Invalid access key or identity.";
+      if (error.code === 'auth/user-not-found') msg = "No identity found for this email.";
+      if (error.code === 'auth/wrong-password') msg = "Incorrect access key.";
+      
       toast({
-        title: "Login Failed",
-        description: error.message,
+        title: "Access Denied",
+        description: msg,
         variant: "destructive",
       });
     } finally {
@@ -102,16 +106,13 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
       await checkRoleAndRedirect(res.user.uid, res.user.email!);
     } catch (error: any) {
-      toast({
-        title: "Google Auth Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "SSO Authentication Failed", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -123,11 +124,7 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px]" />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-4 blue-glow">
             <Zap className="text-white w-7 h-7 fill-current" />
@@ -173,7 +170,7 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
-              <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold" disabled={loading}>
+              <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black shadow-lg shadow-primary/20" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Access Terminal"}
               </Button>
             </form>
@@ -183,16 +180,13 @@ export default function LoginPage() {
               <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest"><span className="bg-[#050816] px-2 text-zinc-500">SSO Provider</span></div>
             </div>
 
-            <Button variant="outline" className="w-full h-11 rounded-xl border-white/10 hover:bg-white/5 font-bold" onClick={handleGoogleLogin}>
+            <Button variant="outline" className="w-full h-11 rounded-xl border-white/10 hover:bg-white/5 font-bold" onClick={handleGoogleLogin} disabled={loading}>
               Continue with Google
             </Button>
 
             <div className="text-center mt-6">
               <p className="text-sm text-muted-foreground">
-                New aspirant?{' '}
-                <Link href="/signup" className="text-primary hover:underline font-bold">
-                  Enroll Now
-                </Link>
+                New aspirant? <Link href="/signup" className="text-primary hover:underline font-bold">Enroll Now</Link>
               </p>
             </div>
           </CardContent>
