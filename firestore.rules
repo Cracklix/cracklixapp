@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,9 +17,7 @@ service cloud.firestore {
 
     // User Profiles
     match /users/{userId} {
-      // Allow any authenticated user to read profiles (needed for leaderboard and role checks)
       allow read: if isAuthenticated();
-      // Only owners or admins can modify a profile
       allow write: if isOwner(userId) || isAdmin();
     }
 
@@ -43,7 +40,7 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
 
-    // Academic Infrastructure (Publicly readable by students)
+    // Academic Infrastructure
     match /exams/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -56,6 +53,22 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+    match /mocks/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+      match /questions/{qId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin();
+      }
+    }
+    match /currentAffairs/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /jobAlerts/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
     
     // AI & Tutoring
     match /aiChats/{id} {
@@ -63,7 +76,8 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
     match /aiUsage/{id} {
-      allow read, write: if isAuthenticated() && id.startsWith(request.auth.uid);
+      allow read: if isAuthenticated() && id.startsWith(request.auth.uid);
+      allow write: if isAuthenticated() && id.startsWith(request.auth.uid);
     }
 
     // Marketplace
@@ -83,7 +97,90 @@ service cloud.firestore {
 
     // Notifications
     match /notifications/{id} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Live & Real-time
+    match /liveActivity/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /liveRanks/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /liveClasses/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /classChats/{id} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    match /attendance/{id} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Daily Quizzes
+    match /dailyQuizzes/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Support
+    match /supportTickets/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+    }
+
+    // Mistake Notebook
+    match /mistakeNotebook/{id} {
+      allow read, write: if isAuthenticated() && (resource.data.userId == request.auth.uid || request.resource.data.userId == request.auth.uid);
+    }
+
+    // Wallet
+    match /userWallets/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+      
+      match /transactions/{id} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    // CMS
+    match /cms/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // AI Generated Mocks
+    match /aiGeneratedMocks/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+      
+      match /questions/{qId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin();
+      }
+    }
+
+    // Premium Access
+    match /premiumAccess/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Subscriptions & Payments
+    match /subscriptions/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+    match /payments/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isAdmin();
     }
 

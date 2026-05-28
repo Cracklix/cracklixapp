@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -103,6 +102,18 @@
     "/dailyTargets/{userId}": {
       "schema": "DailyTarget",
       "description": "Goal tracking per user."
+    },
+    "/jobAlerts/{jobId}": {
+      "schema": "object",
+      "description": "Punjab government vacancy updates."
+    },
+    "/currentAffairs/{articleId}": {
+      "schema": "object",
+      "description": "Daily news and study notes."
+    },
+    "/liveRanks/{userId}": {
+      "schema": "object",
+      "description": "Real-time arena leaderboard."
     }
   }
 }
