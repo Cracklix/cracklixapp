@@ -25,6 +25,7 @@ export interface Plan {
   features: string[];
   exams: string[];
   active: boolean;
+  tier: 'silver' | 'gold' | 'elite';
 }
 
 /**
@@ -42,14 +43,14 @@ export function subscribeUserPass(userId: string, callback: (sub: any) => void) 
     collection(db, "subscriptions"), 
     where("userId", "==", userId),
     where("status", "==", "active"),
-    orderBy("endDate", "desc"),
+    orderBy("expiresAt", "desc"),
     limit(1)
   );
 
   return onSnapshot(q, (snap) => {
     if (!snap.empty) {
       const data = snap.docs[0].data();
-      if (data.endDate > Date.now()) {
+      if (data.expiresAt > Date.now()) {
         callback({ id: snap.docs[0].id, ...data });
       } else {
         callback(null);
@@ -61,42 +62,61 @@ export function subscribeUserPass(userId: string, callback: (sub: any) => void) 
 }
 
 /**
+ * FEATURE GATING ENGINE
+ * Checks if a user has access to a specific capability.
+ */
+export async function hasFeatureAccess(userId: string, feature: string): Promise<boolean> {
+  // 1. Admins have all access
+  const userSnap = await getDoc(doc(db, "users", userId));
+  if (userSnap.data()?.role === 'admin' || userSnap.data()?.role === 'superadmin') return true;
+
+  // 2. Check active subscription
+  const q = query(
+    collection(db, "subscriptions"), 
+    where("userId", "==", userId),
+    where("status", "==", "active"),
+    limit(1)
+  );
+  
+  const snap = await getDocs(q);
+  if (snap.empty) return false;
+  
+  const sub = snap.docs[0].data();
+  if (sub.expiresAt < Date.now()) return false;
+  
+  return sub.features?.includes(feature) || sub.tier === 'elite';
+}
+
+/**
  * ADMIN: Grant access manually to a user.
  */
 export async function grantAccessManual(userId: string, plan: Plan) {
   const startDate = Date.now();
-  const endDate = startDate + (plan.duration * 24 * 60 * 60 * 1000);
+  const expiresAt = startDate + (plan.duration * 24 * 60 * 60 * 1000);
 
   const subData = {
     userId,
     planId: plan.id,
-    plan: plan.name,
+    planName: plan.name,
     status: "active",
     startDate,
-    endDate,
+    expiresAt,
     createdAt: startDate,
+    features: plan.features,
+    tier: plan.tier,
     source: "admin_grant"
   };
 
-  // 1. Create sub record
   const subRef = await addDoc(collection(db, "subscriptions"), subData);
 
-  // 2. Set premiumAccess pivot for fast checking
   await setDoc(doc(db, "premiumAccess", userId), {
     status: "active",
     plan: plan.name,
-    endDate,
+    expiresAt,
     updatedAt: startDate,
-    subId: subRef.id
+    subId: subRef.id,
+    tier: plan.tier
   }, { merge: true });
 
   return subRef.id;
-}
-
-/**
- * ADMIN: Deactivate a subscription manually.
- */
-export async function revokeAccessManual(userId: string, subId: string) {
-  await updateDoc(doc(db, "subscriptions", subId), { status: "cancelled", cancelledAt: Date.now() });
-  await updateDoc(doc(db, "premiumAccess", userId), { status: "expired" });
 }

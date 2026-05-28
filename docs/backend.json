@@ -15,7 +15,6 @@
         "coins": { "type": "number" },
         "district": { "type": "string" },
         "targetExam": { "type": "string" },
-        "isPro": { "type": "boolean" },
         "referralCode": { "type": "string" },
         "createdAt": { "type": "number" },
         "bookmarks": { "type": "array" }
@@ -29,9 +28,10 @@
         "name": { "type": "string" },
         "price": { "type": "number" },
         "duration": { "type": "number", "description": "Days" },
-        "features": { "type": "array" },
-        "exams": { "type": "array", "description": "Specific exams this pass unlocks" },
-        "active": { "type": "boolean" }
+        "features": { "type": "array", "items": { "type": "string" } },
+        "exams": { "type": "array", "description": "Specific exams this pass unlocks (empty for all)" },
+        "active": { "type": "boolean" },
+        "tier": { "type": "string", "enum": ["silver", "gold", "elite"] }
       }
     },
     "Subscription": {
@@ -41,39 +41,12 @@
       "properties": {
         "userId": { "type": "string" },
         "planId": { "type": "string" },
+        "planName": { "type": "string" },
         "status": { "type": "string", "enum": ["active", "expired", "cancelled"] },
+        "startDate": { "type": "number" },
         "expiresAt": { "type": "number" },
         "paymentId": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "Question": {
-      "title": "Question Bank Item",
-      "description": "Atomic bilingual question for the central bank.",
-      "type": "object",
-      "properties": {
-        "question_en": { "type": "string" },
-        "question_pa": { "type": "string" },
-        "options_en": { "type": "array" },
-        "options_pa": { "type": "array" },
-        "correctAnswer": { "type": "string" },
-        "explanation_en": { "type": "string" },
-        "explanation_pa": { "type": "string" },
-        "subject": { 
-          "type": "string", 
-          "enum": ["Punjab GK", "Quant", "Reasoning", "English", "Punjabi", "Computer", "Current Affairs", "General Science", "History", "Polity", "Geography", "Agriculture", "Static GK", "Law/Constitution", "Environment"] 
-        },
-        "topic": { "type": "string" },
-        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
-        "exam": { "type": "string" },
-        "pyq": { "type": "boolean" },
-        "year": { "type": "number" },
-        "source": { "type": "string" },
-        "qualityScore": { "type": "number" },
-        "usageCount": { "type": "number" },
-        "status": { "type": "string", "enum": ["draft", "published"] },
-        "createdAt": { "type": "number" },
-        "aiGenerated": { "type": "boolean" }
+        "features": { "type": "array" }
       }
     }
   },
@@ -87,7 +60,7 @@
     },
     "/plans/{planId}": {
       "schema": "Plan",
-      "description": "Dynamic pricing tiers."
+      "description": "Dynamic pricing tiers and feature manifests."
     },
     "/subscriptions/{subId}": {
       "schema": "Subscription",
