@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -16,7 +17,9 @@ import {
   Search,
   Radio,
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  Briefcase,
+  Gift
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -73,7 +76,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { href: '/live', icon: Radio, label: 'Live' },
     { href: '/exams', icon: BookOpen, label: 'Mocks' },
+    { href: '/jobs', icon: Briefcase, label: 'Jobs' },
     { href: '/marketplace', icon: ShoppingBag, label: 'Market' },
+    { href: '/referral', icon: Gift, label: 'Invites' },
     { href: '/leaderboard', icon: Trophy, label: 'Rank' },
     { href: '/ai', icon: BrainCircuit, label: 'AI Coach' },
   ];
@@ -97,7 +102,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <span className={cn("font-headline text-2xl font-black tracking-tighter whitespace-nowrap", !isSidebarOpen && "opacity-0")}>CRACKLIX</span>
           </Link>
 
-          <nav className="space-y-3">
+          <nav className="space-y-1.5 overflow-y-auto no-scrollbar max-h-[550px]">
             {navItems.map((item) => (
               <SidebarItem 
                 key={item.href} 
@@ -111,7 +116,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="mt-auto p-8 space-y-6">
           <div className={cn("p-6 rounded-[28px] bg-white/[0.02] border border-white/5 space-y-4", !isSidebarOpen && "opacity-0")}>
             <div className="flex justify-between items-center text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em]">
-              <span>Tier: Elite</span>
+              <span>Coins: {profile?.coins || 0}</span>
               <span className="text-primary">{profile?.xp || 0} XP</span>
             </div>
             <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
@@ -150,11 +155,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="font-headline text-xl font-black tracking-tighter">CRACKLIX</span>
             </div>
 
-            <div className="hidden lg:flex items-center bg-white/[0.03] rounded-[20px] px-5 py-3 border border-white/5 w-[400px] focus-within:border-primary/50 transition-colors">
+            <div className="hidden lg:flex items-center bg-white/[0.03] rounded-[20px] px-5 py-3 border border-white/5 w-[350px] focus-within:border-primary/50 transition-colors">
               <Search className="w-4 h-4 text-zinc-500 mr-3" />
               <input 
                 type="text" 
-                placeholder="Search topics, mocks, news..." 
+                placeholder="Search exams, news..." 
                 className="bg-transparent border-none outline-none text-sm w-full placeholder:text-zinc-600 font-medium"
               />
             </div>

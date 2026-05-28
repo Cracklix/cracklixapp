@@ -12,53 +12,47 @@
         "role": { "type": "string", "enum": ["student", "admin", "superadmin", "creator"] },
         "xp": { "type": "number" },
         "streak": { "type": "number" },
-        "level": { "type": "number" },
+        "coins": { "type": "number" },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" },
         "createdAt": { "type": "number" }
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "LiveClass": {
-      "title": "Live Class",
-      "description": "Virtual classroom session data.",
+    "JobAlert": {
+      "title": "Job Alert",
+      "description": "Punjab government vacancy notification.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "teacherName": { "type": "string" },
-        "exam": { "type": "string" },
-        "live": { "type": "boolean" },
-        "scheduledAt": { "type": "number" }
+        "department": { "type": "string" },
+        "postCount": { "type": "number" },
+        "lastDate": { "type": "number" },
+        "applyUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "closed"] }
       }
     },
-    "Product": {
-      "title": "Marketplace Product",
-      "description": "Study resource for sale.",
+    "Referral": {
+      "title": "Referral Record",
+      "description": "Tracks successful invites.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "price": { "type": "number" },
-        "creatorId": { "type": "string" },
-        "downloads": { "type": "number" }
+        "referrerId": { "type": "string" },
+        "referredId": { "type": "string" },
+        "rewardClaimed": { "type": "boolean" },
+        "createdAt": { "type": "number" }
       }
     },
-    "DailyTarget": {
-      "title": "Daily Target",
-      "description": "Daily student goals tracking.",
-      "type": "object",
-      "properties": {
-        "questionsGoal": { "type": "number" },
-        "questionsCompleted": { "type": "number" },
-        "studyMinutesGoal": { "type": "number" },
-        "studyMinutesCompleted": { "type": "number" }
-      }
-    },
-    "AiChat": {
-      "title": "AI Chat History",
-      "description": "Interaction log with AI Tutor.",
+    "SupportTicket": {
+      "title": "Support Ticket",
+      "description": "User help requests.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
+        "subject": { "type": "string" },
         "message": { "type": "string" },
-        "response": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "resolved"] },
         "createdAt": { "type": "number" }
       }
     }
@@ -71,29 +65,21 @@
       "schema": "UserProfile",
       "description": "User profiles and rankings."
     },
-    "/liveClasses/{classId}": {
-      "schema": "LiveClass",
-      "description": "Live teaching sessions."
+    "/jobAlerts/{alertId}": {
+      "schema": "JobAlert",
+      "description": "Punjab vacancy updates."
     },
-    "/products/{productId}": {
-      "schema": "Product",
-      "description": "Marketplace study materials."
+    "/referrals/{id}": {
+      "schema": "Referral",
+      "description": "Viral loop tracking."
     },
-    "/dailyTargets/{userId}": {
-      "schema": "DailyTarget",
-      "description": "Realtime goal tracking."
+    "/supportTickets/{id}": {
+      "schema": "SupportTicket",
+      "description": "Customer support logs."
     },
-    "/aiChats/{chatId}": {
-      "schema": "AiChat",
-      "description": "Doubt solving history."
-    },
-    "/classChats/{id}": {
+    "/userWallets/{userId}": {
       "schema": "object",
-      "description": "Realtime classroom discussion logs."
-    },
-    "/liveRanks/{id}": {
-      "schema": "object",
-      "description": "Realtime arena rankings for live tests."
+      "description": "Coin balances and transaction logs."
     }
   }
 }

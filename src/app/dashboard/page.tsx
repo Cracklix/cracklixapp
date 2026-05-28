@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
@@ -10,8 +11,9 @@ import DailyTargets from '@/components/dashboard/daily-targets';
 import StudyTimer from '@/components/practice/study-timer';
 import DailyQuiz from '@/components/daily-quiz';
 import InstallPrompt from '@/components/pwa/install-prompt';
+import SupportTrigger from '@/components/support/support-trigger';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BrainCircuit, Sparkles, Beaker, Mic, Camera, FileText, Target, BookOpen, TrendingUp, Zap, ChevronRight } from 'lucide-react';
+import { BrainCircuit, Sparkles, Beaker, Mic, Camera, FileText, Target, BookOpen, TrendingUp, Zap, ChevronRight, Gift, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -89,9 +91,9 @@ export default function DashboardPage() {
 
                <div className="grid grid-cols-2 gap-4">
                   {[
+                    { label: "JOBS", icon: Briefcase, href: "/jobs", color: "text-emerald-400" },
+                    { label: "EARN", icon: Gift, href: "/referral", color: "text-orange-400" },
                     { label: "MISTAKES", icon: BookOpen, href: "/coach", color: "text-red-400" },
-                    { label: "OCR SCAN", icon: Camera, href: "/ai-lab", color: "text-blue-400" },
-                    { label: "PLANNER", icon: Target, href: "/ai", color: "text-emerald-400" },
                     { label: "MOCK LAB", icon: Sparkles, href: "/exams", color: "text-accent" },
                   ].map((tool, i) => (
                     <Link key={i} href={tool.href}>
@@ -137,6 +139,9 @@ export default function DashboardPage() {
       
       {/* PWA Install Trigger */}
       <InstallPrompt />
+      
+      {/* Floating Support Hub */}
+      <SupportTrigger />
       
       <Navbar />
     </AppLayout>
