@@ -46,6 +46,60 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
   return snap.exists() ? { id: snap.id, ...snap.data() } as MockTest : null;
 }
 
+export async function updateMock(mockId: string, updates: Partial<MockTest>) {
+  const ref = doc(db, 'mocks', mockId);
+  await updateDoc(ref, { ...updates, updatedAt: Date.now() });
+}
+
+export async function publishMock(mockId: string, isPublished: boolean) {
+  await updateDoc(doc(db, 'mocks', mockId), { 
+    status: isPublished ? 'published' : 'draft', 
+    updatedAt: Date.now() 
+  });
+}
+
+export async function setMockLive(mockId: string, isLive: boolean) {
+  return publishMock(mockId, isLive);
+}
+
+export async function deleteMock(mockId: string) {
+  const batch = writeBatch(db);
+  // Delete subcollection questions
+  const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
+  qSnap.forEach(d => batch.delete(d.ref));
+  // Delete mock doc
+  batch.delete(doc(db, 'mocks', mockId));
+  await batch.commit();
+}
+
+export async function duplicateMock(mockId: string) {
+  const sourceMock = await getMockDetails(mockId);
+  if (!sourceMock) throw new Error("Source mock not found.");
+
+  const { id: _, ...rest } = sourceMock;
+  const newMock = {
+    ...rest,
+    title: `${rest.title} (Copy)`,
+    status: 'draft' as const,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  const newMockRef = await addDoc(collection(db, 'mocks'), newMock);
+  
+  // Copy questions
+  const questions = await getMockQuestions(mockId);
+  const batch = writeBatch(db);
+  questions.forEach((q, idx) => {
+    const { id: __, ...qRest } = q;
+    const qRef = doc(collection(db, 'mocks', newMockRef.id, 'questions'));
+    batch.set(qRef, { ...qRest, id: qRef.id, order: idx });
+  });
+  
+  await batch.commit();
+  return newMockRef.id;
+}
+
 // 2. QUESTION MANAGEMENT (Subcollection Pattern)
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const q = query(collection(db, 'mocks', mockId, 'questions'), orderBy('order', 'asc'));
@@ -53,13 +107,25 @@ export async function getMockQuestions(mockId: string): Promise<Question[]> {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
 }
 
+export function subscribeMockQuestions(mockId: string, callback: (questions: Question[]) => void) {
+  const q = query(collection(db, 'mocks', mockId, 'questions'), orderBy('order', 'asc'));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Question)));
+  }, (error) => {
+    console.warn("[MockService] Questions sync suspended:", error.message);
+  });
+}
+
 export async function addQuestionToMock(mockId: string, question: Partial<Question>) {
   const mockRef = doc(db, 'mocks', mockId);
-  const mockSnap = await getDoc(mockRef);
-  const currentCount = mockSnap.data()?.totalQuestions || 0;
-
   const qRef = doc(collection(db, 'mocks', mockId, 'questions'));
-  const payload = { ...question, id: qRef.id, order: currentCount, createdAt: Date.now() };
+  
+  const payload = { 
+    ...question, 
+    id: qRef.id, 
+    createdAt: Date.now(),
+    order: Date.now() // Simple ordering for now
+  };
   
   const batch = writeBatch(db);
   batch.set(qRef, payload);
@@ -68,7 +134,44 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
   return qRef.id;
 }
 
-// 3. CBT ENGINE PROTOCOLS
+export async function linkGlobalToMock(mockId: string, globalQuestionId: string) {
+  const qSnap = await getDoc(doc(db, 'questions', globalQuestionId));
+  if (!qSnap.exists()) throw new Error("Global artifact not found.");
+  return addQuestionToMock(mockId, qSnap.data());
+}
+
+export async function deleteMockQuestion(mockId: string, questionId: string) {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'mocks', mockId, 'questions', questionId));
+  batch.update(doc(db, 'mocks', mockId), { totalQuestions: increment(-1), updatedAt: Date.now() });
+  await batch.commit();
+}
+
+export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
+  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await updateDoc(qRef, { ...updates, updatedAt: Date.now() });
+}
+
+// 3. ANALYTICS
+export async function getMockAnalytics(mockId: string) {
+  const q = query(collection(db, 'attempts'), where('mockId', '==', mockId));
+  const snap = await getDocs(q);
+  const attempts = snap.docs.map(d => d.data());
+  
+  if (attempts.length === 0) return { totalAttempts: 0, avgScore: 0, avgAccuracy: 0 };
+  
+  const totalAttempts = attempts.length;
+  const avgScore = attempts.reduce((acc, curr: any) => acc + (curr.score || 0), 0) / totalAttempts;
+  const avgAccuracy = attempts.reduce((acc, curr: any) => acc + (curr.accuracy || 0), 0) / totalAttempts;
+  
+  return {
+    totalAttempts,
+    avgScore: Number(avgScore.toFixed(2)),
+    avgAccuracy: Math.round(avgAccuracy)
+  };
+}
+
+// 4. CBT ENGINE PROTOCOLS
 export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
   const attemptId = `${userId}_${mock.id}`;
   const attemptRef = doc(db, 'attempts', attemptId);
@@ -95,7 +198,6 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
 
 export async function saveAnswer(attemptId: string, qIndex: number, answer: AttemptAnswer) {
   const ref = doc(db, 'attempts', attemptId, 'answers', qIndex.toString());
-  // Non-blocking firestore write
   setDoc(ref, { ...answer, lastSavedAt: Date.now() }, { merge: true })
     .catch(async (e) => {
       const pErr = new FirestorePermissionError({ path: ref.path, operation: 'write', requestResourceData: answer });
@@ -119,7 +221,7 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
   await batch.commit();
 }
 
-// 4. ACCESS CONTROL
+// 5. ACCESS CONTROL
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
   if (mock.accessType === 'free') return { allowed: true };
   
@@ -132,20 +234,4 @@ export async function checkMockAccess(userId: string, mock: MockTest): Promise<{
     return { allowed: false, reason: "Membership required. Unlock with PASS+." };
   }
   return { allowed: true };
-}
-
-// 5. PRODUCTION UTILS
-export async function deleteMock(mockId: string) {
-  const batch = writeBatch(db);
-  const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
-  qSnap.forEach(d => batch.delete(d.ref));
-  batch.delete(doc(db, 'mocks', mockId));
-  await batch.commit();
-}
-
-export async function publishMock(mockId: string, isPublished: boolean) {
-  await updateDoc(doc(db, 'mocks', mockId), { 
-    status: isPublished ? 'published' : 'draft', 
-    updatedAt: Date.now() 
-  });
 }

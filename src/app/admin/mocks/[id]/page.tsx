@@ -114,7 +114,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     setSaving(true);
     try {
       if (editingQuestion.id) {
-        await updateMockQuestion(editingQuestion.id, editingQuestion);
+        await updateMockQuestion(mockId, editingQuestion.id, editingQuestion);
       } else {
         await addQuestionToMock(mockId, editingQuestion);
       }
