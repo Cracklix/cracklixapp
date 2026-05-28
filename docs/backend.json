@@ -20,82 +20,50 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "Notification": {
-      "title": "Notification",
-      "description": "Real-time alerts for users.",
+    "AdminRecord": {
+      "title": "Admin Record",
+      "description": "Permissions and status for admin accounts.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "title": { "type": "string" },
-        "message": { "type": "string" },
-        "read": { "type": "boolean" },
-        "type": { "type": "string", "enum": ["mock", "exam", "achievement", "system"] },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "permissions": { "type": "array", "items": { "type": "string" } },
+        "active": { "type": "boolean" },
         "createdAt": { "type": "number" }
       }
     },
-    "LiveActivity": {
-      "title": "Live Activity",
-      "description": "Platform-wide activity pulse.",
-      "type": "object",
-      "properties": {
-        "message": { "type": "string" },
-        "type": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "CurrentAffair": {
-      "title": "Current Affair",
-      "description": "Daily news and exam-relevant current affairs.",
+    "CMSContent": {
+      "title": "CMS Content",
+      "description": "Platform-wide articles and announcements.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "description": { "type": "string" },
+        "content": { "type": "string" },
         "category": { "type": "string" },
-        "image": { "type": "string" },
-        "pdfUrl": { "type": "string" },
-        "language": { "type": "string" },
+        "published": { "type": "boolean" },
         "createdAt": { "type": "number" }
       }
     },
-    "MockTest": {
-      "title": "Mock Test",
-      "description": "Standardized exam simulations.",
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Chronological log of administrative actions.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "exam": { "type": "string" },
-        "duration": { "type": "number" },
-        "totalQuestions": { "type": "number" },
-        "negativeMarking": { "type": "number" },
-        "premium": { "type": "boolean" },
-        "published": { "type": "boolean" }
-      }
-    },
-    "Attempt": {
-      "title": "Mock Attempt",
-      "description": "Student result for a specific mock test.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "mockId": { "type": "string" },
-        "score": { "type": "number" },
-        "accuracy": { "type": "number" },
-        "answers": { "type": "object" },
+        "adminId": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "target": { "type": "string" },
         "createdAt": { "type": "number" }
       }
     },
-    "Payment": {
-      "title": "Payment Record",
-      "description": "Transaction logs for subscriptions.",
+    "FeatureFlag": {
+      "title": "Feature Flag",
+      "description": "Toggles for system features.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "paymentId": { "type": "string" },
-        "orderId": { "type": "string" },
-        "plan": { "type": "string" },
-        "amount": { "type": "number" },
-        "status": { "type": "string" },
-        "createdAt": { "type": "number" }
+        "id": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "description": { "type": "string" }
       }
     }
   },
@@ -106,6 +74,22 @@
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "Student profiles."
+    },
+    "/admins/{id}": {
+      "schema": "AdminRecord",
+      "description": "Administrative account registry."
+    },
+    "/cms/{id}": {
+      "schema": "CMSContent",
+      "description": "Content management repository."
+    },
+    "/auditLogs/{id}": {
+      "schema": "AuditLog",
+      "description": "Admin activity history."
+    },
+    "/featureFlags/{id}": {
+      "schema": "FeatureFlag",
+      "description": "Platform feature controls."
     },
     "/notifications/{id}": {
       "schema": "Notification",
