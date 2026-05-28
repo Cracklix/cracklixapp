@@ -6,7 +6,6 @@ import {
   doc, 
   getDoc, 
   query, 
-  where, 
   orderBy, 
   addDoc, 
   updateDoc,
@@ -24,7 +23,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /**
- * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v9)
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v11)
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -60,8 +59,11 @@ export async function publishMock(mockId: string, publish: boolean) {
 export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
+  
+  // Recursively delete questions
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
+  
   batch.delete(mockRef);
   return batch.commit();
 }
@@ -71,8 +73,15 @@ export async function deleteMock(mockId: string) {
  */
 
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
+  // Defensive fetching to prevent CBT crashes
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const snap = await getDocs(colRef);
+  
+  if (snap.empty) {
+    console.warn(`[MockService] Empty subcollection for ${mockId}`);
+    return [];
+  }
+
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
@@ -82,6 +91,8 @@ export function subscribeMockQuestions(mockId: string, callback: (questions: Que
   return onSnapshot(colRef, (snap) => {
     const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
     callback(questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+  }, (err) => {
+    console.error(`[MockService] Subscription Error:`, err);
   });
 }
 
@@ -101,7 +112,7 @@ export async function updateMockQuestion(mockId: string, questionId: string, upd
 export async function deleteMockQuestion(mockId: string, questionId: string) {
   const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
   await deleteDoc(qRef);
-  return updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
+  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
 }
 
 export async function linkGlobalToMock(mockId: string, globalQuestionId: string) {
@@ -161,6 +172,7 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     streak: increment(1)
   });
 
+  // Real-time rank update
   await setDoc(doc(db, 'leaderboards', userId), {
     xp: increment(xpGain),
     lastAttempt: Date.now(),
@@ -169,8 +181,12 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
   }, { merge: true });
 }
 
+/**
+ * FEATURE GATING: Access Validation
+ */
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
   if (mock.accessType === 'free') return { allowed: true };
+  
   const userSnap = await getDoc(doc(db, 'users', userId));
   const userData = userSnap.data();
   if (userData?.role === 'admin' || userData?.role === 'superadmin') return { allowed: true };
