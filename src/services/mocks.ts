@@ -22,7 +22,8 @@ import { db } from '@/lib/firebase';
 import { MockTest, Question, AttemptAnswer, ExamAttempt, PassTier } from '@/types';
 
 /**
- * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v30.0)
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v32.0)
+ * Handles atomic mock deployment, cloning, and session management.
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -51,8 +52,9 @@ export async function createMock(data: Partial<MockTest>) {
     ...data,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    status: 'draft',
-    attemptCount: 0
+    status: data.status || 'draft',
+    attemptCount: 0,
+    totalQuestions: data.totalQuestions || 0
   });
   return docRef.id;
 }
@@ -65,8 +67,11 @@ export async function updateMock(mockId: string, updates: Partial<MockTest>) {
 export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
+  
+  // Recursively delete questions subcollection
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
+  
   batch.delete(mockRef);
   return batch.commit();
 }
@@ -88,7 +93,7 @@ export async function cloneMock(mockId: string) {
     updatedAt: Date.now()
   });
 
-  // Copy questions
+  // Copy questions batch
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   const batch = writeBatch(db);
   qSnap.forEach(qDoc => {
@@ -137,6 +142,15 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
 
 export async function saveAnswer(attemptId: string, questionId: string, answer: AttemptAnswer) {
   const ref = doc(db, 'attempts', attemptId);
+  // Institutional Autosave: Merges individual answer selection into the attempt map
+  if (questionId === 'meta_sync') {
+     return updateDoc(ref, {
+        remainingTime: (answer as any).remainingTime,
+        currentQuestionIndex: (answer as any).currentQuestionIndex,
+        updatedAt: Date.now()
+     });
+  }
+
   return updateDoc(ref, {
     [`answers.${questionId}`]: {
       ...answer,
@@ -149,16 +163,23 @@ export async function saveAnswer(attemptId: string, questionId: string, answer: 
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any) {
   const ref = doc(db, 'attempts', attemptId);
   
-  // Real Rank Calculation
-  const mockId = (await getDoc(ref)).data()?.mockId;
-  const participantsSnap = await getDocs(query(collection(db, 'attempts'), where('mockId', '==', mockId), where('status', '==', 'completed')));
+  // AIR (All India Rank) Comparison
+  const attemptData = (await getDoc(ref)).data();
+  const mockId = attemptData?.mockId;
+  
+  const participantsSnap = await getDocs(query(
+    collection(db, 'attempts'), 
+    where('mockId', '==', mockId), 
+    where('status', '==', 'completed')
+  ));
+  
   const scores = participantsSnap.docs.map(d => d.data().score || 0);
   scores.push(analytics.score);
   scores.sort((a, b) => b - a);
   
   const rank = scores.indexOf(analytics.score) + 1;
   const totalParticipants = scores.length;
-  const percentile = ((totalParticipants - rank) / totalParticipants) * 100;
+  const percentile = totalParticipants > 1 ? ((totalParticipants - rank) / (totalParticipants - 1)) * 100 : 100;
 
   await updateDoc(ref, {
     status: 'completed',
@@ -169,13 +190,14 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     percentile: Number(percentile.toFixed(1))
   });
 
+  // XP & Streak Propagation
   const xpGain = Math.max(20, Math.round(analytics.score || 0));
   await updateDoc(doc(db, 'users', userId), {
     xp: increment(xpGain),
     streak: increment(1)
   });
 
-  // Global Leaderboard Node
+  // Global Merit Entry
   await setDoc(doc(db, 'leaderboards', userId), {
     userId,
     xp: increment(xpGain),

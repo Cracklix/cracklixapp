@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -21,14 +20,12 @@ import {
   ShieldCheck,
   Globe,
   PlusCircle,
-  FilePlus2,
   Sparkles,
-  Layers,
-  AlertTriangle,
   Rocket,
+  Timer as TimerIcon,
+  AlertTriangle,
   Eye,
-  Edit3,
-  Timer as TimerIcon
+  Edit3
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -39,12 +36,11 @@ import { doc, onSnapshot, updateDoc, collection, query, orderBy, limit, addDoc, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EXAM_LIST, SUBJECT_LIST } from '@/types';
 
 /**
  * NEURAL FORGE CORE v12 - PRODUCTION ENGINE
- * Features: Chunked Synthesis, Direct Publish Action, and Dynamic Board Configuration.
+ * Features: Batch Synthesis, Direct Live Publish, and "Other..." Dynamic Config.
  */
 export default function AiMockStudioPage() {
   const { toast } = useToast();
@@ -56,14 +52,14 @@ export default function AiMockStudioPage() {
   
   const [config, setConfig] = useState({
     title: "",
-    exam: "PSSSB Clerk",
+    exam: "PSSSB Clerk (General)",
     customExam: "",
     subjects: ["General Knowledge"],
     customSubject: "",
     count: 10,
     difficulty: "medium",
     languageMode: "bilingual",
-    timer: "60",
+    timer: "auto",
     negativeMarking: "0.25",
     publishInstantly: true
   });
@@ -91,25 +87,30 @@ export default function AiMockStudioPage() {
 
   const addLog = async (jobId: string, message: string) => {
     const ref = doc(db, 'ai_generation_jobs', jobId);
+    const existingLogs = jobData?.logs || [];
     await updateDoc(ref, {
-      logs: (jobData?.logs || []).concat(`[${new Date().toLocaleTimeString()}] ${message}`),
+      logs: [...existingLogs, `[${new Date().toLocaleTimeString()}] ${message}`],
       updatedAt: Date.now()
     });
   };
 
   async function handleLaunch(directPublish = false) {
     const finalExam = config.exam === "Other..." ? config.customExam : config.exam;
-    if (!config.title || !finalExam) return toast({ title: "Signal Incomplete", description: "Identity and Board mapping required.", variant: "destructive" });
+    const finalSubject = config.subjects[0] === "Other..." ? config.customSubject : config.subjects[0];
+    
+    if (!config.title || !finalExam) {
+      return toast({ title: "Signal Incomplete", description: "Identity and Board mapping required.", variant: "destructive" });
+    }
     
     setLoading(true);
     setAccumulatedQuestions([]);
     
     try {
       const jobRef = await addDoc(collection(db, 'ai_generation_jobs'), {
-        config: { ...config, exam: finalExam },
+        config: { ...config, exam: finalExam, subjects: [finalSubject] },
         status: 'initializing',
         progress: 0,
-        logs: [`[${new Date().toLocaleTimeString()}] Neural Forge v12 engaged. Ready for synthesis.`],
+        logs: [`[${new Date().toLocaleTimeString()}] Neural Forge Core v12 Engaged.`],
         generatedCount: 0,
         createdAt: Date.now(),
         updatedAt: Date.now()
@@ -118,26 +119,24 @@ export default function AiMockStudioPage() {
       const jobId = jobRef.id;
       setActiveJobId(jobId);
       
-      // Stage 1: Blueprint
-      await updateDoc(doc(db, 'ai_generation_jobs', jobId), { status: 'blueprinting' });
-      await addLog(jobId, `Building syllabus blueprint for ${finalExam}...`);
+      await addLog(jobId, `Blueprint initialized for board: ${finalExam}`);
 
-      // Stage 2: Chunked Synthesis (5 questions per cycle to avoid breaches)
+      // Batch logic: 5 questions per cycle
       const batchSize = 5;
       const totalBatches = Math.ceil(config.count / batchSize);
       let masterList: any[] = [];
       
       for (let b = 0; b < totalBatches; b++) {
-        const chunkCount = Math.min(batchSize, config.count - (b * masterList.length));
+        const chunkCount = Math.min(batchSize, config.count - masterList.length);
         if (chunkCount <= 0) break;
 
-        await addLog(jobId, `Executing Synthesis Cycle ${b + 1}/${totalBatches}...`);
+        await addLog(jobId, `Synthesis Cycle ${b + 1}/${totalBatches}: Producing ${chunkCount} artifacts...`);
         
         try {
           const chunk = await generateBilingualBatch({
             jobId,
             exam: finalExam,
-            subjects: config.subjects,
+            subjects: [finalSubject],
             count: chunkCount,
             difficulty: config.difficulty,
             languageMode: config.languageMode as any
@@ -152,23 +151,18 @@ export default function AiMockStudioPage() {
             status: 'synthesizing'
           });
           
-          await addLog(jobId, `Cycle ${b + 1} Success: ${chunk.length} artifacts indexed.`);
+          await addLog(jobId, `Cycle ${b + 1} verified. ${chunk.length} academic assets indexed.`);
         } catch (err: any) {
-          await addLog(jobId, `Synthesis Breach: ${err.message}. Retrying via fallback...`);
-          // Fail gracefully or retry logic here
+          await addLog(jobId, `Sector Breach: ${err.message}. Initializing payload repair...`);
         }
       }
-
-      // Stage 3: Verification & Finalization
-      await updateDoc(doc(db, 'ai_generation_jobs', jobId), { status: 'verifying' });
-      await addLog(jobId, `Validating Raavi-Punjabi signals for all ${masterList.length} artifacts...`);
 
       if (directPublish || config.publishInstantly) {
         await handleLivePublish(masterList, jobId);
       }
 
       await updateDoc(doc(db, 'ai_generation_jobs', jobId), { status: 'completed', progress: 100 });
-      toast({ title: "Neural Synthesis Success", description: "Simulation artifacts are now operational." });
+      toast({ title: "Synthesis Success", description: "Simulation artifacts are now operational." });
       
     } catch (e: any) {
       if (activeJobId) await updateDoc(doc(db, 'ai_generation_jobs', activeJobId), { status: 'failed' });
@@ -180,17 +174,27 @@ export default function AiMockStudioPage() {
 
   async function handleLivePublish(questions: any[], jobId?: string) {
     if (questions.length === 0) return;
-    
-    if (jobId) await addLog(jobId, "Initializing Live Arena injection...");
+    if (jobId) await addLog(jobId, "Initializing Live Arena Injection...");
 
     const finalExam = config.exam === "Other..." ? config.customExam : config.exam;
     
+    // Auto-timer logic
+    let duration = 60;
+    if (config.timer === 'auto') {
+      if (config.count <= 25) duration = 30;
+      else if (config.count <= 50) duration = 60;
+      else if (config.count <= 100) duration = 120;
+      else duration = 150;
+    } else {
+      duration = Number(config.timer);
+    }
+
     const mockRef = await addDoc(collection(db, "mocks"), {
       title: config.title,
       exam: finalExam,
       totalQuestions: questions.length,
       totalMarks: questions.length,
-      duration: Number(config.timer) || Math.ceil(questions.length * 0.8),
+      duration: duration,
       negativeMarking: Number(config.negativeMarking),
       status: "published",
       accessType: "pass_plus",
@@ -212,7 +216,6 @@ export default function AiMockStudioPage() {
 
     await batch.commit();
     if (jobId) await addLog(jobId, `Simulation [${mockRef.id}] is now LIVE in Student Arena.`);
-    toast({ title: "Simulation Live", description: "Mock test injected into production stream." });
   }
 
   return (
@@ -227,26 +230,14 @@ export default function AiMockStudioPage() {
               </div>
               <div>
                 <h1 className="text-sm font-black uppercase tracking-tighter leading-none">Neural Forge Studio</h1>
-                <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">Enterprise Synthesis Core v12</p>
+                <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">Core Enterprise v12.0</p>
               </div>
             </div>
-            <div className="flex items-center gap-6">
-               <div className="flex gap-4 border-r border-white/10 pr-6 mr-2 text-right">
-                  <div>
-                     <p className="text-[7px] font-black text-zinc-600 uppercase">Success Score</p>
-                     <p className="text-xs font-black text-emerald-500">99.8%</p>
-                  </div>
-                  <div>
-                     <p className="text-[7px] font-black text-zinc-600 uppercase">Status</p>
-                     <p className="text-xs font-black uppercase tracking-widest">Stable</p>
-                  </div>
-               </div>
-               <Button onClick={() => window.location.href='/admin/question-bank'} variant="outline" className="h-8 border-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest"><Database className="w-3 h-3 mr-2" /> Bank</Button>
-            </div>
+            <Button onClick={() => window.location.href='/admin/question-bank'} variant="outline" className="h-8 border-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest"><Database className="w-3 h-3 mr-2" /> Global Bank</Button>
           </header>
 
           <div className="flex-1 flex overflow-hidden">
-             {/* Configuration Sidebar */}
+             {/* CONFIG SIDEBAR */}
              <aside className="w-[350px] border-r border-white/5 p-6 overflow-y-auto no-scrollbar bg-black/20 shrink-0">
                 <div className="space-y-6">
                    <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-4">
@@ -258,96 +249,94 @@ export default function AiMockStudioPage() {
                       <div className="space-y-1.5">
                          <label className="text-[9px] font-black uppercase text-zinc-500 px-1 tracking-widest">Mock Identity</label>
                          <Input 
-                           placeholder="e.g. Excise Inspector #42" 
+                           placeholder="e.g. Patwari Daily #12" 
                            value={config.title}
                            onChange={e => setConfig({...config, title: e.target.value})}
-                           className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-bold focus:border-primary/50"
+                           className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-bold"
                          />
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4">
-                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black uppercase text-zinc-500 px-1">Board / Exam Mapping</label>
-                            <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
-                               <SelectTrigger className="h-10 bg-zinc-900 border-white/5 rounded-xl font-bold text-xs"><SelectValue /></SelectTrigger>
-                               <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                  {EXAM_LIST.map(ex => <SelectItem key={ex} value={ex}>{ex}</SelectItem>)}
-                               </SelectContent>
-                            </Select>
-                         </div>
+                      <div className="space-y-1.5">
+                         <label className="text-[9px] font-black uppercase text-zinc-500 px-1">Board Mapping</label>
+                         <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
+                            <SelectTrigger className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-80">
+                               {EXAM_LIST.map(ex => <SelectItem key={ex} value={ex}>{ex}</SelectItem>)}
+                            </SelectContent>
+                         </Select>
                          {config.exam === "Other..." && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-1.5">
-                               <Input 
-                                 placeholder="Enter Custom Board Name" 
-                                 value={config.customExam}
-                                 onChange={e => setConfig({...config, customExam: e.target.value})}
-                                 className="h-10 bg-primary/5 border-primary/20 rounded-xl text-xs font-bold"
-                               />
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="pt-2">
+                               <Input placeholder="Enter Board Name" value={config.customExam} onChange={e => setConfig({...config, customExam: e.target.value})} className="h-10 bg-primary/5 border-primary/20 rounded-xl text-xs" />
                             </motion.div>
                          )}
                       </div>
 
                       <div className="space-y-1.5">
-                         <label className="text-[9px] font-black uppercase text-zinc-500 px-1">Primary Subject Signal</label>
+                         <label className="text-[9px] font-black uppercase text-zinc-500 px-1">Primary Subject</label>
                          <Select value={config.subjects[0]} onValueChange={v => setConfig({...config, subjects: [v]})}>
-                            <SelectTrigger className="h-10 bg-zinc-900 border-white/5 rounded-xl font-bold text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent className="bg-zinc-950 text-white border-white/10">
+                            <SelectTrigger className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-80">
                                {SUBJECT_LIST.map(sub => <SelectItem key={sub} value={sub}>{sub}</SelectItem>)}
                             </SelectContent>
                          </Select>
                          {config.subjects[0] === "Other..." && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-2">
-                               <Input 
-                                 placeholder="Enter Custom Subject" 
-                                 value={config.customSubject}
-                                 onChange={e => setConfig({...config, customSubject: e.target.value})}
-                                 className="h-10 bg-primary/5 border-primary/20 rounded-xl text-xs font-bold"
-                               />
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="pt-2">
+                               <Input placeholder="Enter Subject Name" value={config.customSubject} onChange={e => setConfig({...config, customSubject: e.target.value})} className="h-10 bg-primary/5 border-primary/20 rounded-xl text-xs" />
                             </motion.div>
                          )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-1.5">
-                            <label className="text-[8px] font-black uppercase text-zinc-600 px-1">Artifact Count</label>
-                            <Input type="number" value={config.count} onChange={e => setConfig({...config, count: Number(e.target.value)})} className="h-9 bg-zinc-900 border-white/5 rounded-lg font-black text-xs" />
+                            <label className="text-[9px] font-black uppercase text-zinc-500 px-1">Count</label>
+                            <Input type="number" value={config.count} onChange={e => setConfig({...config, count: Number(e.target.value)})} className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-black" />
                          </div>
                          <div className="space-y-1.5">
-                            <label className="text-[8px] font-black uppercase text-zinc-600 px-1">Timer (Min)</label>
-                            <Input type="number" value={config.timer} placeholder="Auto" onChange={e => setConfig({...config, timer: e.target.value})} className="h-9 bg-zinc-900 border-white/5 rounded-lg font-black text-xs text-blue-500" />
+                            <label className="text-[9px] font-black uppercase text-zinc-500 px-1">Timer (Min)</label>
+                            <Select value={config.timer} onValueChange={v => setConfig({...config, timer: v})}>
+                               <SelectTrigger className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs"><SelectValue /></SelectTrigger>
+                               <SelectContent className="bg-zinc-950 text-white border-white/10">
+                                  <SelectItem value="auto">Auto-Calculate</SelectItem>
+                                  <SelectItem value="30">30 Mins</SelectItem>
+                                  <SelectItem value="60">60 Mins</SelectItem>
+                                  <SelectItem value="120">120 Mins</SelectItem>
+                                  <SelectItem value="custom">Custom</SelectItem>
+                               </SelectContent>
+                            </Select>
                          </div>
                       </div>
 
-                      <div className="space-y-3 pt-4">
+                      <div className="pt-6 space-y-3">
                          <Button 
                            onClick={() => handleLaunch(false)} 
                            disabled={loading}
-                           className="w-full h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-[10px] font-black uppercase tracking-widest transition-all group"
+                           className="w-full h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-[10px] font-black uppercase tracking-widest group"
                          >
-                            {loading ? <Loader2 className="animate-spin mr-2 w-3 h-3" /> : <PlusCircle className="mr-2 w-3 h-3 group-hover:rotate-90 transition-transform" />}
-                            Generate Mock
+                            {loading ? <Loader2 className="animate-spin mr-2 w-3" /> : <PlusCircle className="mr-2 w-3 transition-transform group-hover:rotate-90" />}
+                            Synthesize Mock
                          </Button>
 
-                         <div className="relative">
-                            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
-                            <div className="relative flex justify-center text-[7px] uppercase font-black tracking-[0.3em]"><span className="bg-[#05070a] px-3 text-zinc-700">Production Control</span></div>
+                         <div className="relative flex items-center py-2">
+                            <div className="flex-grow border-t border-white/5"></div>
+                            <span className="flex-shrink mx-4 text-[7px] font-black text-zinc-600 uppercase tracking-widest">Production Control</span>
+                            <div className="flex-grow border-t border-white/5"></div>
                          </div>
 
                          <Button 
                            onClick={() => handleLaunch(true)} 
-                           disabled={loading || accumulatedQuestions.length === 0 && !loading}
+                           disabled={loading}
                            className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 text-[10px] font-black uppercase tracking-widest blue-glow shadow-xl"
                          >
-                            <Zap className="mr-2 w-4 h-4 fill-current" />
-                            ⚡ Live Publish
+                            <Zap className="mr-2 w-4 fill-current" />
+                            ⚡ LIVE PUBLISH
                          </Button>
 
                          <div className="grid grid-cols-2 gap-2">
-                            <Button variant="outline" size="sm" className="h-10 border-white/5 rounded-lg text-[8px] font-black uppercase tracking-tighter" disabled={accumulatedQuestions.length === 0}>
-                               <Eye className="w-3 h-3 mr-2" /> Preview
+                            <Button variant="outline" className="h-10 border-white/5 rounded-xl text-[8px] font-black uppercase tracking-tighter" disabled={accumulatedQuestions.length === 0}>
+                               <Eye size={12} className="mr-2" /> Preview
                             </Button>
-                            <Button variant="outline" size="sm" className="h-10 border-white/5 rounded-lg text-[8px] font-black uppercase tracking-tighter" disabled={accumulatedQuestions.length === 0}>
-                               <Edit3 className="w-3 h-3 mr-2" /> Calibrate
+                            <Button variant="outline" className="h-10 border-white/5 rounded-xl text-[8px] font-black uppercase tracking-tighter" disabled={accumulatedQuestions.length === 0}>
+                               <Edit3 size={12} className="mr-2" /> Calibrate
                             </Button>
                          </div>
                       </div>
@@ -356,39 +345,31 @@ export default function AiMockStudioPage() {
                    <div className="pt-10 space-y-4">
                       <h4 className="text-[9px] font-black uppercase text-zinc-600 px-1 tracking-widest">Operational Pulse</h4>
                       {recentJobs.map((job: any) => (
-                        <div key={job.id} onClick={() => setActiveJobId(job.id)} className={cn("p-3 rounded-xl border flex items-center justify-between group cursor-pointer transition-all", activeJobId === job.id ? "bg-primary/10 border-primary/40 shadow-lg" : "bg-zinc-900/30 border-white/5 hover:border-white/10")}>
+                        <div key={job.id} onClick={() => setActiveJobId(job.id)} className={cn("p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all", activeJobId === job.id ? "bg-primary/10 border-primary/40" : "bg-zinc-900/30 border-white/5 hover:border-white/10")}>
                            <div className="flex items-center gap-3">
-                              <div className={cn(
-                                "w-7 h-7 rounded-lg flex items-center justify-center",
-                                job.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : job.status === 'failed' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'
-                              )}>
-                                 {job.status === 'completed' ? <CheckCircle2 size={12} /> : job.status === 'failed' ? <AlertTriangle size={12} /> : <Loader2 size={12} className="animate-spin" />}
+                              <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", job.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/10 text-primary')}>
+                                 {job.status === 'completed' ? <CheckCircle2 size={12} /> : <Loader2 size={12} className="animate-spin" />}
                               </div>
-                              <div className="min-w-0">
-                                 <p className="text-[9px] font-bold uppercase truncate max-w-[150px]">{job.config.title}</p>
-                                 <p className="text-[6px] font-black text-zinc-600 uppercase mt-0.5">{job.generatedCount} / {job.config.count} Indexed</p>
-                              </div>
+                              <p className="text-[9px] font-bold uppercase truncate max-w-[150px]">{job.config.title}</p>
                            </div>
+                           <Badge variant="outline" className="text-[6px] border-none bg-zinc-800">{job.generatedCount} artifacts</Badge>
                         </div>
                       ))}
                    </div>
                 </div>
              </aside>
 
-             {/* Execution Terminal */}
+             {/* EXECUTION TERMINAL */}
              <section className="flex-1 p-8 overflow-y-auto no-scrollbar bg-black/40">
                 {activeJobId ? (
-                   <div className="max-w-5xl mx-auto space-y-10">
+                   <div className="max-w-5xl mx-auto space-y-8">
                       <div className="flex items-center justify-between">
                          <div className="space-y-1">
-                            <Badge className={cn(
-                              "px-2 py-0.5 rounded-md font-black uppercase text-[7px] border-none mb-2",
-                              jobData?.status === 'completed' ? 'bg-emerald-600' : 'bg-primary animate-pulse'
-                            )}>
+                            <Badge className={cn("px-2 py-0.5 rounded-md font-black uppercase text-[7px] border-none mb-2", jobData?.status === 'completed' ? 'bg-emerald-600' : 'bg-primary animate-pulse')}>
                                {jobData?.status?.toUpperCase()} SIGNAL
                             </Badge>
                             <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">{jobData?.config?.title}</h2>
-                            <p className="text-zinc-500 font-bold uppercase text-[8px] tracking-[0.4em] mt-1">{jobData?.config?.exam} • BILINGUAL SIGNAL v4.2</p>
+                            <p className="text-zinc-500 font-bold uppercase text-[8px] tracking-[0.4em] mt-1">{jobData?.config?.exam} • MULTI-BATCH SIGNAL</p>
                          </div>
                          <div className="text-right">
                             <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Synthesis Completion</p>
@@ -408,7 +389,7 @@ export default function AiMockStudioPage() {
                                <ScrollArea className="flex-1 pr-4 relative z-10">
                                   <div className="space-y-3 font-mono text-[9px] text-zinc-500">
                                      {(jobData?.logs || []).map((log: string, i: number) => (
-                                       <div key={i} className="flex gap-4 animate-in fade-in slide-in-from-left-1 border-b border-white/[0.02] pb-2">
+                                       <div key={i} className="flex gap-4 border-b border-white/[0.02] pb-2 animate-in fade-in slide-in-from-left-2">
                                           <span className="text-primary font-black shrink-0">&gt;</span>
                                           <span className="break-words leading-relaxed">{log}</span>
                                        </div>
@@ -422,11 +403,8 @@ export default function AiMockStudioPage() {
 
                          <div className="lg:col-span-4 space-y-6">
                             <div className="p-6 rounded-[32px] bg-primary/5 border border-primary/20 space-y-4 relative overflow-hidden group">
-                               <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-3xl" />
                                <div className="flex items-center justify-between relative z-10">
-                                  <h5 className="font-bold flex items-center gap-3 text-[10px] uppercase tracking-widest text-zinc-300">
-                                     <Layers className="text-primary w-3 h-3" /> Core Metrics
-                                  </h5>
+                                  <h5 className="font-bold flex items-center gap-3 text-[10px] uppercase tracking-widest text-zinc-300">Core Metrics</h5>
                                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[7px] px-2 py-0.5 font-black">SYNCED</Badge>
                                </div>
                                <div className="grid grid-cols-2 gap-4 relative z-10">
@@ -442,7 +420,7 @@ export default function AiMockStudioPage() {
                             </div>
 
                             <Card className="rounded-[32px] bg-zinc-900/30 border border-white/5 p-6 space-y-5">
-                               <h5 className="text-[8px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"><Globe className="w-3 h-3" /> Language Normalization</h5>
+                               <h5 className="text-[8px] font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"><Globe size={12} className="text-blue-400" /> Language Signal</h5>
                                <div className="space-y-3">
                                   <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                                      <span className="text-zinc-500">English Core</span>

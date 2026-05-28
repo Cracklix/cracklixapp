@@ -9,17 +9,21 @@ export type LanguageMode = 'english' | 'punjabi' | 'bilingual' | 'hindi';
 export type QuestionStatus = 'NOT_VISITED' | 'VISITED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
 
 export const EXAM_LIST = [
-  "PSSSB Clerk", "PSSSB IT Clerk", "PSSSB Patwari", "PSSSB Excise Inspector",
-  "Punjab Police SI", "Punjab Police Constable", "Punjab Police Head Constable",
-  "PPSC PCS", "PPSC ADO", "PSPCL JE Electrical", "PSPCL JE Civil", "PSTCL JE",
-  "CTET Paper 1", "CTET Paper 2", "PSTET", "Lab Attendant", "Other..."
+  "PSSSB Clerk (General)", "PSSSB Clerk IT", "PSSSB Clerk Accounts", "PSSSB Patwari", 
+  "PSSSB Excise Inspector", "PSSSB Junior Engineer (Civil)", "PSSSB Junior Engineer (Electrical)",
+  "PSSSB Junior Engineer (Mechanical)", "PSSSB Laboratory Attendant", "Punjab Police SI", 
+  "Punjab Police Constable", "PPSC PCS", "PPSC ADO", "CTET Paper 1", "CTET Paper 2", 
+  "PSTET Paper 1", "PSTET Paper 2", "Lab Assistant", "Sewadar", "Chowkidar", "Other..."
 ];
 
 export const SUBJECT_LIST = [
-  "General Knowledge", "Punjab History & Culture", "Current Affairs",
-  "Logical Reasoning", "Quantitative Aptitude", "Punjabi Language",
-  "English Language", "ICT & Computers", "Child Pedagogy", 
-  "Civil Engineering", "Electrical Engineering", "Other..."
+  "General Knowledge", "Current Affairs", "Punjab History & Culture", 
+  "Logical Reasoning", "Quantitative Aptitude", "Punjabi (Qualifying)", 
+  "Punjabi Language", "English Language", "ICT & Computers", 
+  "Child Development & Pedagogy", "Environmental Studies (EVS)",
+  "Civil Engineering Core", "Electrical Engineering Core", 
+  "Mechanical Engineering Core", "General Science (Physics/Chem/Bio)",
+  "Lab Equipment & Safety", "Other..."
 ];
 
 export type Subject = typeof SUBJECT_LIST[number];
