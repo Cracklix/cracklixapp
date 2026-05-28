@@ -90,6 +90,8 @@ export interface Question {
   createdAt?: number;
 }
 
+export type MockStatus = 'draft' | 'published' | 'scheduled' | 'live' | 'expired' | 'archived';
+
 export interface MockTest {
   id: string;
   title: string;
@@ -99,7 +101,15 @@ export interface MockTest {
   totalQuestions: number;
   negativeMarking: number;
   premium: boolean;
-  status: 'draft' | 'published';
-  questionIds?: string[];
+  status: MockStatus;
+  questionIds: string[];
   createdAt: number;
+  publishedAt?: number;
+  scheduledAt?: number;
+  liveAt?: number;
+  updatedAt?: number;
+  createdBy?: string;
+  marksPerQuestion?: number;
+  instructions?: string;
+  difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
 }
