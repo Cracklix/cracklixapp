@@ -69,10 +69,17 @@ export interface Plan {
   };
 }
 
+/**
+ * Fetches active plans. Performs client-side sorting to avoid
+ * the need for manual Firestore composite indexes.
+ */
 export async function getActivePlans(): Promise<Plan[]> {
-  const q = query(collection(db, "plans"), where("active", "==", true), orderBy("price", "asc"));
+  const q = query(collection(db, "plans"), where("active", "==", true));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Plan));
+  const plans = snap.docs.map(d => ({ id: d.id, ...d.data() } as Plan));
+  
+  // Sort client-side to ensure immediate functionality without indexes
+  return plans.sort((a, b) => a.price - b.price);
 }
 
 export function subscribeUserPass(userId: string, callback: (sub: any) => void) {
@@ -80,15 +87,18 @@ export function subscribeUserPass(userId: string, callback: (sub: any) => void) 
     collection(db, "subscriptions"), 
     where("userId", "==", userId),
     where("status", "==", "active"),
-    orderBy("expiresAt", "desc"),
-    limit(1)
+    limit(10)
   );
 
   return onSnapshot(q, (snap) => {
     if (!snap.empty) {
-      const data = snap.docs[0].data();
-      if (data.expiresAt > Date.now()) {
-        callback({ id: snap.docs[0].id, ...data });
+      // Find the one with the furthest expiry client-side
+      const activeSubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      activeSubs.sort((a: any, b: any) => (b.expiresAt || 0) - (a.expiresAt || 0));
+      const latest = activeSubs[0];
+      
+      if ((latest as any).expiresAt > Date.now()) {
+        callback(latest);
       } else {
         callback(null);
       }
