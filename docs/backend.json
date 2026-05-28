@@ -9,7 +9,7 @@
         "uid": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string" },
-        "role": { "type": "string", "enum": ["student", "admin"] },
+        "role": { "type": "string", "enum": ["student", "admin", "superadmin"] },
         "xp": { "type": "number" },
         "streak": { "type": "number" },
         "level": { "type": "number" },
@@ -70,6 +70,33 @@
         "premium": { "type": "boolean" },
         "published": { "type": "boolean" }
       }
+    },
+    "Attempt": {
+      "title": "Mock Attempt",
+      "description": "Student result for a specific mock test.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "mockId": { "type": "string" },
+        "score": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "answers": { "type": "object" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "Payment": {
+      "title": "Payment Record",
+      "description": "Transaction logs for subscriptions.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "paymentId": { "type": "string" },
+        "orderId": { "type": "string" },
+        "plan": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
     }
   },
   "auth": {
@@ -95,6 +122,14 @@
     "/mocks/{id}": {
       "schema": "MockTest",
       "description": "Exam simulations."
+    },
+    "/attempts/{id}": {
+      "schema": "Attempt",
+      "description": "Historical performance logs."
+    },
+    "/payments/{id}": {
+      "schema": "Payment",
+      "description": "Financial records."
     }
   }
 }

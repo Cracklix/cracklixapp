@@ -5,8 +5,14 @@ import { AuthProvider } from '@/lib/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Cracklix | High-Performance Learning',
-  description: 'Elevate your study game with AI-powered performance coaching and gamified learning.',
+  title: 'CRACKLIX | Punjab Govt Exam Mastery',
+  description: 'The elite learning ecosystem for Punjab Civil Services, Punjab Police, and PSSSB exams. Featuring AI Performance Coaching and CBT simulations.',
+  keywords: ['Punjab Exams', 'PPSC', 'PSSSB', 'Punjab Police Prep', 'Mock Tests', 'AI Coaching'],
+  openGraph: {
+    title: 'CRACKLIX | High-Performance Learning',
+    description: 'Elevate your study game with AI-powered performance coaching.',
+    type: 'website',
+  }
 };
 
 export default function RootLayout({
