@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from "@/lib/utils";
-import { Bookmark, AlertCircle, Languages, Target, CheckCircle2, Info } from "lucide-react";
+import { Bookmark, AlertCircle, Languages, Target, CheckCircle2, Info, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
@@ -84,8 +84,8 @@ export default function QuestionCard({
                   <h4 className="text-sm font-black uppercase tracking-tight text-slate-800">{question.subject}</h4>
                   <Badge variant="outline" className={cn(
                     "text-[8px] font-black uppercase px-2 py-0.5",
-                    question.difficulty === 'hard' ? "bg-red-50 text-red-500 border-red-100" : 
-                    question.difficulty === 'medium' ? "bg-orange-50 text-orange-500 border-orange-100" : "bg-emerald-50 text-emerald-500 border-emerald-100"
+                    question.difficulty === 'hard' ? "bg-red text-red-500 border-red-100" : 
+                    question.difficulty === 'medium' ? "bg-orange text-orange-500 border-orange-100" : "bg-emerald text-emerald-500 border-emerald-100"
                   )}>{question.difficulty}</Badge>
                </div>
                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Section: Core Proficiency</p>
@@ -94,8 +94,8 @@ export default function QuestionCard({
 
          <div className="flex items-center gap-6">
             <div className="hidden sm:flex items-center gap-5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-               <span className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-500" /> +{question.marks}.0</span>
-               <span className="flex items-center gap-1.5"><AlertCircle size={12} className="text-red-500" /> -{question.negativeMarks}.0</span>
+               <span className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-emerald-500" /> +{question.marks || 1}.0</span>
+               <span className="flex items-center gap-1.5"><AlertCircle size={12} className="text-red-500" /> -{question.negativeMarks || 0.25}.0</span>
             </div>
             <Button variant="ghost" size="icon" onClick={toggleBookmark} className="h-10 w-10 rounded-xl hover:bg-slate-50 transition-all">
                <Bookmark size={18} className="text-slate-300 group-hover:text-primary" />
