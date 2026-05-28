@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -480,28 +479,28 @@ export default function MockFactoryPage() {
                              </table>
                           </div>
 
-                          <div className="flex flex-col md:flex-row items-center justify-between bg-primary/5 p-6 rounded-[32px] border border-primary/10 gap-6">
-                             <div className="flex items-center gap-4">
+                          <div className="flex flex-col sm:flex-row items-center justify-between bg-primary/5 p-6 rounded-[32px] border border-primary/10 gap-6">
+                             <div className="flex items-center gap-4 shrink-0">
                                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
                                    <ListPlus className="text-white w-5 h-5" />
                                 </div>
                                 <div>
-                                   <p className="text-xs font-black text-primary uppercase tracking-tighter">Manual Staging Active</p>
+                                   <p className="text-[10px] font-black text-primary uppercase tracking-tighter">Manual Staging Active</p>
                                    <p className="text-lg font-black text-white">{selectedQuestionIds.size} Unique Artifacts</p>
                                 </div>
                              </div>
-                             <div className="flex flex-wrap md:flex-nowrap gap-4 w-full md:w-auto">
+                             <div className="flex flex-wrap sm:flex-nowrap gap-4 w-full sm:w-auto justify-end">
                                 <Button 
                                   variant="outline" 
                                   onClick={clearSelection} 
-                                  className="h-14 flex-1 md:flex-none px-8 rounded-2xl border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive shrink-0"
+                                  className="h-14 px-8 rounded-2xl border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive flex-1 sm:flex-none"
                                 >
                                   Discard
                                 </Button>
                                 <Button 
                                   onClick={handleManualMock} 
                                   disabled={loading || selectedQuestionIds.size === 0} 
-                                  className="h-14 flex-1 md:flex-none px-6 md:px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-xs md:text-sm uppercase tracking-widest blue-glow shrink-0 whitespace-normal text-center leading-tight"
+                                  className="h-14 px-6 md:px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] md:text-sm uppercase tracking-widest blue-glow whitespace-normal text-center leading-tight flex-1 sm:flex-none min-w-0"
                                 >
                                     {loading ? <Loader2 className="animate-spin mr-2 shrink-0" /> : "Initialize Unique Mock"}
                                 </Button>
