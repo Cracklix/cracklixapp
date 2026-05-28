@@ -84,6 +84,9 @@ export interface Question {
   qualityScore?: number;
   status: 'draft' | 'published' | 'rejected';
   usageCount?: number;
+  usedInMocks?: string[];
+  lastUsedAt?: number;
+  lastMockId?: string;
   isMath?: boolean;
   source?: string;
   ocrConfidence?: number;

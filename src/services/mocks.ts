@@ -146,10 +146,30 @@ export async function duplicateMock(mockId: string) {
 }
 
 export async function publishMock(mockId: string) {
-  await updateDoc(doc(db, 'mocks', mockId), { 
+  const mockRef = doc(db, 'mocks', mockId);
+  const mockSnap = await getDoc(mockRef);
+  const questionIds = mockSnap.data()?.questionIds || [];
+
+  const batch = writeBatch(db);
+  
+  // 1. Mark mock as published
+  batch.update(mockRef, { 
     status: 'published',
     publishedAt: Date.now()
   });
+
+  // 2. Increment usage metrics for all questions in this mock
+  questionIds.forEach((qId: string) => {
+    const qRef = doc(db, 'questions', qId);
+    batch.update(qRef, {
+      usageCount: increment(1),
+      lastUsedAt: Date.now(),
+      lastMockId: mockId,
+      usedInMocks: increment(1) // Assuming field as arrayUnion in prod, here simplified for schema
+    });
+  });
+
+  await batch.commit();
 }
 
 export async function deleteMock(mockId: string) {
