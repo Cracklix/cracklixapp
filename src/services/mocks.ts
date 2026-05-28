@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -151,6 +152,72 @@ export async function publishMock(mockId: string) {
 
 export function setMockLive(mockId: string, isLive: boolean) {
   updateMock(mockId, { status: isLive ? 'live' : 'published' });
+}
+
+export async function deleteMock(mockId: string) {
+  const batch = writeBatch(db);
+  
+  // 1. Queue all linked questions for deletion
+  const qSnap = await getDocs(query(collection(db, 'mockQuestions'), where('mockId', '==', mockId)));
+  qSnap.forEach(d => batch.delete(d.ref));
+  
+  // 2. Queue the mock itself
+  batch.delete(doc(db, 'mocks', mockId));
+  
+  return batch.commit().catch(async (err) => {
+    const permissionError = new FirestorePermissionError({
+      path: `mocks/${mockId}`,
+      operation: 'delete'
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
+}
+
+export async function duplicateMock(mockId: string) {
+  const source = await getMockDetails(mockId);
+  if (!source) throw new Error("Source artifact missing.");
+
+  const { id: _, ...data } = source;
+  const newMockPayload = {
+    ...data,
+    title: `${data.title} (Clone)`,
+    status: 'draft',
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  const newDocRef = await addDoc(collection(db, 'mocks'), newMockPayload);
+  
+  // Duplicate Questions
+  const qSnap = await getDocs(query(collection(db, 'mockQuestions'), where('mockId', '==', mockId)));
+  const qBatch = writeBatch(db);
+  qSnap.forEach(d => {
+    const qData = d.data();
+    const newQRef = doc(collection(db, 'mockQuestions'));
+    qBatch.set(newQRef, { ...qData, mockId: newDocRef.id, createdAt: Date.now() });
+  });
+  
+  await qBatch.commit();
+  return { id: newDocRef.id, ...newMockPayload };
+}
+
+export async function getMockAnalytics(mockId: string) {
+  // Aggregate real-time metrics from the attempts collection
+  const q = query(collection(db, 'attempts'), where('mockId', '==', mockId));
+  const snap = await getDocs(q);
+  
+  const attempts = snap.docs.map(d => d.data());
+  const totalAttempts = attempts.length;
+  const completed = attempts.filter(a => a.status === 'completed').length;
+  const avgAccuracy = attempts.length > 0 
+    ? attempts.reduce((acc, curr) => acc + (curr.accuracy || 0), 0) / attempts.length 
+    : 0;
+
+  return {
+    totalAttempts,
+    completionRate: totalAttempts > 0 ? Math.round((completed / totalAttempts) * 100) : 0,
+    avgAccuracy: Math.round(avgAccuracy)
+  };
 }
 
 // 4. STUDENT ENGINE DATA
