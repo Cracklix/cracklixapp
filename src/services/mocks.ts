@@ -18,7 +18,7 @@ import {
   where
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { MockTest, Question, AttemptAnswer, ExamAttempt, MockAccessType } from '@/types';
+import { MockTest, Question, AttemptAnswer, ExamAttempt, PassTier } from '@/types';
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v17.0)
@@ -44,6 +44,27 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
   } catch (e) {
     return null;
   }
+}
+
+/**
+ * ADMINISTRATIVE SIGNAL CONTROLS
+ */
+
+export async function publishMock(mockId: string, publish: boolean) {
+  const ref = doc(db, 'mocks', mockId);
+  return updateDoc(ref, { 
+    status: publish ? 'published' : 'draft',
+    publishedAt: publish ? Date.now() : null,
+    updatedAt: Date.now() 
+  });
+}
+
+export async function updateMockAccess(mockId: string, accessType: PassTier) {
+  const ref = doc(db, 'mocks', mockId);
+  return updateDoc(ref, { 
+    accessType, 
+    updatedAt: Date.now() 
+  });
 }
 
 /**
@@ -145,6 +166,25 @@ export async function getMockQuestions(mockId: string): Promise<Question[]> {
 
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+export function subscribeMockQuestions(mockId: string, callback: (qs: Question[]) => void) {
+  const colRef = collection(db, 'mocks', mockId, 'questions');
+  return onSnapshot(colRef, (snap) => {
+    const qs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+    callback(qs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+  });
+}
+
+export async function deleteMockQuestion(mockId: string, questionId: string) {
+  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await deleteDoc(docRef);
+  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
+}
+
+export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
+  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await updateDoc(docRef, { ...updates, updatedAt: Date.now() });
 }
 
 export async function addQuestionToMock(mockId: string, question: Partial<Question>) {
