@@ -19,12 +19,18 @@ import {
   Filter,
   Search,
   LayoutGrid,
-  History
+  History,
+  FileText,
+  Clock,
+  ExternalLink,
+  MoreVertical,
+  BookOpen,
+  Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SUBJECTS, Subject, Question } from "@/types";
+import { SUBJECTS, Subject, Question, MockTest } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { addDoc, collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -34,124 +40,92 @@ import { parseQuestionsAi } from "@/ai/flows/ai-question-parser-flow";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-const EXAM_PRESETS = {
-  "PSSSB Excise Inspector": [
-    { subject: "Current Affairs", count: 25 },
-    { subject: "Punjab GK", count: 15 },
-    { subject: "Reasoning", count: 15 },
-    { subject: "Quant", count: 20 },
-    { subject: "English", count: 15 },
-    { subject: "Punjabi", count: 10 }
-  ],
-  "Punjab Police SI": [
-    { subject: "Punjab GK", count: 20 },
-    { subject: "Quant", count: 20 },
-    { subject: "Reasoning", count: 20 },
-    { subject: "Computer", count: 10 },
-    { subject: "Current Affairs", count: 20 },
-    { subject: "English", count: 10 }
-  ],
-  "PSSSB Clerk": [
-    { subject: "Punjabi", count: 15 },
-    { subject: "English", count: 15 },
-    { subject: "Quant", count: 15 },
-    { subject: "Reasoning", count: 15 },
-    { subject: "Punjab GK", count: 20 },
-    { subject: "Computer", count: 10 },
-    { subject: "Current Affairs", count: 10 }
-  ],
-  "Patwari 2024": [
-    { subject: "Agriculture", count: 10 },
-    { subject: "Punjab GK", count: 25 },
-    { subject: "Quant", count: 25 },
-    { subject: "Reasoning", count: 20 },
-    { subject: "English", count: 10 },
-    { subject: "Punjabi", count: 10 }
-  ]
-};
+import { generateAutoMock, getMocksByStatus, publishMock, deleteMock } from "@/services/mocks";
 
 export default function MockFactoryPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [exam, setExam] = useState("PSSSB Excise Inspector");
+  const [registryLoading, setRegistryLoading] = useState(false);
+  
+  // Form State
   const [title, setTitle] = useState("");
+  const [exam, setExam] = useState("Punjab Police SI");
   const [duration, setDuration] = useState(120);
   const [penalty, setPenalty] = useState(0.25);
   const [isPremium, setIsPremium] = useState(true);
-  
-  // Smart Generator State
-  const [blueprints, setBlueprints] = useState<{subject: Subject, count: number}[]>(EXAM_PRESETS["PSSSB Excise Inspector"]);
+  const [difficulty, setDifficulty] = useState("mixed");
+  const [qCount, setQCount] = useState(100);
 
-  // Manual Builder State
-  const [bankQuestions, setBankQuestions] = useState<Question[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState("");
-  const [filterSubject, setFilterSubject] = useState("All");
+  // Sectional/Chapter State
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedTopic, setSelectedTopic] = useState<string>("");
+  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
 
-  // Direct Builder State
-  const [pastedContent, setPastedContent] = useState("");
+  // Registry State
+  const [drafts, setDrafts] = useState<MockTest[]>([]);
+  const [published, setPublished] = useState<MockTest[]>([]);
 
   useEffect(() => {
-    loadBank();
-  }, [filterSubject]);
+    loadRegistry();
+  }, []);
 
-  async function loadBank() {
+  useEffect(() => {
+    if (selectedSubject) {
+      loadTopicsForSubject(selectedSubject);
+    }
+  }, [selectedSubject]);
+
+  async function loadTopicsForSubject(subj: string) {
     try {
-      let q = query(collection(db, "questions"), where("status", "==", "published"), limit(100));
-      if (filterSubject !== "All") {
-        q = query(collection(db, "questions"), where("status", "==", "published"), where("subject", "==", filterSubject), limit(100));
-      }
+      const q = query(collection(db, "questions"), where("subject", "==", subj), limit(100));
       const snap = await getDocs(q);
-      setBankQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Question)));
+      const topics = Array.from(new Set(snap.docs.map(d => d.data().topic).filter(Boolean)));
+      setAvailableTopics(topics as string[]);
     } catch (e) {
       console.error(e);
     }
   }
 
-  const applyPreset = (presetName: keyof typeof EXAM_PRESETS) => {
-    setBlueprints(EXAM_PRESETS[presetName] as any);
-    setExam(presetName);
-    setTitle(`${presetName} Full Mock - ${new Date().toLocaleDateString()}`);
-    if (presetName === "PSSSB Excise Inspector") setDuration(120);
-  };
+  async function loadRegistry() {
+    setRegistryLoading(true);
+    try {
+      const [dData, pData] = await Promise.all([
+        getMocksByStatus('draft'),
+        getMocksByStatus('published')
+      ]);
+      setDrafts(dData);
+      setPublished(pData);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRegistryLoading(false);
+    }
+  }
 
-  async function handleSmartGenerate() {
-    if (!title) {
-      toast({ title: "Naming Required", description: "Please provide a title for this simulation." });
+  async function handleGenerate(type: 'full' | 'sectional' | 'chapter') {
+    if (!title || !exam) {
+      toast({ title: "Identification Required", description: "Set a title and target exam board." });
       return;
     }
+    
     setLoading(true);
     try {
-      let allSelectedIds: string[] = [];
-      
-      for (const blueprint of blueprints) {
-        if (blueprint.count <= 0) continue;
-        const q = query(
-          collection(db, "questions"),
-          where("status", "==", "published"),
-          where("subject", "==", blueprint.subject),
-          limit(blueprint.count)
-        );
-        const snap = await getDocs(q);
-        allSelectedIds.push(...snap.docs.map(d => d.id));
-      }
-
-      if (allSelectedIds.length === 0) throw new Error("Production Bank is currently empty for these subjects.");
-
-      await addDoc(collection(db, "mocks"), {
+      await generateAutoMock({
         title,
         exam,
-        questionIds: allSelectedIds,
+        type,
+        subject: selectedSubject,
+        topic: selectedTopic,
+        count: qCount,
+        difficulty,
         duration,
         negativeMarking: penalty,
-        premium: isPremium,
-        status: "published",
-        createdAt: Date.now(),
-        totalQuestions: allSelectedIds.length
+        isPremium
       });
 
-      toast({ title: "Simulation Synthesized", description: `${allSelectedIds.length} artifacts extracted and deployed.` });
+      toast({ title: "Mock Synthesized", description: "Simulation saved to Drafts for review." });
+      setTitle("");
+      loadRegistry();
     } catch (e: any) {
       toast({ title: "Synthesis Error", description: e.message, variant: "destructive" });
     } finally {
@@ -159,76 +133,26 @@ export default function MockFactoryPage() {
     }
   }
 
-  async function handleManualDeploy() {
-    if (selectedIds.size === 0 || !title) {
-      toast({ title: "Validation Failed", description: "Select questions and provide a title." });
-      return;
-    }
-    setLoading(true);
+  async function handlePublish(id: string) {
     try {
-      await addDoc(collection(db, "mocks"), {
-        title,
-        exam,
-        questionIds: Array.from(selectedIds),
-        duration,
-        negativeMarking: penalty,
-        premium: isPremium,
-        status: "published",
-        createdAt: Date.now(),
-        totalQuestions: selectedIds.size
-      });
-      toast({ title: "Manual Mock Live", description: `${selectedIds.size} custom artifacts linked.` });
-      setSelectedIds(new Set());
-    } catch (e: any) {
-      toast({ title: "Deployment Error", variant: "destructive" });
-    } finally {
-      setLoading(false);
+      await publishMock(id);
+      toast({ title: "Live Sync Complete", description: "Mock is now accessible to students." });
+      loadRegistry();
+    } catch (e) {
+      toast({ title: "Publish Error", variant: "destructive" });
     }
   }
 
-  async function handleDirectBuild() {
-    if (!pastedContent.trim() || !title) return;
-    setLoading(true);
+  async function handleDelete(id: string) {
+    if (!confirm("Terminate this simulation registry?")) return;
     try {
-      const result = await parseQuestionsAi({ rawText: pastedContent });
-      
-      const batch = result.questions.map(q => 
-        addDoc(collection(db, "questions"), { 
-          ...q, 
-          status: "published", 
-          source: "DIRECT_MOCK_PASTE", 
-          createdAt: Date.now() 
-        })
-      );
-      const docRefs = await Promise.all(batch);
-      
-      await addDoc(collection(db, "mocks"), {
-        title,
-        exam,
-        questionIds: docRefs.map(r => r.id),
-        duration,
-        negativeMarking: penalty,
-        premium: isPremium,
-        status: "published",
-        createdAt: Date.now(),
-        totalQuestions: result.questions.length
-      });
-
-      toast({ title: "Express Mock Live", description: `${result.questions.length} questions parsed and deployed.` });
-      setPastedContent("");
-    } catch (e: any) {
-      toast({ title: "Direct Build Failed", description: e.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+      await deleteMock(id);
+      toast({ title: "Signal Purged" });
+      loadRegistry();
+    } catch (e) {
+      toast({ title: "Deletion Error", variant: "destructive" });
     }
   }
-
-  const toggleSelect = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedIds(next);
-  };
 
   return (
     <AdminProtect>
@@ -244,268 +168,268 @@ export default function MockFactoryPage() {
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
                 </div>
-                <p className="text-zinc-500 font-medium ml-1">Forge server-synced CBT environments from Atomic Assets or Express Pastes.</p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {Object.keys(EXAM_PRESETS).map(p => (
-                  <button 
-                    key={p} 
-                    onClick={() => applyPreset(p as any)}
-                    className="px-4 py-2 rounded-xl border border-white/5 bg-zinc-900/50 text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
-                  >
-                    {p} Preset
-                  </button>
-                ))}
+                <p className="text-zinc-500 font-medium ml-1">Forge server-synced CBT environments for Full, Sectional, or Chapter-level training.</p>
               </div>
             </header>
 
-            {/* Common Controls */}
-            <Card className="p-8 rounded-[32px] bg-zinc-900/40 border-white/5 grid grid-cols-1 md:grid-cols-4 gap-8">
-               <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Simulation Title</p>
-                  <Input 
-                    placeholder="e.g. Excise Inspector Mega Mock #1" 
-                    value={title} 
-                    onChange={e => setTitle(e.target.value)}
-                    className="bg-black/40 border-white/5 h-12 rounded-xl font-bold"
-                  />
-               </div>
-               <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Target Cluster</p>
-                  <Input 
-                    placeholder="e.g. PSSSB" 
-                    value={exam} 
-                    onChange={e => setExam(e.target.value)}
-                    className="bg-black/40 border-white/5 h-12 rounded-xl font-bold"
-                  />
-               </div>
-               <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Duration (Mins)</p>
-                  <Input 
-                    type="number" 
-                    value={duration} 
-                    onChange={e => setDuration(Number(e.target.value))}
-                    className="bg-black/40 border-white/5 h-12 rounded-xl font-bold"
-                  />
-               </div>
-               <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Access Logic</p>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setIsPremium(true)}
-                      className={cn("flex-1 rounded-xl h-12 font-black text-[10px] uppercase border transition-all", isPremium ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "border-white/5 text-zinc-500")}
-                    >Premium</button>
-                    <button 
-                      onClick={() => setIsPremium(false)}
-                      className={cn("flex-1 rounded-xl h-12 font-black text-[10px] uppercase border transition-all", !isPremium ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-900/20" : "border-white/5 text-zinc-500")}
-                    >Free</button>
-                  </div>
-               </div>
-            </Card>
+            <div className="grid lg:grid-cols-12 gap-10">
+               {/* Left Controls - Blueprints */}
+               <div className="lg:col-span-8 space-y-10">
+                  <Card className="p-8 rounded-[40px] bg-zinc-900/40 border-white/5 space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Simulation Identity</label>
+                          <Input 
+                            placeholder="e.g. Excise Inspector Mega Mock #1" 
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold"
+                          />
+                       </div>
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Exam Board Cluster</label>
+                          <Input 
+                            placeholder="e.g. PSSSB" 
+                            value={exam}
+                            onChange={(e) => setExam(e.target.value)}
+                            className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold"
+                          />
+                       </div>
+                    </div>
 
-            <Tabs defaultValue="smart" className="space-y-10">
-               <TabsList className="bg-zinc-900 border-white/5 p-1.5 rounded-[24px] h-16 w-fit">
-                  <TabsTrigger value="smart" className="rounded-[18px] px-10 font-bold data-[state=active]:bg-primary text-xs uppercase tracking-[0.2em]">
-                    <Sparkles className="w-4 h-4 mr-2" /> Smart Generator
-                  </TabsTrigger>
-                  <TabsTrigger value="manual" className="rounded-[18px] px-10 font-bold data-[state=active]:bg-primary text-xs uppercase tracking-[0.2em]">
-                    <LayoutGrid className="w-4 h-4 mr-2" /> Manual Builder
-                  </TabsTrigger>
-                  <TabsTrigger value="direct" className="rounded-[18px] px-10 font-bold data-[state=active]:bg-primary text-xs uppercase tracking-[0.2em]">
-                    <Zap className="w-4 h-4 mr-2" /> Direct Builder
-                  </TabsTrigger>
-               </TabsList>
+                    <Tabs defaultValue="full" className="space-y-8">
+                       <TabsList className="bg-zinc-950/50 border border-white/5 p-1 rounded-2xl h-14 w-fit">
+                          <TabsTrigger value="full" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Full Mock</TabsTrigger>
+                          <TabsTrigger value="sectional" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Sectional</TabsTrigger>
+                          <TabsTrigger value="chapter" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Chapter Test</TabsTrigger>
+                       </TabsList>
 
-               <TabsContent value="smart">
-                  <div className="grid lg:grid-cols-12 gap-10 items-start">
-                     <div className="lg:col-span-8 space-y-8">
-                        <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-10 space-y-10">
-                           <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                 <Layers className="text-primary w-5 h-5" />
-                              </div>
-                              <h3 className="text-xl font-bold uppercase tracking-tight">Subject Blueprint</h3>
-                           </div>
+                       <TabsContent value="full" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Question Payload</p>
+                                <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
+                             </div>
+                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Difficulty Balanced</p>
+                                <Select value={difficulty} onValueChange={setDifficulty}>
+                                   <SelectTrigger className="bg-transparent border-none p-0 text-lg font-bold h-fit shadow-none">
+                                      <SelectValue />
+                                   </SelectTrigger>
+                                   <SelectContent className="bg-zinc-950 text-white">
+                                      <SelectItem value="mixed">Mixed Strategy</SelectItem>
+                                      <SelectItem value="easy">Easy Base</SelectItem>
+                                      <SelectItem value="medium">Medium Standard</SelectItem>
+                                      <SelectItem value="hard">Hard Elite</SelectItem>
+                                   </SelectContent>
+                                </Select>
+                             </div>
+                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Source Protocol</p>
+                                <p className="text-sm font-bold text-white uppercase">Atomic Bank + PYQ</p>
+                             </div>
+                          </div>
+                          <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl">
+                             {loading ? <Loader2 className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
+                             Forge Full Mock
+                          </Button>
+                       </TabsContent>
 
-                           <div className="space-y-6">
-                              <div className="grid grid-cols-2 gap-4 text-[10px] font-black uppercase text-zinc-600 tracking-widest px-4">
-                                 <span>Subject Index</span>
-                                 <span className="text-right">Weightage (Questions)</span>
-                              </div>
-                              <div className="space-y-3">
-                                 {blueprints.map((bp, i) => (
-                                    <div key={i} className="p-6 rounded-[28px] bg-white/[0.02] border border-white/5 flex items-center justify-between group hover:bg-white/[0.04] transition-all">
-                                       <span className="font-bold text-zinc-300">{bp.subject}</span>
-                                       <div className="flex items-center gap-4">
-                                          <input 
-                                            type="number" 
-                                            value={bp.count}
-                                            onChange={(e) => {
-                                              const next = [...blueprints];
-                                              next[i].count = Number(e.target.value);
-                                              setBlueprints(next);
-                                            }}
-                                            className="w-20 bg-black/40 border border-white/10 rounded-lg text-center font-black py-1.5 focus:ring-primary/20 outline-none" 
-                                          />
-                                       </div>
+                       <TabsContent value="sectional" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Subject Extraction</label>
+                                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                                   <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
+                                      <SelectValue placeholder="Select Subject" />
+                                   </SelectTrigger>
+                                   <SelectContent className="bg-zinc-950 text-white max-h-[300px]">
+                                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                   </SelectContent>
+                                </Select>
+                             </div>
+                             <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Quantity</p>
+                                <Input type="number" value={qCount} onChange={(e) => setQCount(Number(e.target.value))} className="bg-transparent border-none p-0 text-3xl font-black focus-visible:ring-0" />
+                             </div>
+                          </div>
+                          <Button onClick={() => handleGenerate('sectional')} disabled={loading || !selectedSubject} className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl font-black shadow-2xl shadow-emerald-900/20">
+                             {loading ? <Loader2 className="animate-spin mr-3" /> : <Target className="mr-3" />}
+                             Synthesize Sectional Test
+                          </Button>
+                       </TabsContent>
+
+                       <TabsContent value="chapter" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Core Subject</label>
+                                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                                   <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
+                                      <SelectValue placeholder="Select Subject" />
+                                   </SelectTrigger>
+                                   <SelectContent className="bg-zinc-950 text-white">
+                                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                   </SelectContent>
+                                </Select>
+                             </div>
+                             <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em] px-4">Detected Chapters/Topics</label>
+                                <Select value={selectedTopic} onValueChange={setSelectedTopic} disabled={!selectedSubject}>
+                                   <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold">
+                                      <SelectValue placeholder={availableTopics.length > 0 ? "Select Chapter" : "No Topics Detected"} />
+                                   </SelectTrigger>
+                                   <SelectContent className="bg-zinc-950 text-white">
+                                      {availableTopics.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                   </SelectContent>
+                                </Select>
+                             </div>
+                          </div>
+                          <Button onClick={() => handleGenerate('chapter')} disabled={loading || !selectedTopic} className="w-full h-20 rounded-[32px] bg-accent hover:bg-accent/90 text-2xl font-black shadow-2xl shadow-accent/20">
+                             {loading ? <Loader2 className="animate-spin mr-3" /> : <Zap className="mr-3" />}
+                             Generate Chapter Sprint
+                          </Button>
+                       </TabsContent>
+                    </Tabs>
+                  </Card>
+
+                  {/* Operational Registry */}
+                  <Tabs defaultValue="drafts" className="space-y-6">
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-xl font-bold uppercase tracking-tight flex items-center gap-3">
+                          <Database className="text-primary w-5 h-5" />
+                          Simulation Registry
+                       </h3>
+                       <TabsList className="bg-zinc-900 border-white/5 p-1 rounded-xl h-10">
+                          <TabsTrigger value="drafts" className="rounded-lg px-6 font-bold text-[10px] uppercase">Drafts ({drafts.length})</TabsTrigger>
+                          <TabsTrigger value="published" className="rounded-lg px-6 font-bold text-[10px] uppercase">Published ({published.length})</TabsTrigger>
+                       </TabsList>
+                    </div>
+
+                    <TabsContent value="drafts" className="space-y-4">
+                       {registryLoading ? (
+                         [1,2].map(i => <div key={i} className="h-24 rounded-3xl bg-zinc-900/50 animate-pulse border border-white/5" />)
+                       ) : drafts.length > 0 ? (
+                         drafts.map(m => (
+                           <div key={m.id} className="p-6 rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-primary/20 transition-all flex items-center justify-between group">
+                              <div className="flex items-center gap-6">
+                                 <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center">
+                                    <FileText className="text-zinc-500 w-6 h-6 group-hover:text-primary transition-colors" />
+                                 </div>
+                                 <div>
+                                    <h4 className="font-bold text-lg">{m.title}</h4>
+                                    <div className="flex gap-3 mt-1">
+                                       <Badge variant="outline" className="text-[8px] font-black uppercase border-white/10">{m.type}</Badge>
+                                       <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{m.totalQuestions} Artifacts • {m.duration} Mins</span>
                                     </div>
-                                 ))}
+                                 </div>
+                              </div>
+                              <div className="flex gap-3">
+                                 <Button onClick={() => handlePublish(m.id)} className="h-10 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 font-black text-[10px] uppercase tracking-widest shadow-lg">Publish Simulation</Button>
+                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(m.id)} className="rounded-xl text-zinc-700 hover:text-destructive"><Trash2 size={18} /></Button>
                               </div>
                            </div>
+                         ))
+                       ) : (
+                         <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[40px] opacity-30 italic">No draft simulations in the pipeline.</div>
+                       )}
+                    </TabsContent>
 
-                           <Button 
-                             onClick={handleSmartGenerate}
-                             disabled={loading}
-                             className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl transition-transform active:scale-95"
-                           >
-                              {loading ? <Loader2 className="animate-spin" /> : "Synthesize Smart Mock"}
-                           </Button>
-                        </Card>
-                     </div>
+                    <TabsContent value="published" className="space-y-4">
+                       {published.map(m => (
+                         <div key={m.id} className="p-6 rounded-[32px] bg-zinc-900/40 border border-emerald-500/10 hover:border-emerald-500/30 transition-all flex items-center justify-between group">
+                            <div className="flex items-center gap-6">
+                               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                                  <CheckCircle2 className="text-emerald-500 w-6 h-6" />
+                               </div>
+                               <div>
+                                  <h4 className="font-bold text-lg text-white">{m.title}</h4>
+                                  <div className="flex gap-3 mt-1">
+                                     <Badge className="bg-emerald-500 text-white border-none text-[8px] font-black uppercase">LIVE</Badge>
+                                     <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{m.exam} • {m.totalQuestions} Qs</span>
+                                  </div>
+                               </div>
+                            </div>
+                            <div className="flex gap-3">
+                               <Button variant="ghost" size="icon" onClick={() => handleDelete(m.id)} className="rounded-xl text-zinc-700 hover:text-destructive"><Trash2 size={18} /></Button>
+                            </div>
+                         </div>
+                       ))}
+                    </TabsContent>
+                  </Tabs>
+               </div>
 
-                     <div className="lg:col-span-4 space-y-8">
-                        <Card className="rounded-[40px] bg-emerald-500/10 border-emerald-500/20 p-8 flex flex-col justify-between h-48 relative overflow-hidden">
-                           <div className="absolute top-0 right-0 p-6 opacity-10">
-                              <Database size={100} />
+               {/* Right Sidebar - Logic Configuration */}
+               <div className="lg:col-span-4 space-y-8">
+                  <Card className="p-8 rounded-[40px] bg-zinc-900/50 border border-white/5 space-y-8">
+                     <h3 className="font-bold text-lg flex items-center gap-3">
+                        <Settings className="text-primary w-5 h-5" />
+                        CBT Global Settings
+                     </h3>
+                     <div className="space-y-8">
+                        <div className="space-y-3">
+                           <div className="flex justify-between items-center px-2">
+                              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Session Time</label>
+                              <span className="text-xs font-black text-white">{duration}m</span>
                            </div>
-                           <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-1">Production Inventory</p>
-                           <h2 className="text-4xl font-black text-white">Live Assets</h2>
-                           <div className="pt-4 border-t border-emerald-500/10 flex items-center gap-2 text-[9px] font-black text-emerald-500/60 uppercase">
-                              <Zap size={12} /> Sync: 100% Validated
-                           </div>
-                        </Card>
-                        
-                        <div className="p-8 rounded-[40px] bg-zinc-900 border border-white/5 space-y-4">
-                           <h4 className="font-bold flex items-center gap-2">
-                              <ClipboardCheck className="text-primary w-4 h-4" />
-                              Quality Protocol
-                           </h4>
-                           <p className="text-xs text-zinc-500 leading-relaxed italic">
-                              "Smart generation uses randomized selection from approved Production Bank assets. This ensures every simulation follows recruitment board logic."
-                           </p>
-                        </div>
-                     </div>
-                  </div>
-               </TabsContent>
-
-               <TabsContent value="manual">
-                  <div className="space-y-8">
-                     <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-900/50 p-8 rounded-[40px] border border-white/5">
-                        <div className="flex items-center gap-4 flex-1">
-                           <div className="relative flex-1 max-w-md">
-                              <Search className="absolute left-4 top-3 h-4 w-4 text-zinc-500" />
-                              <Input 
-                                placeholder="Search production bank..." 
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                className="bg-black/40 border-white/5 pl-12 rounded-xl h-12"
-                              />
-                           </div>
-                           <Select value={filterSubject} onValueChange={setFilterSubject}>
-                              <SelectTrigger className="w-48 bg-black/40 border-white/5 rounded-xl h-12">
-                                 <SelectValue placeholder="Subject" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                 <SelectItem value="All">All Subjects</SelectItem>
-                                 {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                              </SelectContent>
-                           </Select>
-                        </div>
-                        <div className="flex items-center gap-4">
-                           <Badge variant="outline" className="h-12 px-6 rounded-xl border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest">
-                             {selectedIds.size} Selected
-                           </Badge>
-                           <Button 
-                             onClick={handleManualDeploy}
-                             disabled={loading || selectedIds.size === 0}
-                             className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 font-black text-xs uppercase shadow-xl shadow-primary/20"
-                           >Deploy Custom Mock</Button>
-                        </div>
-                     </div>
-
-                     <div className="bg-zinc-900/30 border border-white/5 rounded-[40px] overflow-hidden">
-                        <table className="w-full text-left">
-                           <thead className="bg-zinc-900/60 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                              <tr>
-                                 <th className="p-6 px-10">Select</th>
-                                 <th className="p-6">Classification</th>
-                                 <th className="p-6">Question Preview</th>
-                                 <th className="p-6">Metadata</th>
-                              </tr>
-                           </thead>
-                           <tbody className="divide-y divide-white/5">
-                              {bankQuestions.filter(q => q.question_en.toLowerCase().includes(search.toLowerCase())).map(q => (
-                                <tr key={q.id} className="hover:bg-white/[0.01] transition-colors group cursor-pointer" onClick={() => toggleSelect(q.id)}>
-                                   <td className="p-6 px-10">
-                                      <div 
-                                        className={cn(
-                                          "w-6 h-6 rounded-lg border transition-all flex items-center justify-center",
-                                          selectedIds.has(q.id) ? "bg-primary border-primary" : "border-white/10"
-                                        )}
-                                      >
-                                         {selectedIds.has(q.id) && <CheckCircle2 size={14} className="text-white" />}
-                                      </div>
-                                   </td>
-                                   <td className="p-6">
-                                      <Badge variant="outline" className="bg-primary/5 text-primary border-none text-[8px] font-black uppercase">{q.subject}</Badge>
-                                   </td>
-                                   <td className="p-6">
-                                      <p className="text-sm font-bold line-clamp-1">{q.question_en}</p>
-                                      <p className="text-[10px] text-zinc-600 italic mt-1 line-clamp-1">{q.question_pa}</p>
-                                   </td>
-                                   <td className="p-6">
-                                      <div className="flex gap-2">
-                                         <Badge className="bg-zinc-800 text-zinc-500 text-[8px] font-black uppercase">{q.difficulty}</Badge>
-                                         {q.pyq && <Badge className="bg-orange-500/10 text-orange-500 border-none text-[8px] font-black uppercase">PYQ</Badge>}
-                                      </div>
-                                   </td>
-                                </tr>
-                              ))}
-                           </tbody>
-                        </table>
-                     </div>
-                  </div>
-               </TabsContent>
-
-               <TabsContent value="direct">
-                  <div className="max-w-4xl mx-auto space-y-8">
-                     <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-12 space-y-10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-16 opacity-5 pointer-events-none">
-                           <Zap size={200} />
-                        </div>
-                        <div className="space-y-2">
-                           <h3 className="text-3xl font-black tracking-tighter uppercase">Direct Test Injector</h3>
-                           <p className="text-zinc-500 font-medium">Paste raw MCQs from ChatGPT or Word docs. Our engine handles the bank injection and mock creation in one pass.</p>
-                        </div>
-
-                        <div className="space-y-4">
-                           <Textarea 
-                             placeholder="Paste your questions here... 
-Example:
-1. What is...?
-A. Option 1
-B. Option 2..."
-                             value={pastedContent}
-                             onChange={(e) => setPastedContent(e.target.value)}
-                             className="min-h-[400px] bg-black/40 border-white/5 rounded-[32px] p-8 text-sm leading-relaxed"
+                           <Input 
+                             type="range" 
+                             min={10} max={180} step={5}
+                             value={duration}
+                             onChange={(e) => setDuration(Number(e.target.value))}
+                             className="h-1.5 p-0 bg-zinc-800 rounded-full appearance-none cursor-pointer"
                            />
                         </div>
 
-                        <Button 
-                           onClick={handleDirectBuild}
-                           disabled={loading || !pastedContent.trim()}
-                           className="w-full h-20 rounded-[32px] bg-emerald-600 hover:bg-emerald-700 text-2xl font-black shadow-2xl transition-transform active:scale-95 shadow-emerald-900/20"
-                        >
-                           {loading ? <Loader2 className="animate-spin" /> : "Deploy Express Mock"}
-                        </Button>
-                     </Card>
+                        <div className="space-y-3">
+                           <div className="flex justify-between items-center px-2">
+                              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Negative Factor</label>
+                              <span className="text-xs font-black text-destructive">-{penalty}</span>
+                           </div>
+                           <div className="flex gap-2">
+                              {[0, 0.25, 0.33, 0.5].map(v => (
+                                <button 
+                                  key={v}
+                                  onClick={() => setPenalty(v)}
+                                  className={cn(
+                                    "flex-1 h-10 rounded-xl font-black text-[10px] border transition-all",
+                                    penalty === v ? "bg-destructive/10 border-destructive text-destructive" : "border-white/5 text-zinc-600 hover:bg-white/5"
+                                  )}
+                                >{v}</button>
+                              ))}
+                           </div>
+                        </div>
+
+                        <div className="space-y-3">
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Monetization Logic</label>
+                           <div className="flex gap-2">
+                              <button 
+                                onClick={() => setIsPremium(true)}
+                                className={cn("flex-1 h-12 rounded-2xl font-black text-[10px] uppercase border transition-all", isPremium ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "border-white/5 text-zinc-600")}
+                              >Premium PASS</button>
+                              <button 
+                                onClick={() => setIsPremium(false)}
+                                className={cn("flex-1 h-12 rounded-2xl font-black text-[10px] uppercase border transition-all", !isPremium ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-900/20" : "border-white/5 text-zinc-600")}
+                              >Free Hub</button>
+                           </div>
+                        </div>
+                     </div>
+                  </Card>
+
+                  <div className="p-8 rounded-[40px] bg-primary/5 border border-primary/20 space-y-4">
+                     <h4 className="font-bold flex items-center gap-2">
+                        <ClipboardCheck className="text-primary w-4 h-4" />
+                        Quality Protocol
+                     </h4>
+                     <p className="text-[11px] text-zinc-500 leading-relaxed italic">
+                        "Full Mocks automatically balance subject weightage. Sectional and Chapter tests are designed for targetted rapid-repetition drills."
+                     </p>
                   </div>
-               </TabsContent>
-            </Tabs>
+               </div>
+            </div>
           </div>
         </main>
       </div>
     </AdminProtect>
   );
 }
+
