@@ -4,11 +4,9 @@ import { useState, useEffect } from "react";
 import AdminSidebar from "@/components/admin/sidebar";
 import AdminProtect from "@/components/admin/admin-protect";
 import { 
-  Rocket, Plus, Zap, Loader2, Search, BookOpen, 
-  Trash2, Edit3, Copy, PlayCircle, Lock, Unlock, 
-  Database, BarChart3, ShieldCheck, CheckCircle2,
-  Filter, ChevronRight, RefreshCw,
-  Clock, Sparkles, AlertCircle, Shield
+  Plus, Zap, Loader2, Search, BookOpen, 
+  Trash2, Edit3, PlayCircle, Lock, Unlock, 
+  Database, BarChart3, RefreshCw, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +15,6 @@ import {
   getAllMocks, 
   publishMock, 
   deleteMock, 
-  updateMock,
   updateMockAccess
 } from "@/services/mocks";
 import { MockTest, MockAccessType } from "@/types";
@@ -42,10 +39,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-/**
- * SIMULATION FACTORY (Operations Hub v12)
- * High-density registry with deep management actions.
- */
 export default function SimulationFactoryPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -53,7 +46,6 @@ export default function SimulationFactoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
-  
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,11 +78,12 @@ export default function SimulationFactoryPage() {
       }
       
       toast({ title: "Signal Synced", description: `Operation ${action} complete.` });
-      loadMocks();
+      await loadMocks();
     } catch (e: any) {
       toast({ title: "Action Failed", description: e.message, variant: "destructive" });
     } finally {
       setActionId(null);
+      setDeleteConfirmId(null);
     }
   };
 
@@ -128,7 +121,7 @@ export default function SimulationFactoryPage() {
             <header className="flex justify-between items-end border-b border-white/5 pb-8">
               <div className="space-y-1">
                 <h1 className="font-headline text-4xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Lifecycle Operations Board v12.0</p>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Lifecycle Operations Board v12.5</p>
               </div>
               <Button onClick={() => router.push('/admin/ai-mock-studio')} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] uppercase tracking-widest blue-glow">
                  <Plus className="mr-2 w-4 h-4" /> Forge New Mock
@@ -170,7 +163,6 @@ export default function SimulationFactoryPage() {
                                <div className="flex items-center gap-6">
                                   <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center border border-white/5 relative shrink-0">
                                      <BookOpen className="text-zinc-500 w-5 h-5 group-hover:text-primary transition-colors" />
-                                     {m.aiGenerated && <Sparkles size={10} className="absolute -top-1 -right-1 text-primary fill-current" />}
                                   </div>
                                   <div className="min-w-0">
                                      <p className="font-bold text-zinc-100 text-base mb-1 truncate">{m.title}</p>

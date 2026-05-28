@@ -31,13 +31,12 @@ import {
   UserCheck, 
   Clock, 
   Zap,
-  Bell,
   Activity,
   User as UserIcon,
-  AlertTriangle,
   Loader2,
   CreditCard,
-  Crown
+  Crown,
+  Filter
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -62,7 +61,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 import { getActivePlans, grantAccessManual, revokeAccess, Plan } from "@/services/subscriptions";
 
 export default function AdminUsersPage() {
@@ -88,11 +86,12 @@ export default function AdminUsersPage() {
       setLoading(false);
     });
 
-    const logQ = query(collection(db, "adminLogs"), orderBy("timestamp", "desc"), limit(5));
+    const logQ = query(collection(db, "adminLogs"), orderBy("timestamp", "desc"), limit(10));
     const unsubLogs = onSnapshot(logQ, (snap) => {
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
+    // Fetch plans to allow granting passes
     getActivePlans().then(setPlans);
 
     return () => {
@@ -148,7 +147,7 @@ export default function AdminUsersPage() {
       toast({ title: "Access Revoked" });
       setPassMode(false);
     } catch (e: any) {
-      toast({ title: "Revoke Failed", variant: "destructive" });
+      toast({ title: "Revoke Failed", description: e.message, variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
@@ -360,7 +359,7 @@ export default function AdminUsersPage() {
                  <div className="space-y-4">
                     <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] px-2">Active Production Tiers</p>
                     <div className="grid grid-cols-2 gap-4">
-                       {plans.map(plan => (
+                       {plans.length > 0 ? plans.map(plan => (
                          <Button 
                            key={plan.id}
                            onClick={() => handleGrantPass(plan)}
@@ -371,7 +370,11 @@ export default function AdminUsersPage() {
                             <span className="font-bold text-sm text-zinc-300 group-hover:text-white">{plan.name}</span>
                             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{plan.duration} Days</span>
                          </Button>
-                       ))}
+                       )) : (
+                         <div className="col-span-2 py-8 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                            <p className="text-xs text-zinc-500">No active plans found in Tier Architect.</p>
+                         </div>
+                       )}
                     </div>
                  </div>
                  <div className="p-6 rounded-3xl bg-destructive/5 border border-destructive/20 flex items-center justify-between">

@@ -14,17 +14,14 @@ import {
   deleteDoc,
   writeBatch,
   setDoc,
-  onSnapshot,
-  DocumentData
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { MockTest, Question, AttemptAnswer, ExamAttempt, MockAccessType } from '@/types';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /**
- * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v12)
- * Includes deep question calibration and tier gating.
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v12.5)
+ * Comprehensive management of mocks and linked artifacts.
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -54,11 +51,10 @@ export async function updateMock(mockId: string, updates: Partial<MockTest>) {
 }
 
 export async function publishMock(mockId: string, publish: boolean) {
-  return updateMock(mockId, { status: publish ? 'published' : 'draft', publishedAt: publish ? Date.now() : null });
-}
-
-export async function toggleMockLock(mockId: string, locked: boolean) {
-  return updateMock(mockId, { status: locked ? 'draft' : 'published' });
+  return updateMock(mockId, { 
+    status: publish ? 'published' : 'draft', 
+    publishedAt: publish ? Date.now() : null 
+  });
 }
 
 export async function updateMockAccess(mockId: string, tier: MockAccessType) {
@@ -69,7 +65,7 @@ export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
   
-  // Recursively delete questions
+  // Recursively delete questions in the subcollection
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
   
@@ -78,7 +74,7 @@ export async function deleteMock(mockId: string) {
 }
 
 /**
- * ARTIFACT MANAGEMENT (CALIBRATION)
+ * ARTIFACT CALIBRATION (Question Management)
  */
 
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
@@ -109,7 +105,8 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
     id: docRef.id, 
     order: Date.now(),
     createdAt: Date.now(),
-    updatedAt: Date.now() 
+    updatedAt: Date.now(),
+    status: "published"
   };
   await setDoc(docRef, payload);
   await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(1) });
@@ -135,7 +132,7 @@ export async function linkGlobalToMock(mockId: string, globalQuestionId: string)
 }
 
 /**
- * CBT LIFECYCLE ENGINE
+ * CBT ENGINE LIFECYCLE
  */
 
 export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
@@ -161,15 +158,6 @@ export async function saveAnswer(attemptId: string, questionIndex: number, answe
   return setDoc(ref, answer, { merge: true });
 }
 
-export async function getAttemptAnswers(attemptId: string): Promise<Record<number, AttemptAnswer>> {
-  const snap = await getDocs(collection(db, 'attempts', attemptId, 'answers'));
-  const answers: Record<number, AttemptAnswer> = {};
-  snap.forEach(d => {
-    answers[parseInt(d.id)] = d.data() as AttemptAnswer;
-  });
-  return answers;
-}
-
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any) {
   const ref = doc(db, 'attempts', attemptId);
   await updateDoc(ref, {
@@ -192,9 +180,6 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
   }, { merge: true });
 }
 
-/**
- * FEATURE GATING: Access Validation
- */
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
   if (mock.accessType === 'free') return { allowed: true };
   
@@ -204,13 +189,11 @@ export async function checkMockAccess(userId: string, mock: MockTest): Promise<{
 
   const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
   if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
-    return { allowed: false, reason: `${mock.accessType.toUpperCase()} Required.` };
+    return { allowed: false, reason: `${mock.accessType.toUpperCase()} Access Tier Required.` };
   }
   
-  // Tier Check
   const sub = subSnap.data();
-  if (sub.tier === 'elite' || sub.tier === 'vip') return { allowed: true };
-  
+  if (sub.tier === 'elite' || sub.tier === 'vip' || sub.tier === 'gold') return { allowed: true };
   if (mock.accessType === 'pass_plus' && sub.tier !== 'free') return { allowed: true };
 
   return { allowed: false, reason: "Insufficient Access Tier." };
