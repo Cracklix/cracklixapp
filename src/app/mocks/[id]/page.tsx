@@ -41,8 +41,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /**
- * INSTITUTIONAL CBT ENGINE v30.0
- * Exactly Testbook Style: Mandatory Gateway, High-frequency autosave, Tactical palette.
+ * INSTITUTIONAL CBT ENGINE v30.1
+ * Rebuilt for extreme robustness and real-time state synchronization.
  */
 export default function CBTEngineV30() {
   const { user, profile } = useAuth();
@@ -165,7 +165,7 @@ export default function CBTEngineV30() {
     return (
       <div className="h-screen bg-[#F1F5F9] flex flex-col items-center justify-center text-center space-y-6">
          <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
-         <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500">Re-stabilizing Secure Buffer...</p>
+         <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500">Establishing Secure Buffer...</p>
       </div>
     );
   }
@@ -221,18 +221,36 @@ export default function CBTEngineV30() {
     );
   }
 
+  // Final exam safety check for empty data
+  if (questions.length === 0 && phase === 'exam') {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center text-center p-10 gap-6">
+         <div className="w-20 h-20 rounded-[32px] bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm">
+            <AlertTriangle className="text-orange-400 w-10 h-10" />
+         </div>
+         <div className="space-y-2">
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Simulation Data Empty</h2>
+            <p className="text-slate-500 max-w-sm">The selected simulation does not contain any valid artifacts. Please contact administration.</p>
+         </div>
+         <Button variant="outline" className="rounded-xl px-10 h-12 font-bold" onClick={() => router.push('/exams')}>
+            Return to Hub
+         </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-[#F1F5F9] flex flex-col overflow-hidden">
        <header className="h-[65px] px-8 bg-[#1e293b] text-white flex items-center justify-between shrink-0 z-50 shadow-2xl">
           <div className="flex flex-col">
-             <span className="font-black text-sm tracking-tight uppercase">{mock?.title}</span>
+             <span className="font-black text-sm tracking-tight uppercase truncate max-w-[200px] md:max-w-md">{mock?.title}</span>
              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Arena Active
              </span>
           </div>
 
           <div className="flex items-center gap-6">
-             <div className="flex items-center gap-3 border-r border-white/10 pr-6 mr-2">
+             <div className="flex items-center gap-3 border-r border-white/10 pr-6 mr-2 hidden md:flex">
                 <Globe size={14} className="text-blue-400" />
                 <Select value={activeLang} onValueChange={(v: any) => setActiveLang(v)}>
                    <SelectTrigger className="h-9 w-32 bg-white/5 border-white/10 rounded-xl font-black text-[9px] uppercase tracking-widest px-3"><SelectValue /></SelectTrigger>
@@ -247,15 +265,15 @@ export default function CBTEngineV30() {
              <Timer duration={timeRemaining / 60} onFinish={handleSubmitFinal} />
              
              <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-10 px-8 rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg">
-                SUBMIT TEST
+                SUBMIT
              </Button>
              
              <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="rounded-xl hover:bg-white/5"><Menu size={22} /></Button>
           </div>
        </header>
 
-       <div className="h-12 bg-white border-b border-slate-200 flex items-center px-10 shrink-0">
-          <div className="flex items-center gap-10">
+       <div className="h-12 bg-white border-b border-slate-200 flex items-center px-10 shrink-0 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-10 whitespace-nowrap">
              <button className="h-full border-b-4 border-blue-600 flex items-center px-2">
                 <span className="text-[11px] font-black uppercase tracking-widest text-blue-600">All Sections</span>
              </button>
@@ -266,7 +284,7 @@ export default function CBTEngineV30() {
        </div>
 
        <div className="flex-1 flex overflow-hidden">
-          <main className="flex-1 overflow-y-auto no-scrollbar p-12 bg-white relative">
+          <main className="flex-1 overflow-y-auto no-scrollbar p-6 md:p-12 bg-white relative">
              <div className="max-w-5xl mx-auto space-y-12 pb-24">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                    <div className="flex items-center gap-4">
@@ -275,7 +293,7 @@ export default function CBTEngineV30() {
                       </Badge>
                       <Badge variant="outline" className="border-slate-200 text-slate-400 text-[10px] font-bold">Q {current + 1}</Badge>
                    </div>
-                   <div className="flex items-center gap-6">
+                   <div className="flex items-center gap-6 hidden sm:flex">
                       <div className="flex items-center gap-2 text-slate-400">
                          <Target size={14} />
                          <span className="text-[10px] font-bold uppercase">{questions[current]?.difficulty}</span>
@@ -347,20 +365,20 @@ export default function CBTEngineV30() {
              
              <div className="p-8 border-t border-slate-200 bg-white">
                 <Button onClick={() => setSubmitConfirmOpen(true)} className="w-full h-14 rounded-2xl bg-[#1e293b] hover:bg-black text-white font-black text-xs uppercase tracking-[0.3em] shadow-2xl">
-                   CONFIRM SUBMISSION
+                   CONFIRM SUBMIT
                 </Button>
              </div>
           </aside>
        </div>
 
-       <footer className="h-[75px] px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
+       <footer className="h-[75px] px-6 md:px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
           <div className="flex gap-4">
-             <Button variant="outline" className="rounded-xl h-11 px-8 border-slate-200 font-black text-[11px] uppercase tracking-widest text-slate-600">Mark for Review</Button>
-             <Button variant="ghost" onClick={() => handleOptionSelect('')} className="rounded-xl h-11 px-6 font-black text-[11px] uppercase tracking-widest text-red-500">Clear Response</Button>
+             <Button variant="outline" className="rounded-xl h-11 px-4 md:px-8 border-slate-200 font-black text-[11px] uppercase tracking-widest text-slate-600">Review</Button>
+             <Button variant="ghost" onClick={() => handleOptionSelect('')} className="rounded-xl h-11 px-4 md:px-6 font-black text-[11px] uppercase tracking-widest text-red-500 hidden sm:flex">Clear</Button>
           </div>
-          <div className="flex gap-6 items-center">
-             <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-slate-600 disabled:opacity-0">Previous</button>
-             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-14 px-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[0.3em] shadow-xl shadow-blue-600/20 transition-all">
+          <div className="flex gap-4 md:gap-6 items-center">
+             <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-slate-600 disabled:opacity-0">Back</button>
+             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-14 px-8 md:px-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[0.3em] shadow-xl shadow-blue-600/20 transition-all">
                 SAVE & NEXT
              </Button>
           </div>

@@ -19,9 +19,8 @@ interface QuestionCardProps {
 }
 
 /**
- * PRODUCTION BILINGUAL RENDERER v30.1
- * Defensive property access to prevent crashes with malformed data.
- * Standardized Language Keys: 'english', 'punjabi', 'bilingual'.
+ * PRODUCTION BILINGUAL RENDERER v30.2
+ * Hardened with defensive property access to prevent runtime crashes.
  */
 export default function QuestionCard({
   question,
@@ -43,7 +42,7 @@ export default function QuestionCard({
       await updateDoc(doc(db, "users", user.uid), {
         bookmarks: arrayUnion({
           id: question.id,
-          text: question.en?.question || "Bilingual Artifact",
+          text: question.en?.question || question.pa?.question || "Bilingual Artifact",
           subject: question.subject,
           savedAt: Date.now()
         })
@@ -60,14 +59,14 @@ export default function QuestionCard({
     <div className="space-y-12 select-none animate-in fade-in slide-in-from-right-4 duration-500">
       {/* QUESTION PAYLOAD */}
       <div className="space-y-8">
-         {/* English Header */}
-         {(activeLanguage === 'english' || isBilingual) && question.en && (
+         {/* English Header - Safely accessed */}
+         {(activeLanguage === 'english' || isBilingual) && question.en?.question && (
             <div className="text-[30px] font-bold text-slate-800 leading-[1.5] max-md:text-[22px]">
                {question.en.question}
             </div>
          )}
 
-         {/* Punjabi Signal (Raavi Font Optimization) */}
+         {/* Punjabi Signal (Raavi Font Optimization) - Safely accessed */}
          {(activeLanguage === 'punjabi' || isBilingual) && question.pa?.question && (
             <div className="text-[30px] font-medium text-slate-500 leading-[1.5] max-md:text-[22px] border-l-4 border-blue-500/10 pl-10 py-2 italic font-body">
                {question.pa.question}
@@ -77,9 +76,11 @@ export default function QuestionCard({
 
       {/* OPTION MATRIX (STACKED BILINGUAL) */}
       <div className="grid grid-cols-1 gap-5 pt-12 border-t border-slate-100">
-         {(question.en?.options || []).map((option, idx) => {
+         {(question.en?.options || question.pa?.options || []).map((_, idx) => {
            const letter = String.fromCharCode(65 + idx);
            const isOptionSelected = selected === letter;
+           
+           const enOption = question.en?.options?.[idx];
            const paOption = question.pa?.options?.[idx];
 
            return (
@@ -100,8 +101,10 @@ export default function QuestionCard({
                    {letter}
                 </div>
                 <div className="flex flex-col gap-3 flex-1 pt-3.5">
-                   <p className="font-bold text-lg md:text-xl leading-tight">{option}</p>
-                   {(isBilingual || activeLanguage === 'punjabi') && paOption && (
+                   {(activeLanguage === 'english' || isBilingual) && enOption && (
+                     <p className="font-bold text-lg md:text-xl leading-tight">{enOption}</p>
+                   )}
+                   {(activeLanguage === 'punjabi' || isBilingual) && paOption && (
                      <p className={cn(
                        "text-[20px] md:text-[24px] font-medium leading-tight font-body",
                        isOptionSelected ? "text-white/70" : "text-slate-400"
