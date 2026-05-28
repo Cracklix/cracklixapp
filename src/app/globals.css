@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 220 17% 4%;
+    --background: 230 35% 5%;
     --foreground: 210 20% 98%;
-    --card: 220 17% 8%;
+    --card: 230 35% 7%;
     --card-foreground: 210 20% 98%;
-    --popover: 220 17% 8%;
+    --popover: 230 35% 7%;
     --popover-foreground: 210 20% 98%;
-    --primary: 217 100% 60%;
+    --primary: 217 91% 60%;
     --primary-foreground: 210 20% 98%;
-    --secondary: 220 17% 12%;
+    --secondary: 230 35% 10%;
     --secondary-foreground: 210 20% 98%;
-    --muted: 220 17% 12%;
+    --muted: 230 35% 10%;
     --muted-foreground: 215 15% 65%;
     --accent: 180 100% 50%;
-    --accent-foreground: 220 17% 7%;
+    --accent-foreground: 230 35% 5%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
-    --border: 220 17% 14%;
-    --input: 220 17% 14%;
-    --ring: 217 100% 60%;
-    --radius: 1.5rem;
+    --border: 230 35% 12%;
+    --input: 230 35% 12%;
+    --ring: 217 91% 60%;
+    --radius: 1.75rem;
   }
 }
 
@@ -34,27 +34,38 @@
   body {
     @apply bg-background text-foreground selection:bg-primary/30;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(217, 91%, 60%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(180, 100%, 50%, 0.03) 0px, transparent 50%);
   }
 }
 
 .cracklix-glass {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+  @apply bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)];
 }
 
 .blue-glow {
-  box-shadow: 0 0 80px -20px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 50px -10px rgba(59, 130, 246, 0.4);
 }
 
 .cyan-glow {
-  box-shadow: 0 0 80px -20px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 50px -10px rgba(0, 255, 255, 0.3);
 }
 
 @keyframes float {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+  50% { transform: translateY(-15px); }
   100% { transform: translateY(0px); }
 }
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
