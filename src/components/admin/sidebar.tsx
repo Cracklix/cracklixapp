@@ -17,7 +17,9 @@ import {
   Rocket,
   FilePlus2,
   LifeBuoy,
-  Activity
+  Activity,
+  BrainCircuit,
+  Layers
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -34,15 +36,16 @@ export default function AdminSidebar() {
       ]
     },
     {
-      label: "Asset Factory",
+      label: "CBT Infrastructure",
       items: [
-        { name: "PDF Ingestion", href: "/admin/pdf-ingestion", icon: FilePlus2 },
+        { name: "Mock Generator", href: "/admin/mock-generator", icon: BrainCircuit },
         { name: "Simulation Factory", href: "/admin/mocks", icon: Rocket },
         { name: "Atomic Bank", href: "/admin/question-bank", icon: Database },
+        { name: "PDF Ingestion", href: "/admin/pdf-ingestion", icon: FilePlus2 },
       ]
     },
     {
-      label: "Specialized",
+      label: "Content Layers",
       items: [
         { name: "PYQ Archive", href: "/admin/pyqs", icon: History },
         { name: "State Ranks", href: "/admin/leaderboards", icon: Trophy },
@@ -66,7 +69,7 @@ export default function AdminSidebar() {
         </div>
         <div className="flex flex-col">
           <span className="font-headline text-sm font-black text-white leading-none tracking-tight">CRACKLIX</span>
-          <span className="text-[7px] text-primary font-black uppercase mt-1 tracking-[0.2em]">Command Console</span>
+          <span className="text-[7px] text-primary font-black uppercase mt-1 tracking-[0.2em]">Enterprise Admin</span>
         </div>
       </div>
 
@@ -84,7 +87,7 @@ export default function AdminSidebar() {
                     <div className={cn(
                       "flex items-center gap-2.5 py-2 px-3 rounded-lg transition-all duration-200 group mx-2",
                       isActive 
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/10" 
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
                         : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
                     )}>
                       <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white" : "group-hover:text-primary")} />
@@ -102,7 +105,7 @@ export default function AdminSidebar() {
         <Link href="/dashboard">
           <div className="flex items-center justify-center gap-2 p-2.5 rounded-lg bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest">
             <Rocket className="w-3.5 h-3.5" />
-            <span>Exit Arena</span>
+            <span>Launch Student Arena</span>
           </div>
         </Link>
       </div>
