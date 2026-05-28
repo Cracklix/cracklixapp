@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -96,7 +95,6 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
     startedAt: Date.now(),
     remainingTime: mock.duration * 60,
     currentQuestionIndex: 0,
-    currentSectionId: mock.sections?.[0]?.id || "core",
     answers: {},
     deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
     suspiciousActivityCount: 0
@@ -107,17 +105,9 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
   return attemptRef.id;
 }
 
-export async function pauseAttempt(attemptId: string, remainingTime: number) {
-  const ref = doc(db, 'attempts', attemptId);
-  return updateDoc(ref, { 
-    status: 'paused', 
-    remainingTime,
-    updatedAt: Date.now() 
-  });
-}
-
 export async function saveAnswer(attemptId: string, questionId: string, answer: AttemptAnswer) {
   const ref = doc(db, 'attempts', attemptId);
+  // Using dynamic key for minimal payload size during real-time sync
   return updateDoc(ref, {
     [`answers.${questionId}`]: {
       ...answer,
@@ -141,27 +131,23 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     streak: increment(1)
   });
 
+  // Update State Leaderboard Registry
   await setDoc(doc(db, 'leaderboards', userId), {
     userId,
     xp: increment(xpGain),
-    lastAttempt: Date.now(),
+    lastAttemptAt: Date.now(),
     accuracy: analytics.accuracy,
     name: (await getDoc(doc(db, 'users', userId))).data()?.name || 'Aspirant'
   }, { merge: true });
 }
 
 /**
- * ARTIFACTS
+ * ARTIFACT MANAGEMENT
  */
 
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const colRef = collection(db, 'mocks', mockId, 'questions');
   const snap = await getDocs(colRef);
-  
-  if (snap.empty) {
-    return [];
-  }
-
   const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
   return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
@@ -172,17 +158,6 @@ export function subscribeMockQuestions(mockId: string, callback: (qs: Question[]
     const qs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
     callback(qs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
   });
-}
-
-export async function deleteMockQuestion(mockId: string, questionId: string) {
-  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
-  await deleteDoc(docRef);
-  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
-}
-
-export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
-  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
-  await updateDoc(docRef, { ...updates, updatedAt: Date.now() });
 }
 
 export async function addQuestionToMock(mockId: string, question: Partial<Question>) {
@@ -201,6 +176,17 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
   return docRef.id;
 }
 
+export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
+  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await updateDoc(docRef, { ...updates, updatedAt: Date.now() });
+}
+
+export async function deleteMockQuestion(mockId: string, questionId: string) {
+  const docRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await deleteDoc(docRef);
+  await updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
+}
+
 export async function updateMock(mockId: string, updates: Partial<MockTest>) {
   const ref = doc(db, 'mocks', mockId);
   return updateDoc(ref, { ...updates, updatedAt: Date.now() });
@@ -209,6 +195,7 @@ export async function updateMock(mockId: string, updates: Partial<MockTest>) {
 export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
   const mockRef = doc(db, 'mocks', mockId);
+  // Also delete all subcollection artifacts
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
   batch.delete(mockRef);
