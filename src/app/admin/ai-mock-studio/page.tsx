@@ -206,7 +206,7 @@ export default function AiMockStudioPage() {
                          <div className="space-y-3 font-mono text-[9px] text-zinc-500 overflow-y-auto max-h-48 no-scrollbar">
                            {logs.map((log, i) => (
                              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
-                               <span className="text-primary">></span> {log}
+                               <span className="text-primary">&gt;</span> {log}
                              </motion.div>
                            ))}
                          </div>
