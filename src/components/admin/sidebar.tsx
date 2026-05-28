@@ -10,7 +10,8 @@ import {
   BookOpen, 
   Users, 
   BarChart3,
-  Zap
+  Zap,
+  Newspaper
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -21,6 +22,7 @@ export default function AdminSidebar() {
     { name: "Questions", href: "/admin/questions", icon: FileQuestion },
     { name: "Mocks", href: "/admin/mocks", icon: FileText },
     { name: "Exams", href: "/admin/exams", icon: BookOpen },
+    { name: "Content", href: "/admin/current-affairs", icon: Newspaper },
     { name: "Users", href: "/admin/users", icon: Users },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   ];

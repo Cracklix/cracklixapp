@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -20,45 +19,51 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "Subscription": {
-      "title": "Subscription",
-      "description": "User subscription details.",
+    "CurrentAffair": {
+      "title": "Current Affair",
+      "description": "Daily news and exam-relevant current affairs.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "plan": { "type": "string", "enum": ["Monthly", "Quarterly", "Yearly"] },
-        "amount": { "type": "number" },
-        "status": { "type": "string", "enum": ["active", "expired", "cancelled"] },
-        "startDate": { "type": "number" },
-        "endDate": { "type": "number" },
-        "paymentId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "language": { "type": "string" },
         "createdAt": { "type": "number" }
       }
     },
-    "Payment": {
-      "title": "Payment",
-      "description": "Payment transaction record.",
+    "PDFResource": {
+      "title": "PDF Resource",
+      "description": "Study materials and notes in PDF format.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "paymentId": { "type": "string" },
-        "orderId": { "type": "string" },
-        "plan": { "type": "string" },
-        "amount": { "type": "number" },
-        "status": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "category": { "type": "string" },
         "createdAt": { "type": "number" }
       }
     },
-    "Invoice": {
-      "title": "Invoice",
-      "description": "Billing invoice for subscriptions.",
+    "DailyQuiz": {
+      "title": "Daily Quiz",
+      "description": "Quick daily assessment questions.",
       "type": "object",
       "properties": {
-        "invoiceId": { "type": "string" },
+        "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "string" },
+        "topic": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "User-saved items for later review.",
+      "type": "object",
+      "properties": {
         "userId": { "type": "string" },
-        "amount": { "type": "number" },
-        "gst": { "type": "number" },
-        "status": { "type": "string" },
+        "type": { "type": "string", "enum": ["currentAffair", "pdf", "question"] },
+        "itemId": { "type": "string" },
         "createdAt": { "type": "number" }
       }
     }
@@ -71,21 +76,21 @@
       "schema": "UserProfile",
       "description": "Student profiles and statistics."
     },
-    "/subscriptions/{subId}": {
-      "schema": "Subscription",
-      "description": "Active and past user subscriptions."
+    "/currentAffairs/{id}": {
+      "schema": "CurrentAffair",
+      "description": "Article feed."
     },
-    "/payments/{paymentId}": {
-      "schema": "Payment",
-      "description": "Transaction logs."
+    "/pdfs/{id}": {
+      "schema": "PDFResource",
+      "description": "Study documents."
     },
-    "/premiumAccess/{userId}": {
-      "schema": "object",
-      "description": "Quick lookup for premium status."
+    "/dailyQuizzes/{id}": {
+      "schema": "DailyQuiz",
+      "description": "Daily mini-assessments."
     },
-    "/invoices/{invoiceId}": {
-      "schema": "Invoice",
-      "description": "User billing records."
+    "/bookmarks/{id}": {
+      "schema": "Bookmark",
+      "description": "User saved items."
     }
   }
 }
