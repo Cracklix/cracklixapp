@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 
 export function usePremium(userId: string | undefined) {
   const [isPremium, setIsPremium] = useState(false);
+  const [premiumData, setPremiumData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,8 +22,10 @@ export function usePremium(userId: string | undefined) {
         const data = docSnap.data();
         const isActive = data.status === "active" && data.endDate > Date.now();
         setIsPremium(isActive);
+        setPremiumData(data);
       } else {
         setIsPremium(false);
+        setPremiumData(null);
       }
       setLoading(false);
     });
@@ -30,7 +33,7 @@ export function usePremium(userId: string | undefined) {
     return () => unsub();
   }, [userId]);
 
-  return { isPremium, loading };
+  return { isPremium, premiumData, loading };
 }
 
 export async function checkPremiumStatus(userId: string) {

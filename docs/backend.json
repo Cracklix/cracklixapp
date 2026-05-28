@@ -21,6 +21,32 @@
         "bookmarks": { "type": "array" }
       }
     },
+    "Plan": {
+      "title": "Subscription Plan",
+      "description": "Defined access tiers for the platform.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "duration": { "type": "number", "description": "Days" },
+        "features": { "type": "array" },
+        "exams": { "type": "array", "description": "Specific exams this pass unlocks" },
+        "active": { "type": "boolean" }
+      }
+    },
+    "Subscription": {
+      "title": "User Subscription",
+      "description": "Active access record for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "planId": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "expired", "cancelled"] },
+        "expiresAt": { "type": "number" },
+        "paymentId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
     "Question": {
       "title": "Question Bank Item",
       "description": "Atomic bilingual question for the central bank.",
@@ -49,23 +75,6 @@
         "createdAt": { "type": "number" },
         "aiGenerated": { "type": "boolean" }
       }
-    },
-    "MockTest": {
-      "title": "Mock Test",
-      "description": "CBT Exam configuration.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "exam": { "type": "string" },
-        "duration": { "type": "number" },
-        "totalQuestions": { "type": "number" },
-        "negativeMarking": { "type": "number" },
-        "isLive": { "type": "boolean" },
-        "published": { "type": "boolean" },
-        "questionIds": { "type": "array" },
-        "aiGenerated": { "type": "boolean" },
-        "createdAt": { "type": "number" }
-      }
     }
   },
   "auth": {
@@ -76,29 +85,21 @@
       "schema": "UserProfile",
       "description": "Student profiles and roles."
     },
+    "/plans/{planId}": {
+      "schema": "Plan",
+      "description": "Dynamic pricing tiers."
+    },
+    "/subscriptions/{subId}": {
+      "schema": "Subscription",
+      "description": "User subscription ledger."
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Transaction logs."
+    },
     "/questions/{qId}": {
       "schema": "Question",
       "description": "Central bilingual question bank repository."
-    },
-    "/question_drafts/{qId}": {
-      "schema": "Question",
-      "description": "Moderation queue for OCR and AI generated content."
-    },
-    "/mocks/{mockId}": {
-      "schema": "MockTest",
-      "description": "Standardized mock tests referencing question IDs."
-    },
-    "/community_messages/{msgId}": {
-      "schema": "CommunityMessage",
-      "description": "Real-time discussion streams."
-    },
-    "/aiUsage/{usageId}": {
-      "schema": "AiUsageLimit",
-      "description": "Daily token tracking for Gemini limit enforcement."
-    },
-    "/leaderboards/{userId}": {
-      "schema": "LeaderboardEntry",
-      "description": "State and district rankings."
     }
   }
 }

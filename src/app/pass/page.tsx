@@ -1,15 +1,16 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Check, Zap, Sparkles, ShieldCheck, Crown, Loader2 } from 'lucide-react';
+import { Check, Zap, Sparkles, ShieldCheck, Crown, Loader2, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Script from 'next/script';
 import { motion } from 'framer-motion';
+import { getActivePlans, Plan } from '@/services/subscriptions';
 
 declare global {
   interface Window {
@@ -21,14 +22,23 @@ export default function PassPage() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
 
-  const buyPass = async (amount: number, plan: string) => {
+  useEffect(() => {
+    getActivePlans().then(data => {
+      setPlans(data);
+      setLoadingPlans(false);
+    });
+  }, []);
+
+  const buyPass = async (amount: number, plan: Plan) => {
     if (!user) {
       toast({ title: "Authentication Required", description: "Please sign in to buy a pass.", variant: "destructive" });
       return;
     }
 
-    setLoading(plan);
+    setLoading(plan.id);
     try {
       const orderRes = await fetch("/api/create-order", {
         method: "POST",
@@ -44,7 +54,7 @@ export default function PassPage() {
         amount: order.amount,
         currency: "INR",
         name: "CRACKLIX PASS",
-        description: `${plan} Access - Punjab Govt Exam mastery`,
+        description: `${plan.name} Access - Punjab Govt Exam mastery`,
         order_id: order.id,
         prefill: {
           name: profile?.name || "",
@@ -60,7 +70,9 @@ export default function PassPage() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 response,
-                plan,
+                plan: plan.name,
+                planId: plan.id,
+                duration: plan.duration,
                 amount,
                 userId: user.uid,
               }),
@@ -70,7 +82,7 @@ export default function PassPage() {
             if (verification.success) {
               toast({
                 title: "PASS Activated!",
-                description: `Welcome to the elite tier. Your ${plan} access is now live.`,
+                description: `Welcome to the elite tier. Your ${plan.name} access is now live.`,
               });
             }
           } catch (err: any) {
@@ -87,34 +99,6 @@ export default function PassPage() {
       setLoading(null);
     }
   };
-
-  const plans = [
-    {
-      name: "Monthly",
-      price: 199,
-      description: "Perfect for a single exam sprint.",
-      features: ["Unlimited Mocks", "Basic AI Coaching", "Standard Analytics", "Punjab GK PDF Access"],
-      color: "bg-zinc-900",
-      buttonColor: "bg-blue-600 hover:bg-blue-700"
-    },
-    {
-      name: "Quarterly",
-      price: 499,
-      description: "Our most popular plan for serious aspirants.",
-      features: ["Everything in Monthly", "Advanced AI Coach", "Rank Predictor", "Current Affairs (Premium)", "Priority Support"],
-      color: "bg-card/40 border-primary/50",
-      highlight: true,
-      buttonColor: "bg-primary hover:bg-primary/90"
-    },
-    {
-      name: "Yearly",
-      price: 999,
-      description: "The ultimate edge for multi-exam domination.",
-      features: ["Everything in Quarterly", "AI Mock Generator", "1-on-1 Strategy Support", "Exclusive Webinars", "Pass for Life Discount"],
-      color: "bg-zinc-900",
-      buttonColor: "bg-emerald-600 hover:bg-emerald-700"
-    }
-  ];
 
   return (
     <AppLayout>
@@ -136,58 +120,70 @@ export default function PassPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <Card className={`rounded-[40px] border-white/5 flex flex-col h-full overflow-hidden transition-all duration-300 hover:scale-[1.02] ${plan.color}`}>
-                {plan.highlight && (
-                  <div className="bg-primary text-white text-center py-2 text-xs font-bold uppercase tracking-widest">
-                    Best Value
-                  </div>
-                )}
-                <CardHeader className="p-8 pb-4">
-                  <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                  <CardDescription className="text-muted-foreground mt-2">{plan.description}</CardDescription>
-                  <div className="mt-6 flex items-baseline gap-1">
-                    <span className="text-4xl font-black">₹{plan.price}</span>
-                    <span className="text-muted-foreground">/period</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-8 pt-0 flex-1">
-                  <div className="space-y-4 mt-6">
-                    {plan.features.map((feature) => (
-                      <div key={feature} className="flex gap-3 text-sm items-center">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span className="text-zinc-300">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="p-8 pt-0">
-                  <Button
-                    onClick={() => buyPass(plan.price, plan.name)}
-                    disabled={!!loading}
-                    className={`w-full h-14 rounded-2xl text-lg font-bold ${plan.buttonColor}`}
-                  >
-                    {loading === plan.name ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <Zap className="mr-2 w-5 h-5 fill-current" />
-                        Get {plan.name} Pass
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+        {loadingPlans ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[1,2,3].map(i => <div key={i} className="h-96 rounded-[40px] bg-zinc-900/50 animate-pulse border border-white/5" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {plans.map((plan, i) => (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Card className={cn(
+                  "rounded-[40px] border-white/5 flex flex-col h-full overflow-hidden transition-all duration-300 hover:scale-[1.02] bg-zinc-900/40",
+                  i === 1 && "border-primary/50 ring-1 ring-primary/20"
+                )}>
+                  {i === 1 && (
+                    <div className="bg-primary text-white text-center py-2 text-xs font-bold uppercase tracking-widest">
+                      Best Value
+                    </div>
+                  )}
+                  <CardHeader className="p-8 pb-4">
+                    <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
+                    <CardDescription className="text-muted-foreground mt-2">{plan.duration} Days of Unrestricted Access</CardDescription>
+                    <div className="mt-6 flex items-baseline gap-1">
+                      <span className="text-4xl font-black">₹{plan.price}</span>
+                      <span className="text-muted-foreground">/period</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-8 pt-0 flex-1">
+                    <div className="space-y-4 mt-6">
+                      {plan.features.map((feature) => (
+                        <div key={feature} className="flex gap-3 text-sm items-center">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="text-zinc-300">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-8 pt-0">
+                    <Button
+                      onClick={() => buyPass(plan.price, plan)}
+                      disabled={!!loading}
+                      className={cn(
+                        "w-full h-14 rounded-2xl text-lg font-bold",
+                        i === 2 ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary/90"
+                      )}
+                    >
+                      {loading === plan.id ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Zap className="mr-2 w-5 h-5 fill-current" />
+                          Get {plan.name}
+                        </>
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-secondary/20 p-12 rounded-[48px] border border-white/5">
           <div className="space-y-6">
@@ -223,6 +219,7 @@ export default function PassPage() {
           </div>
         </div>
       </div>
+      <Navbar />
     </AppLayout>
   );
 }

@@ -18,7 +18,8 @@ import {
   ShieldAlert,
   Database,
   Cpu,
-  FileUp
+  FileUp,
+  CreditCard
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -27,6 +28,7 @@ export default function AdminSidebar() {
   const items = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Users", href: "/admin/users", icon: Users },
+    { name: "PASS Management", href: "/admin/subscriptions", icon: CreditCard },
     { name: "PDF Ingestion", href: "/admin/pdf-ingestion", icon: FileUp },
     { name: "Ingestion Hub", href: "/admin/questions", icon: Cpu },
     { name: "Question Bank", href: "/admin/question-bank", icon: Database },
