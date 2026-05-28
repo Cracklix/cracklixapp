@@ -30,7 +30,9 @@ import {
   Terminal,
   Activity,
   Timer as TimerIcon,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert,
+  ArrowRight
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
@@ -42,37 +44,40 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import 'regenerator-runtime/runtime';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
-import { SUBJECTS } from '@/types';
 import { useRouter } from 'next/navigation';
 
 const EXAM_DATABASE = {
-  "PSSSB (Group A/B/C)": [
+  "PSSSB (Groups A-D)": [
     { id: "clerk", name: "PSSSB Clerk / IT / Accounts" },
     { id: "sa", name: "Senior Assistant (Group B)" },
     { id: "ei", name: "Excise Inspector" },
     { id: "patwari", name: "Revenue Patwari" },
     { id: "audit", name: "Audit Inspector" },
+    { id: "warder", name: "Jail Warder" },
   ],
   "Technical Cadre": [
     { id: "je_civil", name: "JE Civil (PSSSB/PSPCL)" },
     { id: "je_elec", name: "JE Electrical (PSSSB/PSPCL)" },
     { id: "je_mech", name: "JE Mechanical (PSSSB/PSTCL)" },
+    { id: "lab", name: "Lab Attendant" },
   ],
   "Punjab Police": [
     { id: "psi", name: "Sub-Inspector (SI)" },
     { id: "pc", name: "Constable" },
+    { id: "intelligence", name: "Intelligence Assistant" },
   ],
-  "Teaching": [
+  "Teaching & Center": [
     { id: "pstet_1", name: "PSTET Paper 1" },
     { id: "pstet_2", name: "PSTET Paper 2" },
+    { id: "ctet", name: "CTET National" },
   ],
-  "Other": [
-    { id: "custom", name: "Other / Custom Authority..." },
+  "Other Authorities": [
+    { id: "custom", name: "Other / Custom Board..." },
   ]
 };
 
 const SUBJECT_LIST = [
-  "General Knowledge", "Current Affairs", "Punjab History", "Punjabi", 
+  "General Knowledge", "Current Affairs", "Punjab History", "Punjab Culture", "Punjabi", 
   "English", "Hindi", "Reasoning", "Quantitative Aptitude", "ICT & Computers", 
   "Science", "Environmental Studies", "Child Development & Pedagogy", 
   "Civil Engineering", "Electrical Engineering", "Mechanical Engineering", "Other"
@@ -119,12 +124,12 @@ export default function AiMockOS() {
 
   async function robustBatchGenerate(batchInput: MockGeneratorInput, attempt = 1): Promise<any> {
     try {
-      addLog(`Requesting Batch (Attempt ${attempt}/3)...`);
+      addLog(`Requesting Neural Chunk (Attempt ${attempt}/3)...`);
       return await generateQuestionBatch(batchInput);
     } catch (err: any) {
       if (attempt < 3) {
         const delay = attempt * 2000;
-        addLog(`Synthesis Break: ${err.message}. Auto-retrying in ${delay}ms...`);
+        addLog(`Retrying Signal: ${err.message}. Fallback engine in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
         return robustBatchGenerate(batchInput, attempt + 1);
       }
@@ -138,17 +143,17 @@ export default function AiMockOS() {
     setQuestions([]);
     setLogs([]);
     setCurrentStage(0);
-    addLog("Initializing Neural Engine v11.0...");
+    addLog("Initializing NEURAL FORGE CORE v12...");
 
     const examName = exam === 'custom' ? customExamName : (Object.values(EXAM_DATABASE).flat().find(e => e.id === exam)?.name || "Punjab Exam");
     const totalCount = count === "custom" ? Number(customCount) : Number(count);
     
-    const batchSize = 5;
+    const batchSize = 5; // Fixed small size for maximum stability
     const totalBatches = Math.ceil(totalCount / batchSize);
 
     try {
       setCurrentStage(0);
-      addLog(`Target Payload: ${totalCount} Questions. Split into ${totalBatches} Neural Chunks.`);
+      addLog(`Payload Identified: ${totalCount} Questions across ${totalBatches} chunks.`);
 
       let accumulatedQs: any[] = [];
 
@@ -159,7 +164,7 @@ export default function AiMockOS() {
         addLog(`Forging Batch ${b + 1}/${totalBatches} (${chunkCount} questions)...`);
         
         const result = await robustBatchGenerate({
-          prompt: `${promptInput} | Focus on: ${subject === 'Other' ? customSubjectName : subject}`,
+          prompt: `${promptInput} | Subject Area: ${subject === 'Other' ? customSubjectName : subject}`,
           exam: examName,
           mode,
           count: chunkCount,
@@ -171,16 +176,16 @@ export default function AiMockOS() {
           const validQs = result.questions.filter((q: any) => q.questionEnglish && q.optionsEnglish?.length === 4);
           accumulatedQs = [...accumulatedQs, ...validQs];
           setQuestions([...accumulatedQs]);
-          addLog(`Batch ${b + 1} synchronized. Total artifacts: ${accumulatedQs.length}`);
+          addLog(`Batch ${b + 1} validated and linked. Pool size: ${accumulatedQs.length}`);
         }
       }
 
       setCurrentStage(4);
       addLog("Neural Synthesis complete. Payload integrity verified.");
-      toast({ title: "Synthesis Ready", description: "Simulation architecture forged." });
+      toast({ title: "Synthesis Successful", description: "Simulation architecture ready for publish." });
     } catch (error: any) {
-      addLog(`CRITICAL FAILURE: ${error.message}`);
-      toast({ title: "Generation Breach", description: "The neural pipeline reached a critical limit.", variant: "destructive" });
+      addLog(`SYSTEM BREACH: ${error.message}`);
+      toast({ title: "Generation Breach", description: "Pipeline timeout. Please retry with smaller batch.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -189,7 +194,7 @@ export default function AiMockOS() {
   async function executeWorkflow(directPublish: boolean = false) {
     if (questions.length === 0) return;
     setInjecting(true);
-    addLog(directPublish ? "Executing Direct Publish..." : "Staging Artifacts...");
+    addLog(directPublish ? "⚡ EXECUTING LIVE PUBLISH..." : "📦 SAVING DRAFT...");
     
     try {
       const mockRef = doc(collection(db, "mocks"));
@@ -198,14 +203,14 @@ export default function AiMockOS() {
       const examName = exam === 'custom' ? customExamName : (Object.values(EXAM_DATABASE).flat().find(e => e.id === exam)?.name || "Punjab Exam");
       const totalCount = questions.length;
 
-      // Auto-Time calculation if not manual
+      // Auto-Timer Intelligence
       let duration = Number(customDuration);
       if (timeMode === 'auto') {
         if (totalCount <= 10) duration = 15;
-        else if (totalCount <= 25) duration = 30;
-        else if (totalCount <= 50) duration = 60;
-        else if (totalCount <= 100) duration = 120;
-        else duration = 150;
+        else if (totalCount <= 25) duration = 20;
+        else if (totalCount <= 50) duration = 45;
+        else if (totalCount <= 100) duration = 90;
+        else duration = 120;
       }
 
       batch.set(mockRef, {
@@ -242,15 +247,15 @@ export default function AiMockOS() {
       });
 
       await batch.commit();
-      addLog(`Success. ${questions.length} artifacts deployed.`);
-      toast({ title: directPublish ? "Simulation Live" : "Staged Successfully" });
+      addLog(`SUCCESS: ${questions.length} artifacts deployed to Live Arena.`);
+      toast({ title: directPublish ? "LIVE PUBLISH SUCCESSFUL" : "DRAFT SAVED" });
       
       if (directPublish) router.push('/admin/mocks');
       else setQuestions([]);
 
     } catch (e: any) {
       addLog(`FATAL INJECTION ERROR: ${e.message}`);
-      toast({ title: "Injection Failed", variant: "destructive" });
+      toast({ title: "Deployment Failed", variant: "destructive" });
     } finally {
       setInjecting(false);
     }
@@ -266,10 +271,10 @@ export default function AiMockOS() {
              <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl z-30">
                 <div className="flex items-center gap-3">
                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center blue-glow"><BrainCircuit size={16} className="text-primary" /></div>
-                   <h1 className="text-[11px] font-black uppercase tracking-[0.4em]">AI Mock OS v11.0</h1>
+                   <h1 className="text-[11px] font-black uppercase tracking-[0.4em]">NEURAL FORGE v12.0</h1>
                 </div>
                 <div className="flex items-center gap-4">
-                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none animate-pulse text-[8px] font-black uppercase">Neural Link Active</Badge>
+                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none animate-pulse text-[8px] font-black uppercase">Core Status: Nominal</Badge>
                 </div>
              </header>
 
@@ -284,13 +289,13 @@ export default function AiMockOS() {
                         <div className="space-y-4">
                            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter">Forge <span className="text-primary">Intelligence</span></h2>
                            <p className="text-zinc-500 font-medium text-xl max-w-2xl mx-auto italic leading-relaxed">
-                              "High-fidelity recruitment simulations for PSSSB, Police, and Technical Boards. Just instruct the OS."
+                              "Instant high-fidelity recruitment simulations for PSSSB, Police, and Technical Boards. Direct live publish enabled."
                            </p>
                         </div>
                         <div className="flex flex-wrap justify-center gap-4 pt-10">
                            <button onClick={() => setPromptInput("Create 100Q PSSSB Excise Mock")} className="px-6 py-3 rounded-2xl bg-zinc-900 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">Create 100Q PSSSB Excise Mock</button>
-                           <button onClick={() => setPromptInput("Punjab Police SI Revision")} className="px-6 py-3 rounded-2xl bg-zinc-900 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">Punjab Police SI Revision</button>
-                           <button onClick={() => setPromptInput("JE Electrical Technical Drill")} className="px-6 py-3 rounded-2xl bg-zinc-900 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">JE Electrical Technical Drill</button>
+                           <button onClick={() => setPromptInput("Punjab Police SI Revision Set")} className="px-6 py-3 rounded-2xl bg-zinc-900 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">Punjab Police SI Revision</button>
+                           <button onClick={() => setPromptInput("JE Electrical Full Paper")} className="px-6 py-3 rounded-2xl bg-zinc-900 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">JE Electrical Full Paper</button>
                         </div>
                      </div>
                    )}
@@ -304,8 +309,8 @@ export default function AiMockOS() {
                            </div>
                         </div>
                         <div className="text-center space-y-4">
-                           <h3 className="text-2xl font-black uppercase tracking-[0.2em]">{STAGES[currentStage].label}</h3>
-                           <div className="space-y-2 font-mono text-[10px] text-zinc-600 max-w-md mx-auto">
+                           <h3 className="text-2xl font-black uppercase tracking-[0.2em] animate-pulse">{STAGES[currentStage].label}</h3>
+                           <div className="space-y-2 font-mono text-[11px] text-zinc-600 max-w-md mx-auto">
                              {logs.map((log, i) => <div key={i} className="flex gap-2"><span className="text-primary">&gt;&gt;</span> {log}</div>)}
                            </div>
                         </div>
@@ -334,13 +339,13 @@ export default function AiMockOS() {
                                      <Badge variant="outline" className="border-orange-500/20 text-orange-500 text-[9px] font-black uppercase">Native Signal</Badge>
                                      <p className="text-lg font-medium text-zinc-300 leading-relaxed italic">{q.questionPunjabi || q.questionHindi}</p>
                                      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 mt-6">
-                                        <p className="text-[9px] font-black text-zinc-600 uppercase mb-2">Logical Rationalization</p>
+                                        <p className="text-[9px] font-black text-zinc-600 uppercase mb-2">Rationalization</p>
                                         <p className="text-xs text-zinc-500 leading-relaxed italic">{q.explanationEnglish}</p>
                                      </div>
                                   </div>
                                </div>
                                <div className="mt-8 pt-4 border-t border-white/[0.03] flex items-center gap-4 text-[9px] font-black text-zinc-600 uppercase tracking-widest">
-                                  <span>{q.subject}</span> • <span>{q.difficulty}</span> • <span>{q.bloomLevel}</span>
+                                  <span>{q.subject}</span> • <span>{q.difficulty}</span> • <span>Artifact ID: {idx + 1}</span>
                                </div>
                             </div>
                           ))}
@@ -354,12 +359,12 @@ export default function AiMockOS() {
                 <div className="max-w-4xl mx-auto space-y-6">
                    <AnimatePresence>
                       {questions.length > 0 && !loading && (
-                        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center justify-center gap-4 p-4 bg-zinc-900/40 backdrop-blur-xl border border-white/5 rounded-[32px] shadow-2xl">
+                        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center justify-center gap-4 p-4 bg-zinc-900/40 backdrop-blur-xl border border-white/5 rounded-[32px] shadow-2xl mb-4">
                             <Button onClick={() => executeWorkflow(true)} disabled={injecting} className="h-14 px-10 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-xl blue-glow">
-                                {injecting ? <Loader2 className="animate-spin" /> : <Rocket size={18} className="mr-2" />} LIVE PUBLISH
+                                {injecting ? <Loader2 className="animate-spin" /> : <Zap size={18} className="mr-2" />} ⚡ LIVE PUBLISH
                             </Button>
                             <Button onClick={() => executeWorkflow(false)} disabled={injecting} className="h-14 px-8 rounded-2xl bg-zinc-800 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-700">
-                                {injecting ? <Loader2 className="animate-spin" /> : <Database size={18} className="mr-2" />} SAVE DRAFT
+                                {injecting ? <Loader2 className="animate-spin" /> : <Database size={18} className="mr-2" />} 📦 SAVE DRAFT
                             </Button>
                             <Button variant="ghost" onClick={() => setQuestions([])} className="h-14 px-6 rounded-2xl text-zinc-600 hover:text-white font-black text-[10px] uppercase">Flush Session</Button>
                         </motion.div>
@@ -371,7 +376,7 @@ export default function AiMockOS() {
                         value={promptInput}
                         onChange={(e) => setPromptInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleLaunchSynthesis()}
-                        placeholder="Instruct the OS: 'Create a 100Q PSSSB Excise Inspector full mock'..."
+                        placeholder="Instruct Forge OS: 'Create a 100Q PSSSB Excise Inspector mock'..."
                         className="h-20 bg-zinc-900 border-white/10 rounded-[28px] pl-8 pr-[280px] text-lg font-bold transition-all focus:ring-primary/20 shadow-2xl"
                       />
                       <div className="absolute right-4 top-3 flex gap-3">
@@ -392,13 +397,13 @@ export default function AiMockOS() {
 
           <aside className="w-[380px] border-l border-white/5 bg-zinc-950 flex flex-col shrink-0 overflow-y-auto no-scrollbar">
              <header className="p-8 border-b border-white/5 flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-zinc-500 tracking-[0.3em]">Neural Calibration</span>
+                <span className="text-[11px] font-black uppercase text-zinc-500 tracking-[0.3em]">Institutional Calibration</span>
                 <Settings size={14} className="text-zinc-700" />
              </header>
              
              <div className="p-8 space-y-10 pb-24">
                 <div className="space-y-4">
-                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Authority</label>
+                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Authority Board</label>
                    <Select value={exam} onValueChange={setExam}>
                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-black text-xs uppercase px-6 shadow-lg"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-950 text-white border-white/10">
@@ -411,18 +416,19 @@ export default function AiMockOS() {
                       </SelectContent>
                    </Select>
                    {exam === 'custom' && (
-                     <Input placeholder="Enter Custom Exam Name..." value={customExamName} onChange={e => setCustomExamName(e.target.value)} className="h-14 bg-zinc-900 border-white/5 rounded-2xl text-xs font-black px-6" />
+                     <Input placeholder="Manual Exam Name..." value={customExamName} onChange={e => setCustomExamName(e.target.value)} className="h-14 bg-zinc-900 border-white/5 rounded-2xl text-xs font-black px-6" />
                    )}
                 </div>
 
                 <div className="space-y-4">
-                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Mode</label>
+                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Simulation Mode</label>
                    <Select value={mode} onValueChange={setMode}>
                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-black text-xs uppercase px-6"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-950 text-white border-white/10">
-                         <SelectItem value="full">Full Mock</SelectItem>
+                         <SelectItem value="full">Full Mock (Standard)</SelectItem>
                          <SelectItem value="sectional">Sectional Drill</SelectItem>
-                         <SelectItem value="pyq">PYQ Simulation</SelectItem>
+                         <SelectItem value="pyq">PYQ Neural Clone</SelectItem>
+                         <SelectItem value="revision">Rapid Revision</SelectItem>
                       </SelectContent>
                    </Select>
                 </div>
@@ -436,7 +442,7 @@ export default function AiMockOS() {
                       </SelectContent>
                    </Select>
                    {subject === 'Other' && (
-                     <Input placeholder="Enter Custom Subject..." value={customSubjectName} onChange={e => setCustomSubjectName(e.target.value)} className="h-14 bg-zinc-900 border-white/5 rounded-2xl text-xs font-black px-6" />
+                     <Input placeholder="Manual Subject Name..." value={customSubjectName} onChange={e => setCustomSubjectName(e.target.value)} className="h-14 bg-zinc-900 border-white/5 rounded-2xl text-xs font-black px-6" />
                    )}
                 </div>
 
@@ -458,30 +464,30 @@ export default function AiMockOS() {
                    <Select value={timeMode} onValueChange={setTimeMode}>
                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs px-6"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-950 text-white border-white/10">
-                         <SelectItem value="auto">Auto Exam Timing</SelectItem>
-                         <SelectItem value="manual">Manual Override</SelectItem>
+                         <SelectItem value="auto">Auto Logic (Testbook Mode)</SelectItem>
+                         <SelectItem value="manual">Manual Override (Mins)</SelectItem>
                       </SelectContent>
                    </Select>
                    {timeMode === 'manual' && (
-                     <Input type="number" placeholder="Duration (Minutes)..." value={customDuration} onChange={e => setCustomDuration(e.target.value)} className="h-14 bg-zinc-900 border-white/5 rounded-2xl text-xs font-black px-6" />
+                     <Input type="number" placeholder="Duration..." value={customDuration} onChange={e => setCustomDuration(e.target.value)} className="h-14 bg-zinc-900 border-white/5 rounded-2xl text-xs font-black px-6" />
                    )}
                 </div>
 
                 <div className="space-y-4">
-                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Negative Penalty</label>
+                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Negative Coefficient</label>
                    <Select value={negativeMarking} onValueChange={setNegativeMarking}>
                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs px-6"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-950 text-white border-white/10">
                          <SelectItem value="0">Zero Penalty</SelectItem>
                          <SelectItem value="0.25">0.25 Marks</SelectItem>
                          <SelectItem value="0.50">0.50 Marks</SelectItem>
-                         <SelectItem value="1.0">1.0 Mark</SelectItem>
+                         <SelectItem value="1.0">1.00 Marks</SelectItem>
                       </SelectContent>
                    </Select>
                 </div>
 
                 <div className="space-y-4">
-                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Linguistic Fidelity</label>
+                   <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Linguistic Mode</label>
                    <Select value={language} onValueChange={setLanguage}>
                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs uppercase px-6"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-zinc-950 text-white border-white/10">
@@ -497,12 +503,12 @@ export default function AiMockOS() {
                 <div className="p-6 rounded-[32px] bg-primary/5 border border-primary/20 space-y-4">
                    <div className="flex items-center gap-3">
                       <Terminal size={14} className="text-primary" />
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Engine Pulse</h4>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Forge Pulse</h4>
                    </div>
                    <div className="space-y-2">
                       <div className="flex justify-between text-[8px] font-black uppercase text-zinc-600">
-                         <span>Stability Status</span>
-                         <span className="text-emerald-500">Nominal</span>
+                         <span>Pipeline Status</span>
+                         <span className="text-emerald-500">Ready</span>
                       </div>
                       <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
                          <div className="h-full bg-emerald-500 w-full animate-pulse opacity-50" />
