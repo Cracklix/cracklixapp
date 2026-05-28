@@ -137,6 +137,44 @@ export async function publishMock(mockId: string) {
   await batch.commit();
 }
 
+export async function updateMock(id: string, data: Partial<MockTest>) {
+  const ref = doc(db, 'mocks', id);
+  await updateDoc(ref, {
+    ...data,
+    updatedAt: Date.now()
+  });
+}
+
+export async function duplicateMock(id: string) {
+  const mock = await getMockDetails(id);
+  const { id: _, ...data } = mock;
+  return await addDoc(collection(db, "mocks"), {
+    ...data,
+    title: `${data.title} (Copy)`,
+    status: "draft",
+    createdAt: Date.now(),
+    publishedAt: null,
+    liveAt: null
+  });
+}
+
+export async function getMockAnalytics(mockId: string) {
+  const q = query(collection(db, 'attempts'), where('mockId', '==', mockId), where('status', '==', 'completed'));
+  const snap = await getDocs(q);
+  
+  if (snap.empty) return null;
+  
+  const scores = snap.docs.map(d => d.data().score || 0);
+  const totalAttempts = snap.size;
+  const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : 0;
+  
+  return {
+    totalAttempts,
+    avgScore,
+    scores
+  };
+}
+
 /**
  * CBT ENGINE SERVICES
  */
