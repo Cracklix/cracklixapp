@@ -9,13 +9,11 @@ import { Button } from '@/components/ui/button';
 import { 
   Mail, 
   Shield, 
-  Calendar, 
   LogOut, 
   ShieldCheck, 
   Zap, 
   Lock,
   User as UserIcon,
-  ChevronRight,
   AlertCircle
 } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -34,7 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function ProfilePage() {
   const { user, profile, logout } = useAuth();
@@ -70,7 +68,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             {/* Identity Card */}
-            <Card className="rounded-[40px] cracklix-glass border-white/5 overflow-hidden">
+            <Card className="rounded-[40px] bg-zinc-900 border-white/5 overflow-hidden">
               <div className="h-32 bg-gradient-to-r from-primary/20 to-accent/10" />
               <CardContent className="p-8 -mt-16 text-center md:text-left md:flex items-end gap-8">
                 <Avatar className="w-32 h-32 border-8 border-[#050816] shadow-2xl mx-auto md:mx-0">
@@ -142,7 +140,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Logout Panel / Actions */}
+          {/* Session Panel */}
           <div className="space-y-8">
             <Card className="rounded-[40px] p-8 bg-zinc-900/50 border-white/5 h-fit">
               <h3 className="font-bold text-xl mb-6">Session Center</h3>
@@ -152,8 +150,8 @@ export default function ProfilePage() {
                       <Lock className="text-zinc-500 w-5 h-5" />
                    </div>
                    <div>
-                      <p className="text-xs font-bold">Primary Device</p>
-                      <p className="text-[10px] text-zinc-500 uppercase font-black">Ludhiana, India</p>
+                      <p className="text-xs font-bold">Current Training Arena</p>
+                      <p className="text-[10px] text-zinc-500 uppercase font-black">Active Device • Punjab</p>
                    </div>
                 </div>
 
@@ -164,7 +162,7 @@ export default function ProfilePage() {
                       SIGN OUT
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-zinc-950 border-white/10 rounded-[32px] p-10">
+                  <AlertDialogContent className="bg-zinc-950 border-white/10 rounded-[32px] p-10 text-white">
                     <AlertDialogHeader>
                       <AlertDialogTitle className="text-2xl font-bold">Terminate Session?</AlertDialogTitle>
                       <AlertDialogDescription className="text-zinc-400">
@@ -172,7 +170,7 @@ export default function ProfilePage() {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-8 gap-4">
-                      <AlertDialogCancel className="h-12 rounded-xl bg-zinc-900 border-white/5">Cancel</AlertDialogCancel>
+                      <AlertDialogCancel className="h-12 rounded-xl bg-zinc-900 border-white/5 text-white">Cancel</AlertDialogCancel>
                       <AlertDialogAction onClick={logout} className="h-12 rounded-xl bg-destructive hover:bg-destructive/90 font-bold">Sign Out</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -180,7 +178,7 @@ export default function ProfilePage() {
               </div>
             </Card>
 
-            {/* Admin Elevate Section */}
+            {/* Admin Access Section */}
             {!isAdmin && (
               <Card className="rounded-[40px] p-8 border-primary/20 bg-primary/5">
                 <div className="flex items-center gap-3 mb-4">
@@ -197,7 +195,7 @@ export default function ProfilePage() {
             )}
 
             {isAdmin && (
-               <Button onClick={() => router.push('/admin')} variant="outline" className="w-full h-14 rounded-2xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white font-black">
+               <Button onClick={() => router.push('/admin')} variant="outline" className="w-full h-14 rounded-2xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white font-black shadow-xl">
                   <Zap className="w-4 h-4 mr-2" /> ENTER ADMIN PANEL
                </Button>
             )}
