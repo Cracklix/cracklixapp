@@ -7,27 +7,7 @@ export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
 
 export type Subject = 
   | 'Punjab GK'
-  | 'Quant'
-  | 'Reasoning'
-  | 'English'
-  | 'Punjabi'
-  | 'Hindi'
-  | 'Sanskrit'
-  | 'Computer'
-  | 'Current Affairs'
-  | 'General Science'
-  | 'History'
-  | 'Polity'
-  | 'Geography'
-  | 'Agriculture'
-  | 'Static GK'
-  | 'Law/Constitution'
-  | 'Environment'
-  | 'Child Development & Pedagogy'
-  | 'EVS'
-  | 'Social Science'
-  | 'Science'
-  | 'Teaching Aptitude';
+  | 'Quant' | 'Reasoning' | 'English' | 'Punjabi' | 'Hindi' | 'Sanskrit' | 'Computer' | 'Current Affairs' | 'General Science' | 'History' | 'Polity' | 'Geography' | 'Agriculture' | 'Static GK' | 'Law/Constitution' | 'Environment' | 'Child Development & Pedagogy' | 'EVS' | 'Social Science' | 'Science' | 'Teaching Aptitude';
 
 export const SUBJECTS: Subject[] = [
   'Punjab GK', 'Quant', 'Reasoning', 'English', 'Punjabi', 'Hindi', 'Sanskrit',

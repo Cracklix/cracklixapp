@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, use } from "react";
@@ -19,7 +18,6 @@ import {
   CheckCircle2, 
   FileText,
   Clock,
-  Filter,
   LayoutGrid,
   Languages,
   Sparkles,
@@ -47,8 +45,8 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /**
- * PRODUCTION MOCK COMMAND CENTER
- * Enhanced for high-fidelity bilingual question management.
+ * PRODUCTION MOCK COMMAND CENTER (TESTBOOK STYLE)
+ * High-density management interface for CBT simulations.
  */
 export default function MockEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -82,7 +80,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
         setQuestions(q);
         setAnalytics(a);
       } catch (e) {
-        toast({ title: "Portal Busy", variant: "destructive" });
+        toast({ title: "Registry Signal Lost", variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -94,7 +92,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   async function loadBank() {
     setBankLoading(true);
     try {
-      const data = await getRecentQuestions(500);
+      const data = await getRecentQuestions(1000); // Institutional bank access
       setBank(data);
     } finally {
       setBankLoading(false);
@@ -106,9 +104,9 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     setSaving(true);
     try {
       await updateMock(mockId, mock);
-      toast({ title: "Registry Synced", description: "Metadata updated successfully." });
+      toast({ title: "Signal Synced", description: "Metadata updated successfully." });
     } catch (e) {
-      toast({ title: "Sync Failed", variant: "destructive" });
+      toast({ title: "Sync Breach", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -129,7 +127,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
         toast({ title: "Artifact Linked" });
       }
     } catch (e) {
-      toast({ title: "Sync Error", variant: "destructive" });
+      toast({ title: "Atomic Bank Breach", variant: "destructive" });
     }
   }
 
@@ -142,16 +140,16 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
 
   if (loading) return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
-       <Loader2 className="w-12 h-12 text-primary animate-spin" />
-       <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">Establishing Command Node...</p>
+       <div className="w-14 h-14 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+       <p className="text-zinc-600 font-black uppercase tracking-[0.4em] text-[10px]">Accessing Simulation Logic...</p>
     </div>
   );
 
   if (!mock) return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
-       <ArrowLeft className="w-12 h-12 text-zinc-800" />
-       <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">Artifact Signal Lost</p>
-       <Button onClick={() => router.push('/admin/mocks')} className="rounded-xl font-bold bg-zinc-900 border border-white/5">Return to Factory</Button>
+       <FileText className="w-16 h-16 text-zinc-800" />
+       <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">CBT Record Not Found</p>
+       <Button onClick={() => router.push('/admin/mocks')} className="rounded-xl font-bold bg-zinc-900 border border-white/5">Return to Registry</Button>
     </div>
   );
 
@@ -160,7 +158,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
       <div className="flex bg-black min-h-screen text-white">
         <AdminSidebar />
         <main className="flex-1 overflow-hidden flex flex-col">
-          {/* Header */}
+          {/* Action-Rich Header */}
           <header className="h-20 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-zinc-950/80 backdrop-blur-xl">
              <div className="flex items-center gap-6">
                 <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/5" onClick={() => router.push('/admin/mocks')}>
@@ -169,15 +167,17 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                 <div>
                    <div className="flex items-center gap-3">
                       <h1 className="text-xl font-black tracking-tight uppercase">{mock.title}</h1>
-                      <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-3 py-1">{mock.status}</Badge>
+                      <Badge className={cn("border-none text-[8px] font-black uppercase px-3 py-1", mock.status === 'live' ? "bg-red-600 animate-pulse" : "bg-primary/20 text-primary")}>
+                        {mock.status}
+                      </Badge>
                    </div>
-                   <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-1">Registry: {mock.exam} • {mock.accessType}</p>
+                   <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-1">Syllabus Index: {mock.exam} • {mock.accessType}</p>
                 </div>
              </div>
              <div className="flex items-center gap-4">
                 <Button onClick={handleUpdateMetadata} disabled={saving} className="h-12 rounded-[18px] bg-primary hover:bg-primary/90 px-10 font-black text-[11px] uppercase tracking-widest shadow-xl blue-glow">
                    {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4 mr-2" />}
-                   Synchronize Registry
+                   Commit Registry Changes
                 </Button>
              </div>
           </header>
@@ -185,7 +185,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
           <div className="flex-1 overflow-hidden flex">
              <Tabs defaultValue="questions" className="flex-1 flex overflow-hidden">
                 <aside className="w-72 border-r border-white/5 p-6 flex flex-col gap-2 shrink-0 bg-zinc-950/40">
-                   <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em] px-4 mb-6">Operations Matrix</p>
+                   <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em] px-4 mb-6">Operations Panel</p>
                    <TabsList className="flex flex-col bg-transparent h-auto items-stretch gap-2">
                       <TabsTrigger value="metadata" className="justify-start gap-4 h-14 rounded-2xl px-6 font-bold text-zinc-500 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
                          <Settings size={18} /> Basic Calibration
@@ -197,7 +197,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                          <ShieldCheck size={18} /> Access Policy
                       </TabsTrigger>
                       <TabsTrigger value="analytics" className="justify-start gap-4 h-14 rounded-2xl px-6 font-bold text-zinc-500 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-                         <BarChart3 size={18} /> Performance Audit
+                         <BarChart3 size={18} /> Live Performance
                       </TabsTrigger>
                    </TabsList>
                 </aside>
@@ -206,13 +206,13 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                    <div className="max-w-6xl mx-auto">
                       <TabsContent value="metadata" className="space-y-12 mt-0 animate-in fade-in slide-in-from-bottom-4">
                          <div className="space-y-1">
-                            <h3 className="text-3xl font-black tracking-tighter uppercase">Identity & Duration</h3>
-                            <p className="text-zinc-500 text-sm font-medium">Define the core blueprint for this CBT session.</p>
+                            <h3 className="text-3xl font-black tracking-tighter uppercase">Structural Metadata</h3>
+                            <p className="text-zinc-500 text-sm font-medium">Define the core blueprint for this CBT arena.</p>
                          </div>
 
                          <div className="grid md:grid-cols-2 gap-10">
                             <div className="space-y-3">
-                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Mock Identity</label>
+                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Simulation Identity</label>
                                <Input 
                                  value={mock.title} 
                                  onChange={e => setMock({...mock, title: e.target.value})}
@@ -220,7 +220,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                />
                             </div>
                             <div className="space-y-3">
-                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Recruitment Board</label>
+                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Recruitment Cluster</label>
                                <Input 
                                  value={mock.exam} 
                                  onChange={e => setMock({...mock, exam: e.target.value})}
@@ -228,7 +228,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                />
                             </div>
                             <div className="space-y-3">
-                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Session Duration (Mins)</label>
+                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Timer Allocation (Mins)</label>
                                <Input 
                                  type="number"
                                  value={mock.duration} 
@@ -237,7 +237,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                />
                             </div>
                             <div className="space-y-3">
-                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Negative Penalty Score</label>
+                               <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Negative Marking Penalty</label>
                                <Input 
                                  type="number"
                                  step="0.01"
@@ -252,8 +252,8 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                       <TabsContent value="questions" className="space-y-12 mt-0 animate-in fade-in slide-in-from-bottom-4">
                          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                             <div className="space-y-1">
-                               <h3 className="text-4xl font-black tracking-tighter uppercase">Payload Management</h3>
-                               <p className="text-zinc-500 text-sm font-medium">Verify bilingual integrity and artifact mapping.</p>
+                               <h3 className="text-4xl font-black tracking-tighter uppercase">Syllabus Payload</h3>
+                               <p className="text-zinc-500 text-sm font-medium">Link high-yield artifacts from the Global Atomic Bank.</p>
                             </div>
                             <div className="flex items-center gap-4">
                                <div className="bg-zinc-900 border border-white/5 p-1 rounded-xl flex">
@@ -271,10 +271,10 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                     className="rounded-lg px-4 h-9 text-[10px] font-bold uppercase"
                                     onClick={() => setViewMode('full')}
                                   >
-                                     <Eye className="w-3.5 h-3.5 mr-2" /> Full Preview
+                                     <Eye className="w-3.5 h-3.5 mr-2" /> Live Preview
                                   </Button>
                                </div>
-                               <Badge className="bg-emerald-600 text-white font-black text-[10px] uppercase px-6 py-2 h-11 rounded-xl shadow-xl">
+                               <Badge className="bg-emerald-600 text-white font-black text-[10px] uppercase px-6 py-2 h-11 rounded-xl shadow-xl shadow-emerald-950/20">
                                   Payload: {questions.length} Artifacts
                                </Badge>
                             </div>
@@ -285,27 +285,25 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                {questions.length > 0 ? (
                                  questions.map((q, i) => (
                                    viewMode === 'full' ? (
-                                    <Card key={q.id} className="rounded-[40px] bg-zinc-900/60 border-white/5 overflow-hidden group hover:border-primary/30 transition-all duration-300">
+                                    <Card key={q.id} className="rounded-[40px] bg-zinc-900/60 border-white/5 overflow-hidden group hover:border-primary/30 transition-all">
                                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                                           <div className="flex items-center gap-4">
-                                             <div className="w-10 h-10 rounded-2xl bg-zinc-800 flex items-center justify-center font-black text-xs text-zinc-500 shadow-inner">
+                                             <div className="w-10 h-10 rounded-2xl bg-zinc-800 flex items-center justify-center font-black text-xs text-zinc-500">
                                                 {i + 1}
                                              </div>
                                              <Badge variant="outline" className="text-[9px] font-black uppercase text-zinc-500 border-white/10 px-3">{q.subject}</Badge>
-                                             <Badge variant="outline" className={cn("text-[9px] font-black uppercase border-white/10 px-3", q.difficulty === 'hard' ? 'text-red-500' : q.difficulty === 'medium' ? 'text-orange-500' : 'text-emerald-500')}>{q.difficulty}</Badge>
+                                             <Badge variant="outline" className={cn("text-[9px] font-black uppercase border-none px-3", q.difficulty === 'hard' ? 'text-red-500 bg-red-500/10' : q.difficulty === 'medium' ? 'text-orange-500 bg-orange-500/10' : 'text-emerald-500 bg-emerald-500/10')}>{q.difficulty}</Badge>
                                           </div>
-                                          <div className="flex items-center gap-2">
-                                             <Button variant="ghost" size="icon" className="rounded-xl text-zinc-700 hover:text-red-500 hover:bg-red-500/10" onClick={() => toggleQuestion(q)}>
-                                                <Trash2 size={20} />
-                                             </Button>
-                                          </div>
+                                          <Button variant="ghost" size="icon" className="rounded-xl text-zinc-700 hover:text-red-500 hover:bg-red-500/10" onClick={() => toggleQuestion(q)}>
+                                             <Trash2 size={20} />
+                                          </Button>
                                        </div>
                                        <div className="p-10 space-y-10">
                                           <div className="grid md:grid-cols-2 gap-16">
                                              <div className="space-y-6">
                                                 <div className="flex items-center gap-2">
                                                    <Languages className="text-blue-500 w-3.5 h-3.5" />
-                                                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">English Payload</span>
+                                                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">English Signal</span>
                                                 </div>
                                                 <p className="font-bold text-xl text-white leading-relaxed">{q.question_en}</p>
                                                 <div className="grid gap-2.5">
@@ -320,29 +318,18 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                              <div className="space-y-6 border-l border-white/5 pl-16">
                                                 <div className="flex items-center gap-2">
                                                    <Languages className="text-orange-500 w-3.5 h-3.5" />
-                                                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Punjabi Raavi Signal</span>
+                                                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Punjabi Signal</span>
                                                 </div>
-                                                <p className="font-medium text-xl text-zinc-300 leading-relaxed">{q.question_pa || "Signal Missing"}</p>
+                                                <p className="font-medium text-xl text-zinc-300 leading-relaxed">{q.question_pa || "N/A"}</p>
                                                 <div className="grid gap-2.5">
                                                    {q.options_pa?.map((opt, idx) => (
                                                       <div key={idx} className="p-4 rounded-2xl text-sm bg-black/40 border border-white/5 text-zinc-400">
-                                                         <span className="text-[10px] font-black mr-3 opacity-50">{idx + 1}</span>
                                                          {opt}
                                                       </div>
-                                                   )) || [1,2,3,4].map(x => <div key={x} className="h-12 rounded-2xl border border-dashed border-white/5 bg-transparent" />)}
+                                                   ))}
                                                 </div>
                                              </div>
                                           </div>
-                                          
-                                          {(q.explanation_en || q.explanation_pa) && (
-                                             <div className="p-8 rounded-[32px] bg-white/[0.01] border border-white/5 space-y-4">
-                                                <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest flex items-center gap-2">
-                                                   <Sparkles size={14} className="text-primary animate-pulse" /> Rationalization Engine
-                                                </p>
-                                                {q.explanation_en && <p className="text-sm text-zinc-400 leading-relaxed font-medium">{q.explanation_en}</p>}
-                                                {q.explanation_pa && <p className="text-xs text-zinc-500 leading-relaxed italic border-t border-white/5 pt-4">{q.explanation_pa}</p>}
-                                             </div>
-                                          )}
                                        </div>
                                     </Card>
                                    ) : (
@@ -369,13 +356,14 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                  ))
                                ) : (
                                  <div className="py-32 text-center rounded-[48px] border-2 border-dashed border-white/5 bg-zinc-950/20">
-                                    <FileText className="w-16 h-16 text-zinc-800 mx-auto mb-6" />
+                                    <FileText className="w-16 h-16 text-zinc-800 mx-auto mb-6 opacity-20" />
                                     <p className="text-zinc-700 font-bold uppercase text-[10px] tracking-[0.3em]">Payload Empty</p>
-                                    <p className="text-zinc-600 mt-2 text-xs italic">Use the library to link artifacts.</p>
+                                    <p className="text-zinc-600 mt-2 text-xs italic">Link artifacts from the right panel to build the syllabus.</p>
                                  </div>
                                )}
                             </div>
 
+                            {/* Institutional Bank Sidebar */}
                             <div className="lg:col-span-4">
                                <div className="bg-zinc-900/60 rounded-[40px] border border-white/5 overflow-hidden flex flex-col h-[800px] sticky top-8 shadow-2xl">
                                   <div className="p-8 border-b border-white/5 space-y-6 bg-zinc-950/40">
@@ -386,7 +374,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                      <div className="relative">
                                         <Search className="absolute left-4 top-3.5 w-4 h-4 text-zinc-600" />
                                         <Input 
-                                          placeholder="Search artifacts..." 
+                                          placeholder="Search logic..." 
                                           value={bankSearch}
                                           onChange={e => setBankSearch(e.target.value)}
                                           className="pl-12 h-12 bg-black/40 border-white/5 rounded-2xl text-[10px] font-bold uppercase tracking-widest"
@@ -424,9 +412,6 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                                {!isUsed && <Plus size={12} className="text-zinc-800 group-hover:text-white" />}
                                             </div>
                                             <p className="text-[11px] font-bold text-zinc-400 group-hover:text-zinc-100 line-clamp-2 leading-relaxed">{q.question_en}</p>
-                                            <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                               <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">{q.difficulty}</span>
-                                            </div>
                                          </div>
                                        );
                                      })}
@@ -438,22 +423,22 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
 
                       <TabsContent value="access" className="space-y-12 mt-0 animate-in fade-in slide-in-from-bottom-4">
                          <div className="space-y-1">
-                            <h3 className="text-3xl font-black tracking-tighter uppercase">Access Gating</h3>
+                            <h3 className="text-3xl font-black tracking-tighter uppercase">Access Gating Protocol</h3>
                             <p className="text-zinc-500 text-sm font-medium">Manage monetization rules and subscription-level visibility.</p>
                          </div>
 
                          <div className="grid md:grid-cols-2 gap-10">
                             <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-10 space-y-10">
                                <div className="space-y-3">
-                                  <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Access Tier Protocol</label>
+                                  <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Access Tier Designation</label>
                                   <Select value={mock.accessType} onValueChange={(v: any) => setMock({...mock, accessType: v})}>
                                      <SelectTrigger className="h-14 bg-black/40 border-white/5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] px-6">
                                         <SelectValue />
                                      </SelectTrigger>
                                      <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                        <SelectItem value="free">Free Hub (Universal)</SelectItem>
+                                        <SelectItem value="free">Universal Free Hub</SelectItem>
                                         <SelectItem value="pass_plus">PASS+ Membership Active</SelectItem>
-                                        <SelectItem value="premium">Elite Premium (Ala-carte)</SelectItem>
+                                        <SelectItem value="premium">Elite Premium (Direct Buy)</SelectItem>
                                      </SelectContent>
                                   </Select>
                                </div>
@@ -465,8 +450,8 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                         <SelectValue />
                                      </SelectTrigger>
                                      <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                        <SelectItem value="draft">Internal Draft Only</SelectItem>
-                                        <SelectItem value="published">Production Release</SelectItem>
+                                        <SelectItem value="draft">Internal Draft Storage</SelectItem>
+                                        <SelectItem value="published">Production Ready (Live)</SelectItem>
                                         <SelectItem value="archived">Retired Artifact</SelectItem>
                                      </SelectContent>
                                   </Select>
@@ -480,15 +465,11 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                <ul className="space-y-5 text-xs text-zinc-400 font-medium leading-relaxed">
                                   <li className="flex gap-4 items-start">
                                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                                     <span>PASS+ aspirants bypass gating for all "Production" simulations.</span>
+                                     <span>PASS+ aspirants bypass all individual gating for "Production" simulations.</span>
                                   </li>
                                   <li className="flex gap-4 items-start">
                                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                                     <span>Mocks marked "Live" are pinned to the student dashboard heartbeat.</span>
-                                  </li>
-                                  <li className="flex gap-4 items-start">
-                                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                                     <span>Negative marking is mathematically enforced by the CBT Heart.</span>
+                                     <span>Mocks marked "Draft" are restricted to Administrative Command identities only.</span>
                                   </li>
                                </ul>
                             </div>
@@ -509,7 +490,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                <div className="absolute top-0 right-0 p-6 opacity-5">
                                   <Zap size={100} />
                                </div>
-                               <p className="text-[10px] font-black uppercase text-primary tracking-[0.3em]">High Score</p>
+                               <p className="text-[10px] font-black uppercase text-primary tracking-[0.3em]">High Performance</p>
                                <h2 className="text-6xl font-black text-white">{analytics?.highScore || 0}</h2>
                             </Card>
                          </div>

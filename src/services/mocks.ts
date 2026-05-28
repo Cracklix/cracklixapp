@@ -23,12 +23,13 @@ import { MockTest, Question, ExamAttempt, AttemptAnswer } from '@/types';
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry
+ * Optimized for Testbook-style mock management.
  */
 
 // 1. REGISTRY OPERATIONS
 export async function getAllMocks(): Promise<MockTest[]> {
   try {
-    const q = query(collection(db, 'mocks'), limit(200));
+    const q = query(collection(db, 'mocks'), limit(500));
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest));
     return data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -52,9 +53,10 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
 }
 
 export async function updateMock(id: string, data: Partial<MockTest>) {
+  if (!id) return;
   const ref = doc(db, 'mocks', id);
-  // Ensure we don't try to update with undefined values
   const payload = { ...data, updatedAt: Date.now() };
+  // Safety: Prevent ID injection in payload
   if ('id' in payload) delete (payload as any).id;
   
   return updateDoc(ref, payload);
@@ -67,7 +69,7 @@ export async function duplicateMock(id: string) {
   const { id: _, ...data } = mock;
   const payload = {
     ...data,
-    title: `${data.title} (Clone)`,
+    title: `${data.title} (Copy)`,
     status: "draft",
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -81,7 +83,7 @@ export async function duplicateMock(id: string) {
 export async function deleteMock(mockId: string) {
   if (!mockId) return;
   const ref = doc(db, 'mocks', mockId);
-  await deleteDoc(ref);
+  return await deleteDoc(ref);
 }
 
 // 2. ARTIFACT LINKING ENGINE
@@ -118,9 +120,7 @@ export async function publishMock(mockId: string) {
     updatedAt: Date.now()
   });
 
-  // Quarantine linked questions to prevent duplicate series delivery
-  // In a batch, if we don't know for sure if docs exist, this is safer
-  // but for production questions they should exist.
+  // Track usage signal on linked artifacts
   questionIds.forEach((qId: string) => {
     const qRef = doc(db, 'questions', qId);
     batch.update(qRef, {
@@ -170,6 +170,7 @@ export async function getMockAnalytics(mockId: string) {
 
 // 5. STUDENT ENGINE DATA
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
+  if (!mockId) return [];
   const mockRef = doc(db, 'mocks', mockId);
   const mockSnap = await getDoc(mockRef);
   const questionIds = mockSnap.data()?.questionIds || [];
@@ -190,9 +191,12 @@ export async function getMockQuestions(mockId: string): Promise<Question[]> {
 }
 
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
+  if (!userId) return { allowed: false, reason: "Auth required." };
+  
   const userSnap = await getDoc(doc(db, 'users', userId));
   const userData = userSnap.data();
-  // Admin universal key
+  
+  // Admin universal bypass
   if (userData?.role === 'admin' || userData?.role === 'superadmin' || userData?.email === 'arshdeepgrewal1122@gmail.com' || userData?.email === 'deepgrewal2600@gmail.com') {
     return { allowed: true };
   }
@@ -238,6 +242,7 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
 }
 
 export async function getAttemptState(attemptId: string) {
+  if (!attemptId) return null;
   const snap = await getDoc(doc(db, 'attempts', attemptId));
   if (!snap.exists()) return null;
   
