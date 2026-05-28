@@ -1,5 +1,5 @@
 /**
- * Analytics Engine
+ * Analytics Engine v9.0
  * Processes CBT attempt results with negative marking logic.
  */
 
@@ -19,8 +19,8 @@ export function generateAnalytics({
 
   questions.forEach((question, index) => {
     const userAnswer = answers[index]?.selectedOption;
-    const isCorrect = userAnswer === question.correctAnswer;
     const isAttempted = userAnswer !== null && userAnswer !== undefined;
+    const isCorrect = userAnswer === question.correctAnswer;
 
     if (!isAttempted) {
       unattempted++;
@@ -32,30 +32,30 @@ export function generateAnalytics({
       }
     }
 
-    const topic = question.topic || "General";
-    if (!topicMap[topic]) {
-      topicMap[topic] = { total: 0, correct: 0 };
+    const sub = question.subject || "General";
+    if (!topicMap[sub]) {
+      topicMap[sub] = { total: 0, correct: 0 };
     }
-    topicMap[topic].total++;
+    topicMap[sub].total++;
     if (isCorrect) {
-      topicMap[topic].correct++;
+      topicMap[sub].correct++;
     }
   });
 
-  const penalty = mock.negativeMarking || 0;
-  const marksPerQ = mock.marksPerQuestion || 1;
+  const penalty = mock.negativeMarking || 0.25;
+  const marksPerQ = 1;
   const rawScore = (correct * marksPerQ) - (wrong * penalty);
-  const totalMarks = questions.length * marksPerQ;
-  const accuracy = correct + wrong > 0 ? (correct / (correct + wrong)) * 100 : 0;
+  const accuracy = (correct + wrong) > 0 ? (correct / (correct + wrong)) * 100 : 0;
 
   return {
     correct,
     wrong,
     unattempted,
     score: Number(rawScore.toFixed(2)),
-    totalMarks,
+    totalQuestions: questions.length,
     accuracy: Math.round(accuracy),
-    readiness: accuracy > 80 ? "High" : accuracy > 60 ? "Medium" : "Low",
-    topicPerformance: topicMap
+    topicPerformance: topicMap,
+    status: 'completed',
+    timestamp: Date.now()
   };
 }

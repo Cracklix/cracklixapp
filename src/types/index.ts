@@ -1,6 +1,6 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v4.2
+ * Production-grade Architecture Layer v9.0
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -54,7 +54,7 @@ export interface Question {
   en: QuestionContent;
   pa?: QuestionContent | null;
   hi?: QuestionContent | null;
-  correctAnswer: string; // The exact text match of the correct option in English
+  correctAnswer: string; 
   subject: string;
   chapter?: string;
   topic?: string;
@@ -90,7 +90,7 @@ export interface MockTest {
   publishedAt?: number | null;
   attemptCount?: number;
   avgScore?: number;
-  questionIds?: string[]; // For quick reference if needed
+  questionIds?: string[];
   instructions?: string[];
   aiGenerated?: boolean;
 }
