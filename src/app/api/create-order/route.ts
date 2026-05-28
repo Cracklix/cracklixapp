@@ -1,22 +1,45 @@
 
-import { razorpay } from "@/lib/razorpay";
 import { NextResponse } from "next/server";
+import Razorpay from "razorpay";
+import { db } from "@/lib/firebase-admin"; // Assuming standard server-side firebase setup
+import { getFirestore } from "firebase-admin/firestore";
 
+/**
+ * Dynamic Order Creation Logic
+ * Fetches keys from Firestore Settings instead of ENV vars.
+ */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    
+    // 1. Fetch Dynamic Credentials from Firestore
+    // Note: This assumes you have a standard firebase-admin initialization in @/lib/firebase-admin
+    const firestore = getFirestore();
+    const settingsSnap = await firestore.collection('settings').doc('payment').get();
+    
+    if (!settingsSnap.exists) {
+      throw new Error("Payment gateway not configured in Admin Settings.");
+    }
+    
+    const settings = settingsSnap.data() as any;
+    
+    // 2. Initialize Gateway
+    const razorpay = new Razorpay({
+      key_id: settings.keyId,
+      key_secret: settings.secret,
+    });
 
     const options = {
-      amount: Math.round(body.amount * 100), // Razorpay expects amount in paise
+      amount: Math.round(body.amount * 100), // amount in paise
       currency: "INR",
-      receipt: `receipt_${Date.now()}`,
+      receipt: `rcpt_${Date.now()}`,
     };
 
     const order = await razorpay.orders.create(options);
 
     return NextResponse.json(order);
   } catch (error: any) {
-    console.error("Razorpay Order Creation Error:", error);
+    console.error("Order Creation Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

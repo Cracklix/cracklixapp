@@ -7,14 +7,14 @@ import Navbar from '@/components/navbar';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Check, Zap, Sparkles, ShieldCheck, Crown, Loader2, Star, ArrowRight, ShieldAlert, BookOpen, Activity } from 'lucide-react';
+import { Check, Zap, Crown, Loader2, Star, ShieldCheck, ShieldAlert, BookOpen, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Script from 'next/script';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { getActivePlans, Plan } from '@/services/subscriptions';
+import { getPublicPaymentConfig } from '@/services/payment-settings';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 
 export default function PassPage() {
   const { user, profile } = useAuth();
@@ -41,6 +41,13 @@ export default function PassPage() {
 
     setLoading(plan.id);
     try {
+      // 1. Fetch Dynamic Public Key from DB
+      const config = await getPublicPaymentConfig();
+      if (!config || !config.enabled) {
+        throw new Error("Payment system is currently under maintenance.");
+      }
+
+      // 2. Create Razorpay Order via API
       const orderRes = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,8 +57,9 @@ export default function PassPage() {
       const order = await orderRes.json();
       if (order.error) throw new Error(order.error);
 
+      // 3. Launch Checkout
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+        key: config.keyId,
         amount: order.amount,
         currency: "INR",
         name: "CRACKLIX PASS+",
@@ -81,6 +89,8 @@ export default function PassPage() {
             if (verification.success) {
               toast({ title: "PASS ACTIVATED", description: "Welcome to the elite 1%. Your PASS is now live." });
               window.location.href = '/dashboard';
+            } else {
+              throw new Error("Signature verification failed.");
             }
           } catch (err: any) {
             toast({ title: "Verification Breach", description: "Contact support if amount deducted.", variant: "destructive" });
@@ -222,26 +232,6 @@ export default function PassPage() {
                })}
              </div>
            )}
-        </div>
-
-        {/* Exam Specific Grid */}
-        <div className="p-16 rounded-[64px] bg-white/[0.02] border border-white/5 space-y-12">
-           <div className="text-center space-y-4">
-              <h2 className="text-4xl font-bold">Exam Specific PASS</h2>
-              <p className="text-zinc-500 max-w-md mx-auto">Targeted access for specific recruitment boards at optimized pricing.</p>
-           </div>
-           
-           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {["Punjab Police", "PSSSB Clerk", "PPSC PCS", "Punjab Patwari"].map((exam) => (
-                <div key={exam} className="p-6 rounded-[32px] bg-zinc-900/50 border border-white/5 flex flex-col items-center gap-4 text-center group hover:border-primary/40 transition-all cursor-pointer">
-                   <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                      <Zap size={20} />
-                   </div>
-                   <h4 className="font-bold text-sm">{exam} Special</h4>
-                   <p className="text-[10px] font-black text-zinc-500 uppercase">Starts at ₹49</p>
-                </div>
-              ))}
-           </div>
         </div>
 
         {/* Security / FAQ */}

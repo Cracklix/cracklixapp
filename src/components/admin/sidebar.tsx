@@ -19,7 +19,8 @@ import {
   Database,
   Cpu,
   FileUp,
-  CreditCard
+  CreditCard,
+  Settings
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -29,7 +30,6 @@ export default function AdminSidebar() {
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Users", href: "/admin/users", icon: Users },
     { name: "PASS Management", href: "/admin/subscriptions", icon: CreditCard },
-    { name: "PDF Ingestion", href: "/admin/pdf-ingestion", icon: FileUp },
     { name: "Ingestion Hub", href: "/admin/questions", icon: Cpu },
     { name: "Question Bank", href: "/admin/question-bank", icon: Database },
     { name: "Mock Tests", href: "/admin/mocks", icon: FileText },
@@ -38,6 +38,7 @@ export default function AdminSidebar() {
     { name: "Current Affairs", href: "/admin/current-affairs", icon: Newspaper },
     { name: "Leaderboards", href: "/admin/leaderboards", icon: Trophy },
     { name: "AI Factory", href: "/admin/ai-assistant", icon: Zap },
+    { name: "Payment Settings", href: "/admin/payment-settings", icon: Settings },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   ];
 
