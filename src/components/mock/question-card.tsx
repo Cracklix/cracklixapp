@@ -26,24 +26,25 @@ export default function QuestionCard({
 }: QuestionCardProps) {
   const { user } = useAuth();
   
+  // Logic to handle structured schema (en.question, pa.question)
   const getPrimaryText = () => {
-    if (activeLanguage === 'pa' && question.question_pa) return question.question_pa;
-    return question.question_en;
+    if (activeLanguage === 'pa' && question.pa?.question) return question.pa.question;
+    return question.en?.question || "";
   };
 
-  const getPrimaryOptions = () => {
-    if (activeLanguage === 'pa' && question.options_pa?.length) return question.options_pa;
-    return question.options_en;
+  const getPrimaryOptions = (): string[] => {
+    if (activeLanguage === 'pa' && question.pa?.options?.length) return question.pa.options;
+    return question.en?.options || [];
   };
 
   const getSecondaryText = () => {
-    if (activeLanguage === 'en') return question.question_pa || "";
-    return question.question_en;
+    if (activeLanguage === 'en') return question.pa?.question || "";
+    return question.en?.question || "";
   };
 
-  const getSecondaryOptions = () => {
-    if (activeLanguage === 'en') return question.options_pa || [];
-    return question.options_en;
+  const getSecondaryOptions = (): string[] => {
+    if (activeLanguage === 'en') return question.pa?.options || [];
+    return question.en?.options || [];
   };
 
   const toggleBookmark = async () => {
@@ -53,7 +54,7 @@ export default function QuestionCard({
       await updateDoc(userRef, {
         bookmarks: arrayUnion({
           id: question.id,
-          text: question.question_en,
+          text: question.en?.question || "Question Artifact",
           subject: question.subject,
           type: 'question',
           savedAt: Date.now()
@@ -64,6 +65,9 @@ export default function QuestionCard({
       console.error(e);
     }
   };
+
+  const primaryOptions = getPrimaryOptions();
+  const secondaryOptions = getSecondaryOptions();
 
   return (
     <div className="bg-white border border-slate-200 rounded-[32px] p-8 md:p-12 shadow-sm relative overflow-hidden flex flex-col min-h-[500px]">
@@ -100,11 +104,12 @@ export default function QuestionCard({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {getPrimaryOptions().map((option: string, idx: number) => {
-            const submissionValue = question.options_en[idx];
+          {primaryOptions.map((option: string, idx: number) => {
+            // We use English options as the data identity for consistency in answer checking
+            const submissionValue = question.en?.options[idx] || option;
             const isSelected = selected === submissionValue;
             const letter = String.fromCharCode(65 + idx);
-            const secondaryOption = getSecondaryOptions()[idx] || "";
+            const secondaryOption = secondaryOptions[idx] || "";
             
             return (
               <button
