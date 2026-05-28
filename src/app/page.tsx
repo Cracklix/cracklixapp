@@ -16,7 +16,8 @@ import {
   MessageSquare,
   ShieldAlert,
   Mail,
-  Phone
+  Phone,
+  Send
 } from "lucide-react";
 import GlassCard from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
@@ -333,6 +334,9 @@ export default function LandingPage() {
             </div>
             <p className="text-zinc-500 max-w-md text-lg leading-relaxed font-medium">The state-of-the-art AI learning ecosystem engineered exclusively for Punjab Government exam excellence.</p>
             <div className="flex gap-4">
+               <Button asChild size="icon" variant="outline" className="rounded-xl border-white/5 bg-white/[0.03] hover:text-primary">
+                  <a href="https://t.me/cracklixapp" target="_blank"><Send size={18} /></a>
+               </Button>
                <Button size="icon" variant="outline" className="rounded-xl border-white/5 bg-white/[0.03] hover:text-primary"><MessageSquare size={18} /></Button>
                <Button size="icon" variant="outline" className="rounded-xl border-white/5 bg-white/[0.03] hover:text-primary"><Trophy size={18} /></Button>
                <Button size="icon" variant="outline" className="rounded-xl border-white/5 bg-white/[0.03] hover:text-primary"><Globe size={18} /></Button>
@@ -350,16 +354,25 @@ export default function LandingPage() {
           <div className="space-y-8">
             <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Official Support</h4>
             <ul className="space-y-4 text-sm text-zinc-500 font-bold uppercase tracking-widest">
-              <li className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer">
-                <Mail size={14} className="text-primary" />
-                <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+              <li className="flex items-start gap-2 hover:text-primary transition-colors cursor-pointer group">
+                <Mail size={14} className="text-primary mt-1 shrink-0" />
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="break-all leading-tight">{SUPPORT_EMAIL}</a>
               </li>
               <li className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer">
-                <Phone size={14} className="text-primary" />
+                <Phone size={14} className="text-primary shrink-0" />
                 <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`}>{SUPPORT_PHONE}</a>
               </li>
               <li className="text-[10px] text-zinc-600 font-black mt-4 uppercase">Direct Founder Access</li>
-              <li><Link href="/community" className="hover:text-emerald-500 transition-colors">Telegram Community</Link></li>
+              <li className="pt-2">
+                <Button asChild variant="outline" className="w-full justify-start gap-3 rounded-2xl border-white/10 hover:bg-white/5 hover:text-primary group h-12">
+                  <a href="https://t.me/cracklixapp" target="_blank" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all shrink-0">
+                      <Send size={14} />
+                    </div>
+                    <span className="font-bold text-xs uppercase tracking-widest">Join Telegram</span>
+                  </a>
+                </Button>
+              </li>
               <li><Link href="#" className="hover:text-primary transition-colors">Report Critical Bug</Link></li>
             </ul>
           </div>
