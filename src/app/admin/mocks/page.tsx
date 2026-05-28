@@ -198,5 +198,3 @@ export default function MockDashboardPage() {
     </AdminProtect>
   );
 }
-
-import { PlayCircle } from "lucide-react";
