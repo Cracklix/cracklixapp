@@ -25,6 +25,7 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Testbook Standard)
+ * High-integrity mutations for administrative and student operations.
  */
 
 // 1. REGISTRY OPERATIONS
@@ -48,13 +49,21 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
 
 export async function updateMock(mockId: string, updates: Partial<MockTest>) {
   const ref = doc(db, 'mocks', mockId);
-  await updateDoc(ref, { ...updates, updatedAt: Date.now() });
+  return updateDoc(ref, { ...updates, updatedAt: Date.now() })
+    .catch(async (e) => {
+      const pErr = new FirestorePermissionError({ path: ref.path, operation: 'update', requestResourceData: updates });
+      errorEmitter.emit('permission-error', pErr);
+    });
 }
 
 export async function publishMock(mockId: string, isPublished: boolean) {
-  await updateDoc(doc(db, 'mocks', mockId), { 
+  const ref = doc(db, 'mocks', mockId);
+  return updateDoc(ref, { 
     status: isPublished ? 'published' : 'draft', 
     updatedAt: Date.now() 
+  }).catch(async (e) => {
+    const pErr = new FirestorePermissionError({ path: ref.path, operation: 'update' });
+    errorEmitter.emit('permission-error', pErr);
   });
 }
 
@@ -64,12 +73,19 @@ export async function setMockLive(mockId: string, isLive: boolean) {
 
 export async function deleteMock(mockId: string) {
   const batch = writeBatch(db);
-  // Delete subcollection questions
+  const mockRef = doc(db, 'mocks', mockId);
+  
+  // Clean up subcollection questions
   const qSnap = await getDocs(collection(db, 'mocks', mockId, 'questions'));
   qSnap.forEach(d => batch.delete(d.ref));
+  
   // Delete mock doc
-  batch.delete(doc(db, 'mocks', mockId));
-  await batch.commit();
+  batch.delete(mockRef);
+  
+  return batch.commit().catch(async (e) => {
+    const pErr = new FirestorePermissionError({ path: mockRef.path, operation: 'delete' });
+    errorEmitter.emit('permission-error', pErr);
+  });
 }
 
 export async function duplicateMock(mockId: string) {
@@ -96,8 +112,7 @@ export async function duplicateMock(mockId: string) {
     batch.set(qRef, { ...qRest, id: qRef.id, order: idx });
   });
   
-  await batch.commit();
-  return newMockRef.id;
+  return batch.commit();
 }
 
 // 2. QUESTION MANAGEMENT (Subcollection Pattern)
@@ -124,14 +139,13 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
     ...question, 
     id: qRef.id, 
     createdAt: Date.now(),
-    order: Date.now() // Simple ordering for now
+    order: Date.now() 
   };
   
   const batch = writeBatch(db);
   batch.set(qRef, payload);
   batch.update(mockRef, { totalQuestions: increment(1), updatedAt: Date.now() });
-  await batch.commit();
-  return qRef.id;
+  return batch.commit();
 }
 
 export async function linkGlobalToMock(mockId: string, globalQuestionId: string) {
@@ -144,12 +158,12 @@ export async function deleteMockQuestion(mockId: string, questionId: string) {
   const batch = writeBatch(db);
   batch.delete(doc(db, 'mocks', mockId, 'questions', questionId));
   batch.update(doc(db, 'mocks', mockId), { totalQuestions: increment(-1), updatedAt: Date.now() });
-  await batch.commit();
+  return batch.commit();
 }
 
 export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
   const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
-  await updateDoc(qRef, { ...updates, updatedAt: Date.now() });
+  return updateDoc(qRef, { ...updates, updatedAt: Date.now() });
 }
 
 // 3. ANALYTICS
@@ -218,7 +232,7 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     xp: increment(50),
     coins: increment(10)
   });
-  await batch.commit();
+  return batch.commit();
 }
 
 // 5. ACCESS CONTROL

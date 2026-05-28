@@ -6,18 +6,30 @@ import AdminProtect from "@/components/admin/admin-protect";
 import { 
   Rocket, Plus, Zap, Loader2, Search, BookOpen, 
   Trash2, Edit3, Copy, PlayCircle, Lock, Unlock, 
-  CheckCircle2, AlertTriangle, Database
+  CheckCircle2, AlertTriangle, Database, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { getAllMocks, publishMock, deleteMock, duplicateMock } from "@/services/mocks";
-import { MockTest } from "@/types";
+import { 
+  getAllMocks, 
+  publishMock, 
+  deleteMock, 
+  duplicateMock, 
+  getMockAnalytics,
+  setMockLive,
+  updateMock
+} from "@/services/mocks";
+import { MockTest, MockStatus } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
+/**
+ * INSTITUTIONAL SIMULATION REGISTRY
+ * Replaces broken dropdowns with high-density production actions.
+ */
 export default function SimulationFactoryPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -31,32 +43,43 @@ export default function SimulationFactoryPage() {
 
   async function loadMocks() {
     setLoading(true);
-    const data = await getAllMocks();
-    setMocks(data);
-    setLoading(false);
+    try {
+      const data = await getAllMocks();
+      setMocks(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleAction(mockId: string, action: 'publish' | 'delete' | 'duplicate' | 'unpublish') {
+  const handleAction = async (mockId: string, action: 'publish' | 'delete' | 'duplicate' | 'unpublish' | 'lock' | 'unlock') => {
     try {
       if (action === 'delete') {
-        if (!confirm("Permanently purge this simulation artifact?")) return;
+        if (!confirm("Permanently purge this simulation artifact? This action is irreversible.")) return;
         await deleteMock(mockId);
-        toast({ title: "Artifact Purged" });
+        toast({ title: "Artifact Purged", description: "Simulation removed from registry." });
       } else if (action === 'publish') {
         await publishMock(mockId, true);
-        toast({ title: "Simulation Live" });
+        toast({ title: "Simulation Live", description: "Mock is now visible to all eligible aspirants." });
       } else if (action === 'unpublish') {
         await publishMock(mockId, false);
-        toast({ title: "Moved to Drafts" });
+        toast({ title: "Moved to Drafts", description: "Simulation hidden from student arena." });
       } else if (action === 'duplicate') {
-        // dupe logic
-        toast({ title: "Artifact Cloned" });
+        const newId = await duplicateMock(mockId);
+        toast({ title: "Artifact Cloned", description: "Deep copy created with identical payload." });
+      } else if (action === 'lock') {
+        await updateMock(mockId, { accessType: 'pass_plus' });
+        toast({ title: "Secure Lock Applied", description: "PASS+ membership now required." });
+      } else if (action === 'unlock') {
+        await updateMock(mockId, { accessType: 'free' });
+        toast({ title: "Unlocked For All", description: "Mock is now part of the Free Hub." });
       }
       loadMocks();
     } catch (e: any) {
       toast({ title: "Action Failed", description: e.message, variant: "destructive" });
     }
-  }
+  };
 
   const filtered = mocks.filter(m => 
     m.title?.toLowerCase().includes(search.toLowerCase()) || 
@@ -79,7 +102,7 @@ export default function SimulationFactoryPage() {
                  </div>
                  <p className="text-zinc-500 font-medium ml-1">Institutional command center for PSSSB, PPSC, and Punjab Police CBTs.</p>
               </div>
-              <Button onClick={() => router.push('/admin/direct-mock-builder')} className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-lg blue-glow">
+              <Button onClick={() => router.push('/admin/direct-mock-builder')} className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-lg blue-glow shadow-2xl">
                  <Plus className="mr-2 w-6 h-6" /> INITIALIZE CBT
               </Button>
             </header>
@@ -109,11 +132,12 @@ export default function SimulationFactoryPage() {
                      <tbody className="divide-y divide-white/5">
                         {loading ? (
                           [1,2,3].map(i => <tr key={i} className="animate-pulse"><td colSpan={5} className="h-24" /></tr>)
-                        ) : filtered.map(m => (
+                        ) : filtered.length > 0 ? (
+                          filtered.map(m => (
                           <tr key={m.id} className="hover:bg-white/[0.01] transition-colors group">
                              <td className="px-10 py-8">
                                 <div className="flex items-center gap-4">
-                                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center border border-white/5">
+                                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center border border-white/5 shadow-inner">
                                       <BookOpen className="text-zinc-600 group-hover:text-primary transition-colors" />
                                    </div>
                                    <div>
@@ -129,23 +153,44 @@ export default function SimulationFactoryPage() {
                                 <span className="text-sm font-bold text-zinc-400">{m.totalQuestions || 0} Artifacts • {m.duration}m</span>
                              </td>
                              <td className="px-10 py-8">
-                                <Badge className={cn("text-[8px] font-black uppercase px-3", m.status === 'published' ? 'bg-emerald-600' : 'bg-zinc-700')}>
-                                   {m.status}
-                                </Badge>
+                                <div className="flex flex-col gap-2">
+                                  <Badge className={cn("text-[8px] font-black uppercase px-3 w-fit", m.status === 'published' ? 'bg-emerald-600' : 'bg-zinc-700')}>
+                                     {m.status}
+                                  </Badge>
+                                  <Badge variant="outline" className={cn("text-[7px] font-black uppercase px-2 w-fit border-white/10", m.accessType === 'free' ? 'text-emerald-500' : 'text-primary')}>
+                                     {m.accessType === 'free' ? 'Free Hub' : 'Locked PASS+'}
+                                  </Badge>
+                                </div>
                              </td>
                              <td className="px-10 py-8 text-right">
-                                <div className="flex justify-end gap-2">
-                                   <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5"><Edit3 size={18} /></Button>
-                                   {m.status === 'draft' ? (
-                                     <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500"><PlayCircle size={18} /></Button>
+                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5" title="Edit Artifacts"><Edit3 size={18} /></Button>
+                                   <Button onClick={() => handleAction(m.id, 'duplicate')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-blue-500/10 text-blue-500" title="Clone Mock"><Copy size={18} /></Button>
+                                   
+                                   {m.accessType === 'free' ? (
+                                      <Button onClick={() => handleAction(m.id, 'lock')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/10 text-primary" title="Lock Behind PASS+"><Lock size={18} /></Button>
                                    ) : (
-                                     <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-orange-500/10 text-orange-500"><Unlock size={18} /></Button>
+                                      <Button onClick={() => handleAction(m.id, 'unlock')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500" title="Unlock for All"><Unlock size={18} /></Button>
                                    )}
-                                   <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-red-500/10 text-red-500"><Trash2 size={18} /></Button>
+
+                                   {m.status === 'draft' ? (
+                                     <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500" title="Make Live"><PlayCircle size={18} /></Button>
+                                   ) : (
+                                     <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-orange-500/10 text-orange-500" title="Move to Draft"><Database size={18} /></Button>
+                                   )}
+                                   <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-red-500/10 text-red-500" title="Purge Artifact"><Trash2 size={18} /></Button>
                                 </div>
                              </td>
                           </tr>
-                        ))}
+                        ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="py-40 text-center">
+                               <AlertTriangle className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
+                               <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">Registry Empty</p>
+                            </td>
+                          </tr>
+                        )}
                      </tbody>
                   </table>
                </div>
