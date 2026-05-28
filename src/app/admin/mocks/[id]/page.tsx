@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, use, useMemo } from "react";
@@ -224,13 +223,13 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                            </div>
 
                            {isExpanded && (
-                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pt-10 border-t border-white/5 space-y-10">
+                             <div className="pt-10 border-t border-white/5 space-y-10">
                                 <div className="grid md:grid-cols-2 gap-16">
                                    <div className="space-y-5">
                                       <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Response Matrix (EN)</p>
                                       <div className="grid gap-3">
                                          {q.en?.options.map((o, i) => (
-                                           <div key={i} className={cn("p-5 rounded-2xl text-sm border font-medium", o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-black/20 border-white/5 text-zinc-500")}>
+                                           <div key={i} className={cn("p-5 rounded-2xl text-sm border font-medium", o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500")}>
                                               {String.fromCharCode(65+i)}. {o}
                                            </div>
                                          ))}
@@ -255,7 +254,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                    </div>
                                    <p className="text-sm leading-relaxed text-zinc-400">{q.en?.explanation || "Logical analysis pending."}</p>
                                 </div>
-                             </motion.div>
+                             </div>
                            )}
                         </div>
                       </Card>
