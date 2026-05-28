@@ -1,7 +1,7 @@
 'use server';
 /**
- * CRACKLIX NEURAL ENGINE v3.0
- * Advanced multi-stage question synthesis with institutional bilingual validation.
+ * CRACKLIX NEURAL ENGINE v4.0 (Enterprise Gateway)
+ * Rebuilt for high-fidelity bilingual question synthesis with deep validation.
  */
 
 import { ai } from '@/ai/genkit';
@@ -10,18 +10,16 @@ import { db } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const QuestionArtifactSchema = z.object({
-  question_en: z.string(),
-  question_pa: z.string(),
-  options_en: z.array(z.string()).length(4),
-  options_pa: z.array(z.string()).length(4),
-  correctAnswer: z.string().describe("The exact text of the correct option in English."),
-  explanation_en: z.string(),
-  explanation_pa: z.string(),
-  subject: z.string(),
-  topic: z.string(),
+  question_en: z.string().describe("Clear, academic English question text."),
+  question_pa: z.string().describe("Formal Raavi-compliant Punjabi translation."),
+  options_en: z.array(z.string()).length(4).describe("4 distinct English options."),
+  options_pa: z.array(z.string()).length(4).describe("4 corresponding Punjabi options."),
+  correctAnswer: z.string().describe("The exact text of the correct option in English (MUST match one of options_en)."),
+  explanation_en: z.string().describe("Step-by-step logical derivation in English."),
+  explanation_pa: z.string().describe("Logical derivation in Punjabi."),
+  subject: z.string().describe("Core exam subject mapping."),
+  topic: z.string().describe("Specific syllabus sub-topic."),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  marks: z.number().default(1),
-  negativeMarks: z.number().default(0.25),
 });
 
 const GeneratorInputSchema = z.object({
@@ -36,59 +34,56 @@ const GeneratorInputSchema = z.object({
 
 const GeneratorOutputSchema = z.object({
   questions: z.array(QuestionArtifactSchema),
-  confidenceScore: z.number(),
-  synthesisNotes: z.string().optional(),
+  confidenceScore: z.number().describe("AI's self-assessment of fact accuracy (0-1)."),
 });
 
-/**
- * Streams a log message to the Firestore job document.
- */
 async function streamLog(jobId: string, message: string) {
-  await db.collection('ai_generation_jobs').doc(jobId).update({
-    logs: FieldValue.arrayUnion(`[${new Date().toLocaleTimeString()}] ${message}`),
-    lastLog: message,
-    updatedAt: Date.now(),
-  });
+  try {
+    await db.collection('ai_generation_jobs').doc(jobId).update({
+      logs: FieldValue.arrayUnion(`[${new Date().toLocaleTimeString()}] ${message}`),
+      lastLog: message,
+      updatedAt: Date.now(),
+    });
+  } catch (e) {
+    console.error("Log Stream Error:", e);
+  }
 }
 
 export async function generateBilingualBatch(input: z.infer<typeof GeneratorInputSchema>) {
-  const { jobId, exam, subjects, topics, count, difficulty, languageMode } = input;
-
-  await streamLog(jobId, `Initializing neural synthesis for ${count} artifacts...`);
+  const { jobId, exam, subjects, count, difficulty, languageMode } = input;
 
   const prompt = ai.definePrompt({
-    name: `neural_forge_v3_${jobId}`,
+    name: `neural_forge_v4_${jobId}`,
     input: { schema: GeneratorInputSchema },
     output: { schema: GeneratorOutputSchema },
-    prompt: `You are the CRACKLIX Neural Academic Architect v3.0 (Institutional Tier).
-    Synthesize a high-fidelity batch of {{{count}}} MCQs for the {{{exam}}} exam.
+    prompt: `You are the CRACKLIX Neural Academic Architect v4.0 (Institutional Tier).
+    Synthesize a high-fidelity batch of {{{count}}} MCQs for the {{{exam}}} exam in Punjab.
 
-    TARGET CONFIGURATION:
+    CONFIGURATION:
     - SUBJECTS: {{{subjects}}}
-    - FOCUS TOPICS: {{{topics}}}
     - COMPLEXITY: {{{difficulty}}}
-    - LANGUAGE MODE: {{{languageMode}}}
+    - LANGUAGE: {{{languageMode}}}
     
-    STRICT INSTITUTIONAL PROTOCOL:
-    1. BILINGUAL DEPTH: If mode is bilingual or punjabi, use Raavi-compliant Gurmukhi.
+    PROTOCOL:
+    1. BILINGUAL DEPTH: If mode is bilingual, use Raavi-compliant Gurmukhi.
     2. OPTION DISTINCTNESS: Ensure options are plausible and distinct.
-    3. MARKING ACCURACY: Correct answer text MUST match the English option exactly.
+    3. MARKING ACCURACY: correctAnswer text MUST match the English option exactly.
     4. EXPLANATION LOGIC: Provide a step-by-step derivation for both languages.
 
-    Respond ONLY with a valid JSON object matching the output schema.`,
+    Respond ONLY with a valid JSON object matching the output schema. No Markdown.`,
   });
 
   try {
-    await streamLog(jobId, "Executing neural synthesis via Gemini 1.5 Pro...");
+    await streamLog(jobId, `Initializing synthesis for ${count} artifacts in ${subjects.join(', ')}...`);
+    
     const { output } = await prompt(input);
 
     if (!output || !output.questions) {
       throw new Error("Neural Link Failure: AI failed to produce structured artifacts.");
     }
 
-    await streamLog(jobId, `Synthesis complete. Validating ${output.questions.length} artifacts against schema...`);
+    await streamLog(jobId, `Synthesis complete. Injecting ${output.questions.length} artifacts to Global Bank...`);
 
-    // Validation & Injection
     const batch = db.batch();
     const questionsCol = db.collection('questions');
 
@@ -98,7 +93,7 @@ export async function generateBilingualBatch(input: z.infer<typeof GeneratorInpu
         ...q,
         id: qRef.id,
         status: 'published',
-        source: 'NEURAL_FORGE_V3',
+        source: 'NEURAL_FORGE_V4',
         jobId: jobId,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -109,31 +104,11 @@ export async function generateBilingualBatch(input: z.infer<typeof GeneratorInpu
     });
 
     await batch.commit();
-    await streamLog(jobId, `Batch synchronized with Global Atomic Bank successfully.`);
+    await streamLog(jobId, `Artifacts indexed successfully. Quality: ${(output.confidenceScore * 100).toFixed(1)}%`);
 
     return output.questions;
   } catch (error: any) {
-    await streamLog(jobId, `CRITICAL SYSTEM ERROR: ${error.message}`);
+    await streamLog(jobId, `CRITICAL GATEWAY ERROR: ${error.message}`);
     throw error;
   }
-}
-
-export async function createGenerationJob(data: any) {
-  const jobRef = db.collection('ai_generation_jobs').doc();
-  const jobId = jobRef.id;
-
-  const job = {
-    id: jobId,
-    status: 'pending',
-    config: data,
-    progress: 0,
-    logs: [`[${new Date().toLocaleTimeString()}] Job initialized in Neural Link buffer.`],
-    totalQuestions: data.count,
-    generatedCount: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-
-  await jobRef.set(job);
-  return jobId;
 }

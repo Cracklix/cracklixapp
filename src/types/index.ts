@@ -1,6 +1,6 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v30.0 (Institutional Standard)
+ * Production-grade Architecture Layer v30.5 (Institutional Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -116,17 +116,10 @@ export interface ExamAttempt {
 
 export interface AIGenerationJob {
   id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'review';
   progress: number;
   logs: string[];
-  config: {
-    title: string;
-    exam: string;
-    subjects: string[];
-    count: number;
-    difficulty: string;
-    languageMode: string;
-  };
+  config: any;
   generatedCount: number;
   totalQuestions: number;
   createdAt: number;
