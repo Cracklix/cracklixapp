@@ -3,17 +3,19 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, db, googleProvider } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Zap, Mail, Lock, User } from 'lucide-react';
+import { Zap, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+
+const googleProvider = new GoogleAuthProvider();
 
 export default function SignupPage() {
   const router = useRouter();
@@ -24,22 +26,52 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
+  const initializeUserProfile = async (uid: string, userEmail: string, userName: string) => {
+    // Standard student profile
+    const profileRef = doc(db, "users", uid);
+    await setDoc(profileRef, {
+      uid,
+      name: userName || 'Aspirant',
+      email: userEmail,
+      role: "student",
+      xp: 0,
+      streak: 0,
+      coins: 50, // Initial reward
+      targetExam: "Punjab Police SI", // Default target
+      createdAt: Date.now(),
+    });
+
+    // Initialize daily targets
+    const targetRef = doc(db, "dailyTargets", uid);
+    await setDoc(targetRef, {
+      userId: uid,
+      questionsGoal: 50,
+      questionsCompleted: 0,
+      mockGoal: 1,
+      mockCompleted: 0,
+      studyMinutesGoal: 120,
+      studyMinutesCompleted: 0,
+      updatedAt: Date.now()
+    });
+
+    // Initialize readiness tracking
+    const readinessRef = doc(db, "readiness", uid);
+    await setDoc(readinessRef, {
+      userId: uid,
+      overallScore: 0,
+      subjectPerformance: {},
+      lastUpdated: Date.now()
+    });
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
+      await initializeUserProfile(res.user.uid, email, name);
       
-      await setDoc(doc(db, "users", res.user.uid), {
-        uid: res.user.uid,
-        name,
-        email,
-        role: "student",
-        xp: 0,
-        streak: 0,
-        createdAt: Date.now(),
-      });
-
+      toast({ title: "Account Created", description: "Welcome to the Punjab Exam Mastery ecosystem." });
       router.push('/dashboard');
     } catch (error: any) {
       toast({
@@ -53,18 +85,12 @@ export default function SignupPage() {
   };
 
   const handleGoogleLogin = async () => {
+    setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
       
-      await setDoc(doc(db, "users", res.user.uid), {
-        uid: res.user.uid,
-        name: res.user.displayName || 'Student',
-        email: res.user.email || '',
-        role: "student",
-        xp: 0,
-        streak: 0,
-        createdAt: Date.now(),
-      }, { merge: true });
+      // Only initialize if it's a new user (optional check, setDoc with merge works too)
+      await initializeUserProfile(res.user.uid, res.user.email!, res.user.displayName || 'Student');
 
       router.push('/dashboard');
     } catch (error: any) {
@@ -73,6 +99,8 @@ export default function SignupPage() {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,17 +116,17 @@ export default function SignupPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-4">
+          <Link href="/" className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-4 blue-glow">
             <Zap className="text-white w-7 h-7 fill-current" />
-          </div>
+          </Link>
           <h1 className="font-headline text-3xl font-bold tracking-tight text-white">Join Cracklix</h1>
-          <p className="text-muted-foreground mt-2">Elite learning for serious students.</p>
+          <p className="text-muted-foreground mt-2">Elite learning for Punjab's serious aspirants.</p>
         </div>
 
         <Card className="rounded-[32px] cracklix-glass shadow-2xl border-white/5">
           <CardHeader>
             <CardTitle>Create Account</CardTitle>
-            <CardDescription>Start your journey to mastery today.</CardDescription>
+            <CardDescription>Start your journey to Rank 1 today.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleSignup} className="space-y-4">
@@ -108,8 +136,8 @@ export default function SignupPage() {
                   <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="name"
-                    placeholder="Full Name"
-                    className="pl-10 h-11 bg-secondary/50 rounded-xl"
+                    placeholder="John Doe"
+                    className="pl-10 h-11 bg-secondary/50 rounded-xl border-white/5"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -123,8 +151,8 @@ export default function SignupPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Email"
-                    className="pl-10 h-11 bg-secondary/50 rounded-xl"
+                    placeholder="name@example.com"
+                    className="pl-10 h-11 bg-secondary/50 rounded-xl border-white/5"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -138,33 +166,34 @@ export default function SignupPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Password"
-                    className="pl-10 h-11 bg-secondary/50 rounded-xl"
+                    placeholder="••••••••"
+                    className="pl-10 h-11 bg-secondary/50 rounded-xl border-white/5"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                 </div>
               </div>
-              <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl" disabled={loading}>
-                {loading ? "Creating Account..." : "Create Account"}
+              <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold" disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Initiate Enrollment"}
               </Button>
             </form>
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div>
+              <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest"><span className="bg-[#050816] px-2 text-zinc-500">Secure Protocol</span></div>
             </div>
 
-            <Button variant="outline" className="w-full h-11 rounded-xl border-white/10 hover:bg-white/5" onClick={handleGoogleLogin}>
+            <Button variant="outline" className="w-full h-11 rounded-xl border-white/10 hover:bg-white/5 font-bold" onClick={handleGoogleLogin}>
+              <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
               Continue with Google
             </Button>
 
             <div className="text-center mt-6">
               <p className="text-sm text-muted-foreground">
-                Already have an account?{' '}
+                Already have an identity?{' '}
                 <Link href="/login" className="text-primary hover:underline font-bold">
-                  Login
+                  Sign In
                 </Link>
               </p>
             </div>

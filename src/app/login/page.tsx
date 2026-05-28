@@ -3,17 +3,20 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Zap, Mail, Lock, User } from 'lucide-react';
+import { Zap, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
+
+const googleProvider = new GoogleAuthProvider();
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,14 +27,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+
+  const checkRoleAndRedirect = async (uid: string) => {
+    const userDoc = await getDoc(doc(db, "users", uid));
+    const data = userDoc.data();
+    
+    if (data?.role === 'admin' || data?.role === 'superadmin') {
+      router.push('/admin');
+    } else {
+      router.push('/dashboard');
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      const res = await signInWithEmailAndPassword(auth, email, password);
+      await checkRoleAndRedirect(res.user.uid);
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -43,58 +56,37 @@ export default function LoginPage() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      const res = await createUserWithEmailAndPassword(auth, email, password);
+      const res = await signInWithPopup(auth, googleProvider);
       
-      // Ensure Firestore profile is created
-      await setDoc(doc(db, "users", res.user.uid), {
-        uid: res.user.uid,
-        name: name || email.split('@')[0],
-        email,
-        role: "student",
-        xp: 0,
-        streak: 0,
-        createdAt: Date.now(),
-      });
-
-      router.push('/dashboard');
-    } catch (error: any) {
-      toast({
-        title: "Sign Up Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      const res = await signInWithPopup(auth, provider);
+      // Ensure profile exists for Google users
+      const userRef = doc(db, "users", res.user.uid);
+      const userSnap = await getDoc(userRef);
       
-      // Initialize profile if it doesn't exist
-      await setDoc(doc(db, "users", res.user.uid), {
-        uid: res.user.uid,
-        name: res.user.displayName || 'Student',
-        email: res.user.email || '',
-        role: "student",
-        xp: 0,
-        streak: 0,
-        createdAt: Date.now(),
-      }, { merge: true });
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          uid: res.user.uid,
+          name: res.user.displayName || 'Student',
+          email: res.user.email || '',
+          role: "student",
+          xp: 0,
+          streak: 0,
+          coins: 50,
+          createdAt: Date.now(),
+        });
+      }
 
-      router.push('/dashboard');
+      await checkRoleAndRedirect(res.user.uid);
     } catch (error: any) {
       toast({
         title: "Google Auth Failed",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,133 +102,74 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-4">
+          <Link href="/" className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-4 blue-glow">
             <Zap className="text-white w-7 h-7 fill-current" />
-          </div>
-          <h1 className="font-headline text-3xl font-bold tracking-tight">Welcome to Cracklix</h1>
-          <p className="text-muted-foreground mt-2">Elite learning for serious students.</p>
+          </Link>
+          <h1 className="font-headline text-3xl font-bold tracking-tight">CRACKLIX Terminal</h1>
+          <p className="text-muted-foreground mt-2">Sign in to access your competitive arena.</p>
         </div>
 
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 p-1 bg-secondary mb-6 rounded-2xl">
-            <TabsTrigger value="login" className="rounded-xl">Sign In</TabsTrigger>
-            <TabsTrigger value="signup" className="rounded-xl">Create Account</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="login">
-            <Card className="rounded-[32px] cracklix-glass shadow-2xl border-white/5">
-              <CardHeader>
-                <CardTitle>Sign In</CardTitle>
-                <CardDescription>Access your study dashboard and XP stats.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        className="pl-10 h-11 bg-secondary/50 rounded-xl"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type="password"
-                        className="pl-10 h-11 bg-secondary/50 rounded-xl"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <Button className="w-full h-11 bg-primary text-white rounded-xl" disabled={loading}>
-                    {loading ? "Authenticating..." : "Sign In"}
-                  </Button>
-                </form>
-
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
-                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or continue with</span></div>
+        <Card className="rounded-[32px] cracklix-glass shadow-2xl border-white/5">
+          <CardHeader>
+            <CardTitle>Aspirant Login</CardTitle>
+            <CardDescription>Enter your credentials to resume preparation.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Identity</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    className="pl-10 h-11 bg-secondary/50 rounded-xl border-white/5"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Access Key</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="pl-10 h-11 bg-secondary/50 rounded-xl border-white/5"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold" disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Access Terminal"}
+              </Button>
+            </form>
 
-                <Button variant="outline" className="w-full h-11 rounded-xl border-white/10 hover:bg-white/5" onClick={handleGoogleLogin}>
-                  <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
-                  Google
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5" /></div>
+              <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest"><span className="bg-[#050816] px-2 text-zinc-500">SSO Provider</span></div>
+            </div>
 
-          <TabsContent value="signup">
-            <Card className="rounded-[32px] cracklix-glass shadow-2xl border-white/5">
-              <CardHeader>
-                <CardTitle>Create Account</CardTitle>
-                <CardDescription>Join our community of high-performers.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="signup-name"
-                        placeholder="John Doe"
-                        className="pl-10 h-11 bg-secondary/50 rounded-xl"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="name@example.com"
-                        className="pl-10 h-11 bg-secondary/50 rounded-xl"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        className="pl-10 h-11 bg-secondary/50 rounded-xl"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <Button className="w-full h-11 bg-primary text-white rounded-xl" disabled={loading}>
-                    {loading ? "Creating Account..." : "Sign Up"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            <Button variant="outline" className="w-full h-11 rounded-xl border-white/10 hover:bg-white/5 font-bold" onClick={handleGoogleLogin}>
+              Continue with Google
+            </Button>
+
+            <div className="text-center mt-6">
+              <p className="text-sm text-muted-foreground">
+                New aspirant?{' '}
+                <Link href="/signup" className="text-primary hover:underline font-bold">
+                  Enroll Now
+                </Link>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
     </div>
   );
