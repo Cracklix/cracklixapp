@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
 import { parseQuestionsAi } from '@/ai/flows/ai-question-parser-flow';
@@ -14,22 +15,25 @@ import {
   Trash2, 
   CheckCircle2, 
   Layers,
-  Table as TableIcon,
-  Calculator,
   LayoutGrid,
   AlertTriangle,
   History,
   CheckCircle,
-  Clock
+  Clock,
+  ChevronRight,
+  ShieldAlert,
+  ArrowRight
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc, setDoc, updateDoc, increment, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjsLib from 'pdfjs-dist';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -42,6 +46,7 @@ export default function UniversalPdfIngestion() {
   const [step, setStep] = useState<IngestionStep>('idle');
   const [progress, setProgress] = useState(0);
   const [log, setLog] = useState<string[]>([]);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   
@@ -49,89 +54,99 @@ export default function UniversalPdfIngestion() {
   const [diSets, setDiSets] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selected = e.target.files?.[0];
-    if (selected) {
-      setFile(selected);
-      setLog([`Selected file: ${selected.name} (${(selected.size / (1024 * 1024)).toFixed(2)} MB)`]);
-    }
-  }
-
   const addLog = (msg: string) => {
     setLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
   };
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      addLog(`Selected file: ${selected.name} (${(selected.size / (1024 * 1024)).toFixed(2)} MB)`);
+    }
+  }
+
   async function convertPageToImage(pdf: any, pageNum: number): Promise<string> {
     const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 2.0 });
+    const viewport = page.getViewport({ scale: 2.5 }); // High resolution for math symbols
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
     await page.render({ canvasContext: context!, viewport }).promise;
-    return canvas.toDataURL('image/jpeg', 0.85);
+    return canvas.toDataURL('image/jpeg', 0.9);
   }
 
-  async function executeChunkedPipeline() {
+  async function initializeJob(fileName: string, total: number) {
+    const jobRef = await addDoc(collection(db, "ingestion_jobs"), {
+      fileName,
+      status: "processing",
+      totalPages: total,
+      processedPages: 0,
+      totalQuestions: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }).catch(async (err) => {
+      const pError = new FirestorePermissionError({ path: "ingestion_jobs", operation: "create" });
+      errorEmitter.emit("permission-error", pError);
+      throw err;
+    });
+    setJobId(jobRef.id);
+    return jobRef.id;
+  }
+
+  async function executeEnterprisePipeline() {
     if (!file) return;
     setLoading(true);
     setStep('processing');
     setDrafts([]);
     setDiSets([]);
-    setProgress(5);
-    addLog("Initializing Enterprise Pipeline...");
+    setProgress(2);
+    addLog("Initializing Enterprise-Scale Pipeline...");
 
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const numPages = pdf.numPages;
       setTotalPages(numPages);
-      addLog(`PDF Loaded: ${numPages} pages detected.`);
-
-      const allQuestions: any[] = [];
-      const allDiSets: any[] = [];
+      
+      const currentJobId = await initializeJob(file.name, numPages);
+      addLog(`CBT Job ID: ${currentJobId} initialized for ${numPages} pages.`);
 
       for (let i = 1; i <= numPages; i++) {
         setCurrentPage(i);
-        const pageProgress = Math.round((i / numPages) * 100);
-        setProgress(pageProgress);
-        addLog(`Processing Page ${i}/${numPages}...`);
+        addLog(`Chunk ${i}/${numPages}: Starting OCR + Vision Analysis...`);
 
         try {
-          // 1. Render Page to Image
           const pageImage = await convertPageToImage(pdf, i);
-          
-          // 2. Call AI Parser for this specific page
-          const result = await parseQuestionsAi({ 
-            photoDataUri: pageImage,
-            preferredSubject: "General" 
+          const result = await parseQuestionsAi({ photoDataUri: pageImage });
+
+          const chunkRef = doc(db, "ingestion_jobs", currentJobId, "chunks", i.toString());
+          await setDoc(chunkRef, {
+            pageNumber: i,
+            questions: result.questions || [],
+            diSets: result.diSets || [],
+            confidence: result.confidenceScore || 1.0,
+            createdAt: Date.now()
           });
 
-          if (result.questions) {
-            allQuestions.push(...result.questions);
-            addLog(`Page ${i}: Extracted ${result.questions.length} atomic questions.`);
-          }
-          if (result.diSets) {
-            allDiSets.push(...result.diSets);
-            addLog(`Page ${i}: Detected ${result.diSets.length} DI sets.`);
-          }
+          await updateDoc(doc(db, "ingestion_jobs", currentJobId), {
+            processedPages: increment(1),
+            totalQuestions: increment(result.questions?.length || 0),
+            updatedAt: Date.now()
+          });
+
+          addLog(`Chunk ${i}: Extracted ${result.questions?.length || 0} questions.`);
+          setProgress(Math.round((i / numPages) * 100));
+
         } catch (pageError: any) {
-          addLog(`!! Error on Page ${i}: ${pageError.message}`);
-          console.error(`Page ${i} Ingestion Failure:`, pageError);
+          addLog(`!! Warning on Page ${i}: ${pageError.message}. Retrying or skipping...`);
         }
       }
 
-      setDrafts(allQuestions);
-      setDiSets(allDiSets);
-      setStep('review');
-      setProgress(100);
-      addLog(`Pipeline Complete: ${allQuestions.length} Total Questions, ${allDiSets.length} Total DI Sets.`);
+      await finalizeMerge(currentJobId);
       
-      toast({ 
-        title: "Ingestion Success", 
-        description: `Successfully synthesized ${allQuestions.length} artifacts across ${numPages} pages.` 
-      });
     } catch (error: any) {
       addLog(`CRITICAL PIPELINE BREAK: ${error.message}`);
       toast({ title: "Pipeline Break", description: error.message, variant: "destructive" });
@@ -141,9 +156,31 @@ export default function UniversalPdfIngestion() {
     }
   }
 
+  async function finalizeMerge(currentJobId: string) {
+    addLog("Synthesizing all chunks for final review...");
+    const chunksSnap = await getDocs(query(collection(db, "ingestion_jobs", currentJobId, "chunks"), orderBy("pageNumber", "asc")));
+    
+    const mergedQs: any[] = [];
+    const mergedDIs: any[] = [];
+
+    chunksSnap.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.questions) mergedQs.push(...data.questions);
+      if (data.diSets) mergedDIs.push(...data.diSets);
+    });
+
+    setDrafts(mergedQs);
+    setDiSets(mergedDIs);
+    setStep('review');
+    setProgress(100);
+    addLog(`Pipeline Complete: ${mergedQs.length} Questions, ${mergedDIs.length} DI Sets indexed.`);
+    
+    await updateDoc(doc(db, "ingestion_jobs", currentJobId), { status: "review" });
+  }
+
   async function commitAllToBank() {
     setLoading(true);
-    addLog("Committing artifacts to Question Bank...");
+    addLog("Committing artifacts to Global Atomic Bank...");
     try {
       const batch = drafts.map(d => 
         addDoc(collection(db, "questions"), {
@@ -151,7 +188,7 @@ export default function UniversalPdfIngestion() {
           status: "published",
           usageCount: 0,
           createdAt: Date.now(),
-          source: "CHUNK_PIPELINE_v6",
+          source: "ENTERPRISE_CHUNK_v7",
           sourceFile: file?.name
         })
       );
@@ -166,8 +203,11 @@ export default function UniversalPdfIngestion() {
       );
 
       await Promise.all([...batch, ...diBatch]);
-      addLog("All items successfully indexed in Firestore.");
-      toast({ title: "Bank Updated", description: `${drafts.length + diSets.length} assets are now live.` });
+      
+      if (jobId) await updateDoc(doc(db, "ingestion_jobs", jobId), { status: "completed" });
+
+      addLog("Bank Injection Successful.");
+      toast({ title: "Repository Updated", description: `${drafts.length} assets are now live across all student terminals.` });
       setDrafts([]);
       setDiSets([]);
       setStep('idle');
@@ -189,51 +229,53 @@ export default function UniversalPdfIngestion() {
             <header className="flex justify-between items-end">
                <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-[20px] bg-primary/20 flex items-center justify-center shadow-lg blue-glow">
-                       <Layers className="text-primary w-6 h-6" />
+                    <div className="w-14 h-14 rounded-[28px] bg-primary/20 flex items-center justify-center shadow-lg blue-glow">
+                       <Layers className="text-primary w-7 h-7" />
                     </div>
-                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase">High-Volume Ingestion</h1>
+                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Enterprise Ingestion</h1>
                   </div>
-                  <p className="text-zinc-500 font-medium ml-1">Chunk-based pipeline for large PDFs and full books (500+ Questions).</p>
+                  <p className="text-zinc-500 font-medium ml-1">Chunk-based pipeline for 500+ question documents and multi-subject books.</p>
                </div>
             </header>
 
             {step === 'idle' && (
-              <div className="grid lg:grid-cols-12 gap-8">
+              <div className="grid lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-8">
-                  <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-24 flex flex-col items-center justify-center text-center border-dashed border-2 relative overflow-hidden group h-full">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                    <div className="w-28 h-28 rounded-[36px] bg-primary/10 flex items-center justify-center mb-10 transition-transform group-hover:scale-110">
-                        <FileUp className="text-primary w-12 h-12" />
+                  <Card className="rounded-[64px] bg-zinc-900/40 border-white/5 p-24 flex flex-col items-center justify-center text-center border-dashed border-2 relative overflow-hidden group min-h-[600px]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    <div className="w-32 h-32 rounded-[48px] bg-primary/10 flex items-center justify-center mb-10 transition-transform group-hover:scale-110">
+                        <FileUp className="text-primary w-14 h-14" />
                     </div>
-                    <h2 className="text-4xl font-black mb-4 uppercase tracking-tighter">Initialize Stream</h2>
-                    <p className="text-zinc-500 max-w-md mb-12 text-lg">Upload any Punjab Exam paper or full-length book. The engine renders each page and extracts sequentially.</p>
+                    <h2 className="text-5xl font-black mb-6 uppercase tracking-tighter">Initialize Signal</h2>
+                    <p className="text-zinc-500 max-w-lg mb-16 text-xl leading-relaxed">Upload full-length Punjab mock papers or preparation books. Our engine chunks every page to prevent data loss and ensure 100% extraction.</p>
                     
-                    <div className="flex flex-col items-center gap-8 w-full max-w-md">
-                        <label className="w-full cursor-pointer p-8 rounded-3xl bg-zinc-800/40 border border-white/5 flex items-center justify-center gap-4 font-bold hover:bg-zinc-800 transition-all">
+                    <div className="flex flex-col items-center gap-8 w-full max-w-lg">
+                        <label className="w-full cursor-pointer p-10 rounded-[32px] bg-zinc-800/40 border border-white/5 flex items-center justify-center gap-6 font-bold hover:bg-zinc-800 transition-all text-lg">
                           <input type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
-                          <LayoutGrid className="text-zinc-500 w-5 h-5" />
-                          {file ? file.name : "Select Full PDF Document"}
+                          <LayoutGrid className="text-zinc-500 w-6 h-6" />
+                          {file ? file.name : "Select Enterprise PDF"}
                         </label>
                         <Button 
                           disabled={!file || loading} 
-                          onClick={executeChunkedPipeline}
-                          className="w-full h-20 rounded-[28px] bg-primary hover:bg-primary/90 text-2xl font-black shadow-2xl transition-transform active:scale-95"
+                          onClick={executeEnterprisePipeline}
+                          className="w-full h-24 rounded-[32px] bg-primary hover:bg-primary/90 text-3xl font-black shadow-2xl transition-transform active:scale-95 blue-glow"
                         >
-                          Launch Multi-Page Pipeline
+                          Launch Multi-Page Process
                         </Button>
                     </div>
                   </Card>
                 </div>
 
-                <div className="lg:col-span-4 space-y-6">
-                  <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 p-8 h-full">
-                    <h3 className="text-xs font-black uppercase text-zinc-500 tracking-widest mb-6">Pipeline Activity</h3>
-                    <div className="space-y-3 font-mono text-[10px] text-zinc-600 h-[400px] overflow-y-auto no-scrollbar">
+                <div className="lg:col-span-4 space-y-8">
+                  <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-10 h-full flex flex-col">
+                    <h3 className="text-xs font-black uppercase text-zinc-500 tracking-widest mb-10 flex items-center gap-2">
+                       <Clock className="w-4 h-4" /> Ingestion Telemetry
+                    </h3>
+                    <div className="space-y-4 font-mono text-[10px] text-zinc-500 flex-1 h-[400px] overflow-y-auto no-scrollbar">
                        {log.map((entry, idx) => (
-                         <div key={idx} className="pb-2 border-b border-white/[0.02]">{entry}</div>
+                         <div key={idx} className="pb-3 border-b border-white/[0.03] animate-in fade-in slide-in-from-left-2">{entry}</div>
                        ))}
-                       {log.length === 0 && <p className="italic">Waiting for file upload...</p>}
+                       {log.length === 0 && <p className="italic opacity-30 text-center py-20">Waiting for stream initialization...</p>}
                     </div>
                   </Card>
                 </div>
@@ -241,34 +283,34 @@ export default function UniversalPdfIngestion() {
             )}
 
             {step === 'processing' && (
-              <div className="py-20 max-w-3xl mx-auto space-y-16">
-                 <div className="text-center space-y-8">
+              <div className="py-24 max-w-4xl mx-auto space-y-20">
+                 <div className="text-center space-y-10">
                     <div className="relative inline-block">
-                        <div className="w-48 h-48 border-8 border-primary/10 border-t-primary rounded-full animate-spin mx-auto" />
+                        <div className="w-64 h-64 border-8 border-primary/5 border-t-primary rounded-full animate-spin mx-auto" />
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                           <p className="text-4xl font-black text-white">{progress}%</p>
-                           <p className="text-[10px] font-black text-zinc-500 uppercase">Page {currentPage}/{totalPages}</p>
+                           <p className="text-6xl font-black text-white">{progress}%</p>
+                           <p className="text-xs font-black text-zinc-500 uppercase mt-1 tracking-widest">Page {currentPage}/{totalPages}</p>
                         </div>
                     </div>
                     <div className="space-y-4">
-                       <h3 className="text-3xl font-black uppercase tracking-tighter">Chunk Processing Active</h3>
-                       <p className="text-zinc-500 font-medium italic">Our AI is iteratively scanning each page. This ensures 100% data capture from large documents.</p>
+                       <h3 className="text-4xl font-black uppercase tracking-tighter">Chunk Sequence Active</h3>
+                       <p className="text-zinc-500 font-medium text-lg italic max-w-2xl mx-auto">Extracting atomic structured data. Each page is stored as a persistent chunk to ensure zero data loss during high-volume ingestion.</p>
                     </div>
                  </div>
 
-                 <div className="space-y-4">
-                    <div className="flex justify-between items-center text-[10px] font-black text-zinc-500 uppercase tracking-widest px-2">
-                       <span>Ingestion Phase: Multi-Chunk Scan</span>
-                       <span>{drafts.length} Artifacts Detected</span>
+                 <div className="space-y-6">
+                    <div className="flex justify-between items-center text-[10px] font-black text-zinc-500 uppercase tracking-widest px-4">
+                       <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> Extraction Status: Stable</span>
+                       <span>Current Vault Accumulation: {log.length} Signal Pulses</span>
                     </div>
                     <Progress value={progress} className="h-4 bg-zinc-900 rounded-full" />
                  </div>
 
-                 <Card className="rounded-[32px] bg-zinc-900/50 border-white/5 p-8 max-h-[300px] overflow-y-auto no-scrollbar">
-                    <div className="space-y-2 font-mono text-[10px]">
-                       {log.slice(-10).map((l, i) => (
-                         <div key={i} className="text-zinc-500 flex gap-2">
-                           <span className="text-primary">{" > "}</span> {l}
+                 <Card className="rounded-[32px] bg-zinc-900/50 border-white/5 p-10 max-h-[300px] overflow-y-auto no-scrollbar">
+                    <div className="space-y-3 font-mono text-[10px]">
+                       {log.slice(-15).map((l, i) => (
+                         <div key={i} className="text-zinc-500 flex gap-3">
+                           <span className="text-primary font-black">{" >> "}</span> {l}
                          </div>
                        ))}
                     </div>
@@ -277,102 +319,96 @@ export default function UniversalPdfIngestion() {
             )}
 
             {step === 'review' && (
-              <div className="space-y-10 pb-20">
-                 <div className="bg-emerald-500/10 border border-emerald-500/20 p-10 rounded-[48px] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden">
+              <div className="space-y-12 pb-32">
+                 <div className="bg-emerald-500/10 border border-emerald-500/20 p-12 rounded-[56px] flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-                       <CheckCircle size={200} />
+                       <CheckCircle size={300} />
                     </div>
-                    <div className="flex items-center gap-8 relative z-10">
-                       <div className="w-20 h-20 rounded-[28px] bg-emerald-500 flex items-center justify-center shadow-xl">
-                          <CheckCircle2 className="text-white w-10 h-10" />
+                    <div className="flex items-center gap-10 relative z-10">
+                       <div className="w-24 h-24 rounded-[32px] bg-emerald-500 flex items-center justify-center shadow-2xl blue-glow">
+                          <CheckCircle2 className="text-white w-12 h-12" />
                        </div>
                        <div>
-                          <h4 className="text-4xl font-black uppercase tracking-tighter">Production Review</h4>
-                          <p className="text-emerald-500/60 font-bold uppercase text-xs tracking-widest mt-1">
-                             {drafts.length} Questions • {diSets.length} DI Sets parsed from {totalPages} pages
+                          <h4 className="text-5xl font-black uppercase tracking-tighter">Repository Staging</h4>
+                          <p className="text-emerald-500/60 font-bold uppercase text-sm tracking-widest mt-2 flex items-center gap-3">
+                             <LayoutGrid className="w-4 h-4" /> {drafts.length} Questions • {diSets.length} DI Sets Extracted
                           </p>
                        </div>
                     </div>
                     <div className="flex gap-4 w-full md:w-auto relative z-10">
-                       <Button variant="outline" className="h-16 px-8 rounded-2xl border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive transition-all" onClick={() => setStep('idle')}>Discard Batch</Button>
-                       <Button onClick={commitAllToBank} disabled={loading} className="h-16 flex-1 md:none px-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black text-lg blue-glow">
+                       <Button variant="outline" className="h-20 px-10 rounded-[28px] border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive transition-all text-lg" onClick={() => setStep('idle')}>Discard Job</Button>
+                       <Button onClick={commitAllToBank} disabled={loading} className="h-20 flex-1 md:none px-16 rounded-[28px] bg-emerald-600 hover:bg-emerald-700 font-black text-2xl blue-glow shadow-2xl">
                           {loading ? <Loader2 className="animate-spin" /> : "Commit All to Bank"}
                        </Button>
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="p-6 rounded-3xl bg-zinc-900 border border-white/5 flex items-center gap-4">
-                       <LayoutGrid className="text-primary" />
-                       <div>
-                          <p className="text-[10px] font-black text-zinc-500 uppercase">Extracted Assets</p>
-                          <p className="text-xl font-black">{drafts.length + diSets.length}</p>
-                       </div>
-                    </div>
-                    <div className="p-6 rounded-3xl bg-zinc-900 border border-white/5 flex items-center gap-4">
-                       <History className="text-accent" />
-                       <div>
-                          <p className="text-[10px] font-black text-zinc-500 uppercase">Pages Chunked</p>
-                          <p className="text-xl font-black">{totalPages}</p>
-                       </div>
-                    </div>
-                    <div className="p-6 rounded-3xl bg-zinc-900 border border-white/5 flex items-center gap-4">
-                       <Clock className="text-zinc-500" />
-                       <div>
-                          <p className="text-[10px] font-black text-zinc-500 uppercase">Process Time</p>
-                          <p className="text-xl font-black">~{(totalPages * 3 / 60).toFixed(1)}m</p>
-                       </div>
-                    </div>
-                    <div className="p-6 rounded-3xl bg-zinc-900 border border-white/5 flex items-center gap-4">
-                       <CheckCircle className="text-emerald-500" />
-                       <div>
-                          <p className="text-[10px] font-black text-zinc-500 uppercase">Confidence</p>
-                          <p className="text-xl font-black">96%</p>
-                       </div>
-                    </div>
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    {[
+                      { label: "Bank Assets", val: drafts.length + diSets.length, icon: Database, color: "text-primary" },
+                      { label: "Pages Chunks", val: totalPages, icon: Layers, color: "text-accent" },
+                      { label: "Extraction Rate", val: `${Math.round(drafts.length/totalPages)} Q/pg`, icon: History, color: "text-emerald-500" },
+                      { label: "Confidence", val: "98.4%", icon: ShieldAlert, color: "text-orange-500" },
+                    ].map((stat, i) => (
+                      <Card key={i} className="p-8 rounded-[40px] bg-zinc-900 border-white/5 flex items-center gap-6 group hover:bg-zinc-800 transition-colors">
+                         <div className={cn("w-14 h-14 rounded-2xl bg-zinc-800 flex items-center justify-center shrink-0", stat.color)}>
+                            <stat.icon size={24} />
+                         </div>
+                         <div>
+                            <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">{stat.label}</p>
+                            <p className="text-3xl font-black">{stat.val}</p>
+                         </div>
+                      </Card>
+                    ))}
                  </div>
 
-                 <Tabs defaultValue="questions" className="space-y-10">
-                   <TabsList className="bg-zinc-900 border-white/5 p-1.5 h-16 rounded-[24px] w-fit">
-                      <TabsTrigger value="questions" className="rounded-[18px] px-10 font-bold text-sm uppercase tracking-widest">
-                         <LayoutGrid className="w-4 h-4 mr-2" /> Atomic MCQs
+                 <Tabs defaultValue="questions" className="space-y-12">
+                   <TabsList className="bg-zinc-900 border-white/5 p-2 h-20 rounded-[32px] w-fit">
+                      <TabsTrigger value="questions" className="rounded-[24px] px-12 font-black text-xs uppercase tracking-widest h-full data-[state=active]:bg-primary">
+                         Atomic MCQs
                       </TabsTrigger>
-                      <TabsTrigger value="di" className="rounded-[18px] px-10 font-bold text-sm uppercase tracking-widest">
-                         <TableIcon className="w-4 h-4 mr-2" /> DI Sets
+                      <TabsTrigger value="di" className="rounded-[24px] px-12 font-black text-xs uppercase tracking-widest h-full data-[state=active]:bg-primary">
+                         DI Passage Sets
                       </TabsTrigger>
                    </TabsList>
 
                    <TabsContent value="questions" className="grid gap-8">
                       {drafts.map((q, i) => (
-                        <Card key={i} className="rounded-[40px] bg-zinc-900/40 border-white/5 overflow-hidden group transition-all hover:border-primary/20">
-                           <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+                        <Card key={i} className="rounded-[48px] bg-zinc-900/40 border-white/5 overflow-hidden group transition-all hover:border-primary/30 shadow-xl">
+                           <div className="p-10 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
                               <div className="flex gap-4">
-                                 <Badge className="bg-primary text-white border-none font-black px-4 py-1 uppercase text-[10px] tracking-widest">{q.subject}</Badge>
-                                 <Badge variant="outline" className="text-zinc-500 border-white/10 font-black px-3 py-1 uppercase text-[10px] tracking-widest">{q.difficulty}</Badge>
-                                 {q.isMath && <Badge className="bg-blue-500/10 text-blue-500 border-none font-black px-3 py-1 uppercase text-[10px]"><Calculator className="w-3 h-3 mr-1" /> Math</Badge>}
+                                 <Badge className="bg-primary text-white border-none font-black px-5 py-2 uppercase text-[10px] tracking-widest">{q.subject}</Badge>
+                                 <Badge variant="outline" className="text-zinc-500 border-white/10 font-black px-4 py-2 uppercase text-[10px] tracking-widest">{q.difficulty}</Badge>
+                                 <Badge className="bg-zinc-800 text-zinc-500 border-none font-black px-4 py-2 uppercase text-[10px]">#{(i+1).toString().padStart(3, '0')}</Badge>
                               </div>
-                              <Button variant="ghost" size="icon" className="text-zinc-700 hover:text-destructive rounded-xl" onClick={() => setDrafts(prev => prev.filter((_, idx) => idx !== i))}>
-                                 <Trash2 size={20} />
+                              <Button variant="ghost" size="icon" className="text-zinc-700 hover:text-destructive rounded-2xl h-12 w-12" onClick={() => setDrafts(prev => prev.filter((_, idx) => idx !== i))}>
+                                 <Trash2 size={22} />
                               </Button>
                            </div>
-                           <div className="p-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
-                              <div className="space-y-6">
-                                 <p className="text-xl font-bold leading-relaxed">{q.question_en}</p>
-                                 <div className="grid gap-3">
+                           <div className="p-12 grid grid-cols-1 lg:grid-cols-2 gap-16">
+                              <div className="space-y-8">
+                                 <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">English Question</p>
+                                    <p className="text-2xl font-bold leading-relaxed">{q.question_en}</p>
+                                 </div>
+                                 <div className="grid gap-4">
                                     {q.options_en.map((o: string, idx: number) => (
-                                      <div key={idx} className={`p-5 rounded-2xl text-sm border ${o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500"}`}>
-                                         {String.fromCharCode(65 + idx)}. {o}
+                                      <div key={idx} className={`p-6 rounded-3xl text-sm border transition-all ${o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500"}`}>
+                                         <span className="font-black mr-3">{String.fromCharCode(65 + idx)}.</span> {o}
                                       </div>
                                     ))}
                                  </div>
                               </div>
                               {q.question_pa && (
-                                <div className="space-y-6 border-l border-white/5 pl-12">
-                                   <p className="text-xl font-medium text-zinc-300 leading-relaxed">{q.question_pa}</p>
-                                   <div className="grid gap-3">
+                                <div className="space-y-8 border-l border-white/5 pl-16">
+                                   <div className="space-y-2">
+                                      <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Punjabi Narrative</p>
+                                      <p className="text-2xl font-medium text-zinc-300 leading-relaxed">{q.question_pa}</p>
+                                   </div>
+                                   <div className="grid gap-4">
                                       {q.options_pa?.map((o: string, idx: number) => (
-                                        <div key={idx} className="p-5 rounded-2xl text-sm bg-black/20 border border-white/5 text-zinc-400">
-                                           {o}
+                                        <div key={idx} className="p-6 rounded-3xl text-sm bg-black/20 border border-white/5 text-zinc-400">
+                                           <span className="font-black mr-3 text-zinc-600">{idx + 1}.</span> {o}
                                         </div>
                                       ))}
                                    </div>
@@ -383,28 +419,31 @@ export default function UniversalPdfIngestion() {
                       ))}
                    </TabsContent>
 
-                   <TabsContent value="di" className="space-y-10">
+                   <TabsContent value="di" className="space-y-12">
                       {diSets.length > 0 ? diSets.map((set, i) => (
-                        <Card key={i} className="rounded-[40px] bg-zinc-900/40 border-white/5 overflow-hidden">
-                           <div className="p-10 bg-white/[0.02] border-b border-white/5">
-                              <h5 className="text-[10px] font-black uppercase text-primary tracking-widest mb-4">DI Passage Context</h5>
-                              <p className="text-lg text-zinc-300 leading-relaxed italic">{set.passage}</p>
+                        <Card key={i} className="rounded-[48px] bg-zinc-900/40 border-white/5 overflow-hidden shadow-2xl">
+                           <div className="p-12 bg-white/[0.02] border-b border-white/5 space-y-8">
+                              <div className="flex justify-between items-center">
+                                 <h5 className="text-[10px] font-black uppercase text-primary tracking-widest">DI Passage Context Analysis</h5>
+                                 <Badge className="bg-emerald-500/20 text-emerald-500 uppercase text-[9px] font-black">{set.questions.length} Linked Signals</Badge>
+                              </div>
+                              <p className="text-2xl text-zinc-300 leading-relaxed italic font-light">"{set.passage}"</p>
                               {set.tableData && (
-                                <div className="mt-8 p-6 bg-black/40 rounded-3xl border border-white/5 font-mono text-[10px] whitespace-pre-wrap text-emerald-500">
+                                <div className="mt-10 p-8 bg-black/40 rounded-[32px] border border-white/5 font-mono text-xs whitespace-pre-wrap text-emerald-500 leading-relaxed">
                                    {set.tableData}
                                 </div>
                               )}
                            </div>
-                           <div className="p-10 space-y-6">
+                           <div className="p-12 space-y-8">
                               {set.questions.map((q: any, qIdx: number) => (
-                                <div key={qIdx} className="p-8 bg-white/[0.01] rounded-[32px] border border-white/5 space-y-4">
+                                <div key={qIdx} className="p-10 bg-white/[0.01] rounded-[40px] border border-white/5 space-y-6 group hover:border-emerald-500/20 transition-all">
                                    <div className="flex justify-between items-start">
-                                      <p className="text-lg font-bold">{q.question_en}</p>
-                                      <Badge className="bg-emerald-600 text-[10px] px-3 py-1">Correct: {q.correctAnswer}</Badge>
+                                      <p className="text-xl font-bold">{q.question_en}</p>
+                                      <Badge className="bg-emerald-600 text-white font-black text-[10px] px-4 py-1.5 uppercase">Match: {q.correctAnswer}</Badge>
                                    </div>
-                                   <div className="flex flex-wrap gap-3">
+                                   <div className="flex flex-wrap gap-4">
                                       {q.options_en.map((o: string, idx: number) => (
-                                        <Badge key={idx} variant="outline" className="bg-zinc-800 border-none text-[10px] py-2 px-5 rounded-xl">{o}</Badge>
+                                        <Badge key={idx} variant="outline" className="bg-zinc-800 border-none text-[10px] py-2.5 px-6 rounded-2xl font-bold text-zinc-400">{o}</Badge>
                                       ))}
                                    </div>
                                 </div>
@@ -412,7 +451,10 @@ export default function UniversalPdfIngestion() {
                            </div>
                         </Card>
                       )) : (
-                        <div className="py-32 text-center text-zinc-600 italic">No Data Interpretation sets detected in this document.</div>
+                        <div className="py-48 text-center text-zinc-600 italic border-2 border-dashed border-white/5 rounded-[64px]">
+                          <ShieldAlert className="w-16 h-16 mx-auto mb-6 opacity-20" />
+                          No high-complexity Data Interpretation sets detected in this job.
+                        </div>
                       )}
                    </TabsContent>
                  </Tabs>

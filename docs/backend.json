@@ -20,33 +20,30 @@
         "bookmarks": { "type": "array" }
       }
     },
-    "Plan": {
-      "title": "Subscription Plan",
-      "description": "Defined access tiers for the platform.",
+    "IngestionJob": {
+      "title": "Ingestion Job",
+      "description": "Tracking for a multi-page PDF ingestion session.",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "price": { "type": "number" },
-        "duration": { "type": "number", "description": "Days" },
-        "features": { "type": "array", "items": { "type": "string" } },
-        "exams": { "type": "array", "description": "Specific exams this pass unlocks (empty for all)" },
-        "active": { "type": "boolean" },
-        "tier": { "type": "string", "enum": ["silver", "gold", "elite"] }
+        "fileName": { "type": "string" },
+        "status": { "type": "string", "enum": ["processing", "review", "completed", "failed"] },
+        "totalPages": { "type": "number" },
+        "processedPages": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
       }
     },
-    "Subscription": {
-      "title": "User Subscription",
-      "description": "Active access record for a user.",
+    "IngestionChunk": {
+      "title": "Ingestion Chunk",
+      "description": "Extracted data from a single page of an ingestion job.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "planId": { "type": "string" },
-        "planName": { "type": "string" },
-        "status": { "type": "string", "enum": ["active", "expired", "cancelled"] },
-        "startDate": { "type": "number" },
-        "expiresAt": { "type": "number" },
-        "paymentId": { "type": "string" },
-        "features": { "type": "array" }
+        "pageNumber": { "type": "number" },
+        "questions": { "type": "array" },
+        "diSets": { "type": "array" },
+        "confidence": { "type": "number" },
+        "createdAt": { "type": "number" }
       }
     }
   },
@@ -58,17 +55,13 @@
       "schema": "UserProfile",
       "description": "Student profiles and roles."
     },
-    "/plans/{planId}": {
-      "schema": "Plan",
-      "description": "Dynamic pricing tiers and feature manifests."
+    "/ingestion_jobs/{jobId}": {
+      "schema": "IngestionJob",
+      "description": "Metadata for high-volume ingestion jobs."
     },
-    "/subscriptions/{subId}": {
-      "schema": "Subscription",
-      "description": "User subscription ledger."
-    },
-    "/payments/{paymentId}": {
-      "schema": "Payment",
-      "description": "Transaction logs."
+    "/ingestion_jobs/{jobId}/chunks/{pageId}": {
+      "schema": "IngestionChunk",
+      "description": "Temporary storage for extracted chunks."
     },
     "/questions/{qId}": {
       "schema": "Question",
