@@ -1,10 +1,10 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { mockService } from "@/services/mockService";
 import { 
+  getMockDetails, 
+  getMockQuestions, 
   startAttempt, 
   getAttemptState, 
   saveQuestionState, 
@@ -20,13 +20,14 @@ import Timer from "@/components/mock/timer";
 import { generateAnalytics } from "@/services/analytics-engine";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileSearch, ArrowLeft, ShieldAlert } from "lucide-react";
+import { Loader2, FileSearch, ArrowLeft, ShieldAlert, Languages, Info, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AttemptAnswer } from "@/types";
+import { AttemptAnswer, MockTest, Question } from "@/types";
 import { AppErrorBoundary } from "@/components/error-boundary";
+import { Badge } from "@/components/ui/badge";
 
-type EnginePhase = 'loading' | 'instructions' | 'engine' | 'error';
+type EnginePhase = 'loading' | 'instructions' | 'engine' | 'result' | 'error';
 
 export default function MockPage() {
   const { user, profile } = useAuth();
@@ -36,47 +37,47 @@ export default function MockPage() {
   const { toast } = useToast();
   
   const [phase, setPhase] = useState<EnginePhase>('loading');
-  const [mock, setMock] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [mock, setMock] = useState<MockTest | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, AttemptAnswer>>({});
+  const [attemptId, setAttemptId] = useState<string | null>(null);
   const [initializing, setInitializing] = useState(false);
   const [hasConfirmed, setHasConfirmed] = useState(false);
-  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [activeLang, setActiveLang] = useState<'en' | 'pa'>('en');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const timerRef = useRef<number>(Date.now());
 
-  // STABILIZED INITIALIZATION (Mount-Only Protocol)
+  // CBT Initialization Protocol
   useEffect(() => {
-    if (!user || !mockId) return;
-    
-    // Prevent double execution during mounting
-    if (initializing) return;
+    if (!user || !mockId || initializing) return;
 
     async function init() {
       setInitializing(true);
-      console.count("CBT Engine Mount Sequence");
-      
       try {
-        const mockData = await mockService.getMock(mockId);
+        // 1. Fetch Mock Artifact
+        const mockData = await getMockDetails(mockId);
         if (!mockData) {
-          setErrorMsg("Artifact signal not found in registry.");
+          setErrorMsg("This test artifact is no longer active in our registry.");
           setPhase('error');
           return;
         }
         setMock(mockData);
 
-        const access = await checkMockAccess(user.uid, mockData);
+        // 2. Validate Access Rights
+        const access = await checkMockAccess(user!.uid, mockData);
         if (!access.allowed) {
+          toast({ title: "PASS+ Required", description: access.reason || "Unlock this test with a premium subscription.", variant: "destructive" });
           router.push('/pass');
           return;
         }
 
-        const qData = await mockService.getQuestions(mockId);
+        // 3. Initialize/Recover Attempt
+        const qData = await getMockQuestions(mockId);
         setQuestions(qData);
         
-        const id = await startAttempt(user.uid, mockData);
+        const id = await startAttempt(user!.uid, mockData);
         setAttemptId(id);
 
         const state = await getAttemptState(id);
@@ -91,9 +92,9 @@ export default function MockPage() {
         } else {
           setPhase('instructions');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("CBT Engine Critical Error:", err);
-        setErrorMsg("Session synchronization failure.");
+        setErrorMsg("Failed to synchronize with the test engine. Please check your connection.");
         setPhase('error');
       } finally {
         setInitializing(false);
@@ -101,7 +102,7 @@ export default function MockPage() {
     }
 
     init();
-  }, [mockId, user?.uid]); // Only rerun if user identity or mock artifact changes
+  }, [mockId, user, router, toast]);
 
   const handleAction = async (isReview = false) => {
     if (!attemptId || !questions[current]) return;
@@ -141,50 +142,126 @@ export default function MockPage() {
       trackProgress(user.uid, 'mocks', 1);
       router.push("/mocks/result");
     } catch (e) {
-      toast({ title: "Submission Error", variant: "destructive" });
+      toast({ title: "Submission Breach", description: "Cloud synchronization failed. Retrying...", variant: "destructive" });
     }
   }, [user, questions, answers, mock, attemptId, profile, router, toast]);
 
   if (phase === 'loading') return (
-    <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
-      <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      <p className="text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Securing Session Matrix...</p>
+    <div className="h-screen bg-[#050816] flex flex-col items-center justify-center gap-6">
+      <div className="relative">
+        <div className="w-20 h-20 border-4 border-primary/10 border-t-primary rounded-full animate-spin" />
+        <Loader2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary w-8 h-8" />
+      </div>
+      <div className="text-center space-y-2">
+        <p className="text-white font-black uppercase tracking-[0.3em] text-xs">Securing Exam Payload</p>
+        <p className="text-zinc-600 text-[10px] uppercase font-bold tracking-widest">v4.2 Production Engine • Encryption Active</p>
+      </div>
     </div>
   );
 
   if (phase === 'error') return (
-    <div className="h-screen bg-black flex items-center justify-center p-6 text-center">
-       <div className="max-w-sm space-y-6 bg-zinc-900/50 p-10 rounded-[40px] border border-white/5">
-          <FileSearch className="text-red-500 w-12 h-12 mx-auto" />
-          <h2 className="text-xl font-bold uppercase">Signal Lost</h2>
-          <p className="text-zinc-500 text-sm">{errorMsg}</p>
-          <Button onClick={() => router.push('/exams')} className="w-full h-12 rounded-xl bg-primary">Return to Factory</Button>
+    <div className="h-screen bg-[#050816] flex items-center justify-center p-6 text-center">
+       <div className="max-w-md space-y-8 bg-zinc-900/40 p-12 rounded-[48px] border border-white/5">
+          <div className="w-20 h-20 rounded-[28px] bg-red-500/10 flex items-center justify-center mx-auto border border-red-500/20">
+             <FileSearch className="text-red-500 w-10 h-10" />
+          </div>
+          <div className="space-y-2">
+             <h2 className="text-2xl font-black uppercase tracking-tighter">Signal Lost</h2>
+             <p className="text-zinc-500 leading-relaxed">{errorMsg}</p>
+          </div>
+          <Button onClick={() => router.push('/exams')} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl">
+             Return to Arena
+          </Button>
        </div>
     </div>
   );
 
   if (phase === 'instructions') return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-12 overflow-y-auto">
-      <div className="max-w-3xl mx-auto space-y-8">
-         <header className="flex justify-between items-center border-b border-white/5 pb-6">
-            <div>
-              <h1 className="text-2xl font-black uppercase">{mock?.title}</h1>
-              <p className="text-xs font-bold text-zinc-500 uppercase">{mock?.exam} Board</p>
+    <div className="min-h-screen bg-[#050816] text-white p-6 md:p-12 overflow-y-auto">
+      <div className="max-w-4xl mx-auto space-y-10">
+         <header className="flex justify-between items-center border-b border-white/5 pb-8">
+            <div className="space-y-1">
+               <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black px-3 py-1 uppercase mb-2">Instructions Brief</Badge>
+               <h1 className="text-3xl font-black uppercase tracking-tighter">{mock?.title}</h1>
+               <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-[0.2em]">{mock?.exam} • {mock?.totalQuestions} Questions</p>
+            </div>
+            <div className="hidden md:flex gap-4">
+               <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 text-center min-w-[120px]">
+                  <p className="text-[9px] font-black text-zinc-600 uppercase">Duration</p>
+                  <p className="text-lg font-black text-white">{mock?.duration} Mins</p>
+               </div>
+               <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 text-center min-w-[120px]">
+                  <p className="text-[9px] font-black text-zinc-600 uppercase">Penalty</p>
+                  <p className="text-lg font-black text-red-500">-{mock?.negativeMarking}</p>
+               </div>
             </div>
          </header>
-         <div className="p-10 rounded-[40px] bg-zinc-900/40 border border-white/5 space-y-8">
-            <div className="space-y-4">
-               <h3 className="font-bold text-lg flex items-center gap-2"><ShieldAlert className="text-primary w-5 h-5" /> Protocol</h3>
-               <ul className="space-y-3 text-sm text-zinc-400">
-                  <li>• Duration: <strong className="text-white">{mock?.duration} Mins</strong></li>
-                  <li>• Penalty: <strong className="text-white">{mock?.negativeMarking}</strong> per error</li>
-               </ul>
+
+         <div className="grid lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2 space-y-8">
+               <div className="bg-zinc-900/40 border border-white/5 rounded-[40px] p-10 space-y-6">
+                  <h3 className="font-bold text-xl flex items-center gap-3"><Info className="text-primary" /> Rules of Engagement</h3>
+                  <ul className="space-y-4 text-zinc-400 text-sm leading-relaxed">
+                     <li className="flex gap-4">
+                        <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white">1</span>
+                        <span>Total of <strong className="text-white">{mock?.totalQuestions}</strong> questions will be presented in a linear flow.</span>
+                     </li>
+                     <li className="flex gap-4">
+                        <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white">2</span>
+                        <span>Use the side palette to navigate between specific question signals.</span>
+                     </li>
+                     <li className="flex gap-4">
+                        <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white">3</span>
+                        <span>Negative marking is strictly enforced. <strong className="text-red-500">{mock?.negativeMarking}</strong> per wrong answer.</span>
+                     </li>
+                     <li className="flex gap-4">
+                        <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white">4</span>
+                        <span>Do not close this window. Your session is tied to this specific terminal identity.</span>
+                     </li>
+                  </ul>
+               </div>
+
+               <div className="flex items-start gap-4 p-8 rounded-[32px] bg-primary/5 border border-primary/20">
+                  <Checkbox id="confirm" checked={hasConfirmed} onCheckedChange={(v) => setHasConfirmed(!!v)} className="mt-1" />
+                  <div className="space-y-1">
+                     <label htmlFor="confirm" className="text-sm font-bold text-zinc-300 cursor-pointer">I have read and understood the instructions.</label>
+                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">By starting, you agree to follow the fair-play policy.</p>
+                  </div>
+               </div>
             </div>
-            <div className="flex items-start gap-3 bg-black/20 p-6 rounded-2xl border border-white/5">
-               <Checkbox id="c" checked={hasConfirmed} onCheckedChange={(v) => setHasConfirmed(!!v)} />
-               <label htmlFor="c" className="text-xs text-zinc-500 cursor-pointer">I acknowledge the rules and agree to start.</label>
-            </div>
-            <Button onClick={() => { setPhase('engine'); updateAttemptActivity(attemptId!, { status: 'ongoing' }); }} disabled={!hasConfirmed} className="w-full h-16 rounded-[24px] bg-primary font-black shadow-xl blue-glow">START SESSION</Button>
+
+            <aside className="space-y-6">
+               <Card className="rounded-[40px] bg-zinc-900/50 border-white/5 p-8">
+                  <h4 className="font-black text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-6">Pro Metrics</h4>
+                  <div className="space-y-6">
+                     <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                           <LayoutGrid className="text-primary w-5 h-5" />
+                        </div>
+                        <div>
+                           <p className="text-[9px] font-black text-zinc-600 uppercase">Total Marks</p>
+                           <p className="text-sm font-bold">{mock?.totalQuestions}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                           <Languages className="text-orange-500 w-5 h-5" />
+                        </div>
+                        <div>
+                           <p className="text-[9px] font-black text-zinc-600 uppercase">Available Dialects</p>
+                           <p className="text-sm font-bold">English / Punjabi</p>
+                        </div>
+                     </div>
+                  </div>
+               </Card>
+               <Button 
+                 onClick={() => { setPhase('engine'); updateAttemptActivity(attemptId!, { status: 'ongoing' }); }} 
+                 disabled={!hasConfirmed} 
+                 className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black shadow-2xl blue-glow"
+               >
+                 ENTER ARENA
+               </Button>
+            </aside>
          </div>
       </div>
     </div>
@@ -192,44 +269,148 @@ export default function MockPage() {
 
   return (
     <AppErrorBoundary>
-      <div className="h-screen bg-[#050816] text-white flex flex-col overflow-hidden select-none">
-        <header className="h-16 px-6 bg-zinc-950 border-b border-white/5 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-             <Button variant="ghost" size="icon" onClick={() => router.push('/exams')}><ArrowLeft className="w-4 h-4" /></Button>
-             <span className="font-black text-xs uppercase tracking-tight truncate max-w-[200px]">{mock?.title}</span>
-          </div>
+      <div className="h-screen bg-[#F1F5F9] flex flex-col overflow-hidden select-none">
+        {/* CBT Header */}
+        <header className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 z-50">
           <div className="flex items-center gap-6">
+             <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg"><Info className="text-white w-4 h-4" /></div>
+                <span className="font-black text-xs uppercase tracking-tight text-slate-800 truncate max-w-[150px] md:max-w-[300px]">{mock?.title}</span>
+             </div>
+             <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Secure Stream</span>
+             </div>
+          </div>
+
+          <div className="flex items-center gap-4 md:gap-8">
+             <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                <button 
+                  onClick={() => setActiveLang('en')}
+                  className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all", activeLang === 'en' ? "bg-white text-primary shadow-sm" : "text-slate-400")}
+                >EN</button>
+                <button 
+                  onClick={() => setActiveLang('pa')}
+                  className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black transition-all", activeLang === 'pa' ? "bg-white text-primary shadow-sm" : "text-slate-400")}
+                >ਪੰ</button>
+             </div>
              <Timer duration={mock?.duration || 60} onFinish={submitTest} />
-             <Button className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-xl font-black text-[10px]" onClick={submitTest}>SUBMIT</Button>
+             <Button className="bg-emerald-600 hover:bg-emerald-700 h-10 px-8 rounded-xl font-black text-xs uppercase tracking-widest text-white shadow-lg" onClick={submitTest}>SUBMIT TEST</Button>
           </div>
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
-            <div className="max-w-4xl mx-auto">
+          {/* Main Question Arena */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-12 no-scrollbar bg-slate-50/50">
+            <div className="max-w-5xl mx-auto">
+               <div className="flex items-center justify-between mb-8">
+                  <Badge variant="outline" className="bg-white border-slate-200 text-slate-500 font-bold uppercase text-[10px] px-4 py-1.5 rounded-full shadow-sm">
+                    Section: General Knowledge & Strategy
+                  </Badge>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question {current + 1} of {questions.length}</p>
+               </div>
+
                {questions[current] ? (
                  <QuestionCard 
                    question={questions[current]} 
                    selected={answers[current]?.selectedOption || null} 
-                   onSelect={(opt) => setAnswers(prev => ({...prev, [current]: { ...prev[current], selectedOption: opt }}))} 
+                   activeLanguage={activeLang}
+                   sideBySide={true}
+                   onSelect={(opt) => setAnswers(prev => ({...prev, [current]: { ...prev[current], selectedOption: opt, status: 'ANSWERED' }}))} 
                  />
                ) : (
-                 <div className="py-20 text-center animate-pulse">
-                   <p className="text-zinc-600 font-black uppercase text-xs">Awaiting Artifact Payload...</p>
+                 <div className="py-40 text-center animate-pulse space-y-4">
+                   <Loader2 className="w-12 h-12 text-slate-200 mx-auto animate-spin" />
+                   <p className="text-slate-400 font-black uppercase text-xs">Establishing Data Signal...</p>
                  </div>
                )}
             </div>
           </main>
-          <aside className="hidden lg:flex w-80 bg-zinc-950 border-l border-white/5 flex-col">
-             <div className="p-8">
-                <QuestionPalette questions={questions} current={current} answers={answers} setCurrent={setCurrent} />
+
+          {/* Side Palette Dashboard */}
+          <aside className="hidden lg:flex w-[380px] bg-white border-l border-slate-200 flex-col">
+             <div className="p-8 space-y-10 flex-1 overflow-y-auto no-scrollbar">
+                <div className="flex items-center gap-4 border-b border-slate-100 pb-8">
+                   <div className="w-14 h-14 rounded-2xl border-2 border-slate-100 bg-slate-50 p-1">
+                      <img src={`https://picsum.photos/seed/${user?.uid}/100`} className="w-full h-full object-cover rounded-xl grayscale" alt="Student" />
+                   </div>
+                   <div>
+                      <p className="text-xs font-black text-slate-800 uppercase truncate">{profile?.name || 'Aspirant'}</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">ID: {user?.uid.substring(0, 8)}</p>
+                   </div>
+                </div>
+
+                <div className="space-y-6">
+                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Navigation Matrix</h3>
+                   <QuestionPalette questions={questions} current={current} answers={answers} setCurrent={setCurrent} />
+                </div>
+
+                <div className="pt-10 border-t border-slate-100 space-y-4">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Status Signal</p>
+                   <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                         <div className="w-3.5 h-3.5 rounded-md bg-emerald-500 shadow-sm" />
+                         <span className="text-[10px] font-bold text-slate-600 uppercase">Answered</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                         <div className="w-3.5 h-3.5 rounded-md bg-purple-600 shadow-sm" />
+                         <span className="text-[10px] font-bold text-slate-600 uppercase">Review</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                         <div className="w-3.5 h-3.5 rounded-md bg-red-500 shadow-sm" />
+                         <span className="text-[10px] font-bold text-slate-600 uppercase">Pending</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                         <div className="w-3.5 h-3.5 rounded-md bg-slate-200 shadow-sm" />
+                         <span className="text-[10px] font-bold text-slate-600 uppercase">Not Visited</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
+             
+             <div className="p-8 bg-slate-50 border-t border-slate-200">
+                <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 text-slate-500 font-bold text-xs uppercase tracking-widest hover:bg-white transition-all">
+                  Full Instructions
+                </Button>
              </div>
           </aside>
         </div>
 
-        <footer className="h-20 px-8 bg-zinc-950 border-t border-white/5 flex items-center justify-between shrink-0">
-           <Button variant="outline" onClick={() => setCurrent(Math.max(0, current - 1))} disabled={current === 0} className="rounded-xl font-bold border-white/10">PREV</Button>
-           <Button className="h-12 px-10 rounded-xl bg-primary hover:bg-primary/90 text-[10px] font-black blue-glow shadow-lg" onClick={() => handleAction(false)}>SAVE & NEXT</Button>
+        {/* CBT Footer Controls */}
+        <footer className="h-20 px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
+           <div className="flex gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => handleAction(true)}
+                className="h-12 px-8 rounded-xl border-slate-200 text-purple-600 font-black text-[10px] uppercase tracking-widest hover:bg-purple-50 transition-all"
+              >
+                Mark for Review
+              </Button>
+              <Button 
+                variant="ghost"
+                onClick={() => setAnswers(prev => ({...prev, [current]: { ...prev[current], selectedOption: null, status: 'NOT_ANSWERED' }}))}
+                className="h-12 px-8 rounded-xl text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-red-500 transition-all"
+              >
+                Clear Answer
+              </Button>
+           </div>
+
+           <div className="flex gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrent(Math.max(0, current - 1))} 
+                disabled={current === 0} 
+                className="h-12 px-10 rounded-xl border-slate-200 font-black text-[10px] uppercase tracking-widest"
+              >
+                PREVIOUS
+              </Button>
+              <Button 
+                onClick={() => handleAction(false)}
+                className="h-12 px-16 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95"
+              >
+                SAVE & NEXT
+              </Button>
+           </div>
         </footer>
       </div>
     </AppErrorBoundary>
