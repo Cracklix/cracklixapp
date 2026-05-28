@@ -11,316 +11,386 @@ import { Card } from '@/components/ui/card';
 import { 
   BrainCircuit, 
   Zap, 
-  Terminal, 
-  Rocket, 
-  Database, 
-  CheckCircle2, 
-  Loader2, 
-  Languages, 
+  Send, 
   Plus, 
+  FileUp, 
+  MessageSquare, 
+  Bot, 
+  User, 
+  Loader2, 
+  Globe, 
+  CheckCircle2, 
+  Sparkles,
+  ChevronDown,
+  Database,
+  Rocket,
   Search,
-  Settings2,
-  Trash2,
-  Edit3
+  RotateCcw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, writeBatch, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import { collection, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { EXAM_LIST, SUBJECT_LIST } from '@/types';
 
-export default function NeuralForgePage() {
+// Subject Database mapping
+const EXAM_SUBJECT_MAP: Record<string, string[]> = {
+  "PSSSB Clerk (General)": ["Punjab GK", "Punjabi Language", "English Language", "Reasoning", "Quant", "Computer"],
+  "Punjab Police SI": ["Punjab GK", "Indian Constitution", "Reasoning", "Digital Literacy", "English"],
+  "PPSC PCS": ["Punjab History", "World Geography", "Polity", "Economics", "Ethics"],
+  "Banking": ["Banking Awareness", "English", "Data Interpretation", "Reasoning"],
+  "SSC": ["Quant", "Reasoning", "English", "General Awareness"]
+};
+
+type ChatMessage = {
+  id: string;
+  role: 'user' | 'ai';
+  content: string;
+  type: 'text' | 'questions' | 'system';
+  questions?: any[];
+  status?: 'thinking' | 'generating' | 'completed';
+};
+
+export default function NeuralForgeV2() {
   const { toast } = useToast();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [prompt, setPrompt] = useState("");
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [jobData, setJobData] = useState<any>(null);
-  const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
   
   const [config, setConfig] = useState({
-    title: "",
     exam: "PSSSB Clerk (General)",
-    subjects: ["General Knowledge"],
-    count: 10,
+    subject: "General Knowledge",
     difficulty: "medium",
-    languageMode: "bilingual",
-    customExam: "",
-    customSubject: ""
+    count: 10,
+    language: "bilingual"
   });
 
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!activeJobId) return;
-    const unsub = onSnapshot(doc(db, 'ai_generation_jobs', activeJobId), (snap) => {
-      setJobData(snap.data());
-      if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    });
-    return () => unsub();
-  }, [activeJobId]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-  const addLog = async (msg: string) => {
-    if (!activeJobId) return;
-    const ref = doc(db, 'ai_generation_jobs', activeJobId);
-    const existing = jobData?.logs || [];
-    await updateDoc(ref, {
-      logs: [...existing, `[${new Date().toLocaleTimeString()}] ${msg}`],
-      updatedAt: Date.now()
-    });
+  const handleSend = async (instruction?: string) => {
+    const promptText = instruction || input;
+    if (!promptText.trim() || loading) return;
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: promptText,
+      type: 'text'
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    const aiMsgId = (Date.now() + 1).toString();
+    const aiMsg: ChatMessage = {
+      id: aiMsgId,
+      role: 'ai',
+      content: "",
+      type: 'questions',
+      status: 'thinking'
+    };
+    setMessages(prev => [...prev, aiMsg]);
+
+    try {
+      // Simulate real-time progress steps for better UX
+      updateMsgStatus(aiMsgId, 'thinking', "Analyzing syllabus patterns...");
+      await new Promise(r => setTimeout(r, 800));
+      
+      updateMsgStatus(aiMsgId, 'generating', `Synthesizing ${config.count} bilingual artifacts for ${config.exam}...`);
+
+      const questions = await generateBilingualArtifacts({
+        jobId: `job_${aiMsgId}`,
+        exam: config.exam,
+        subjects: [config.subject],
+        count: config.count,
+        difficulty: config.difficulty,
+        instruction: promptText
+      });
+
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? {
+        ...m,
+        content: `I've generated ${questions.length} high-fidelity bilingual questions based on your requirements for ${config.exam}.`,
+        questions,
+        status: 'completed'
+      } : m));
+
+    } catch (e: any) {
+      toast({ title: "Synthesis Failed", description: e.message, variant: "destructive" });
+      setMessages(prev => prev.filter(m => m.id !== aiMsgId));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  async function handleForge() {
-    if (!config.title) return toast({ title: "Simulation Identity Required", variant: "destructive" });
-    setLoading(true);
-    setGeneratedQuestions([]);
-    
+  const updateMsgStatus = (id: string, status: any, text: string) => {
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, status, content: text } : m));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
     try {
-      const jobRef = await addDoc(collection(db, 'ai_generation_jobs'), {
-        config,
-        status: 'initializing',
-        progress: 0,
-        logs: [`[${new Date().toLocaleTimeString()}] Neural Forge Engaged.`],
-        generatedCount: 0,
+      const storageRef = ref(storage, `admin/uploads/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      handleSend(`Extract questions from this uploaded document: ${file.name}. Ensure strict bilingual Punjabi formatting.`);
+      toast({ title: "Document Uploaded", description: "AI is now parsing the artifacts." });
+    } catch (err: any) {
+      toast({ title: "Upload Error", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSaveToBank = async (qs: any[]) => {
+    const batch = writeBatch(db);
+    qs.forEach(q => {
+      const ref = doc(collection(db, "questions"));
+      batch.set(ref, {
+        ...q,
+        status: "published",
+        source: "NEURAL_FORGE_V2",
         createdAt: Date.now()
       });
-      
-      setActiveJobId(jobRef.id);
-      await addLog(`Synthesizing blueprint for ${config.exam}...`);
+    });
+    await batch.commit();
+    toast({ title: "Bank Synced", description: `${qs.length} questions indexed successfully.` });
+  };
 
-      const batchSize = 5;
-      const totalBatches = Math.ceil(config.count / batchSize);
-      let masterList: any[] = [];
+  const handleLivePublish = async (qs: any[]) => {
+    const mockRef = await addDoc(collection(db, "mocks"), {
+      title: `${config.exam} AI Mock ${new Date().toLocaleDateString()}`,
+      exam: config.exam,
+      totalQuestions: qs.length,
+      duration: qs.length * 1.5,
+      status: "published",
+      accessType: "pass_plus",
+      createdAt: Date.now()
+    });
 
-      for (let i = 0; i < totalBatches; i++) {
-        const chunkCount = Math.min(batchSize, config.count - masterList.length);
-        await addLog(`Processing Neural Chunk ${i+1}/${totalBatches}...`);
-        
-        const chunk = await generateBilingualArtifacts({
-          jobId: jobRef.id,
-          exam: config.exam === "Other..." ? config.customExam : config.exam,
-          subjects: config.subjects,
-          count: chunkCount,
-          difficulty: config.difficulty,
-          instruction: prompt
-        });
-
-        masterList = [...masterList, ...chunk];
-        setGeneratedQuestions([...masterList]);
-        
-        await updateDoc(doc(db, 'ai_generation_jobs', jobRef.id), {
-          progress: Math.round(((i + 1) / totalBatches) * 100),
-          generatedCount: masterList.length,
-          status: 'synthesizing'
-        });
-      }
-
-      await updateDoc(doc(db, 'ai_generation_jobs', jobRef.id), { status: 'completed', progress: 100 });
-      toast({ title: "Synthesis Complete", description: `${masterList.length} artifacts forged.` });
-    } catch (e: any) {
-      toast({ title: "Synthesis Error", description: e.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleLivePublish() {
-    if (generatedQuestions.length === 0) return;
-    setLoading(true);
-    try {
-      const mockRef = await addDoc(collection(db, "mocks"), {
-        title: config.title,
-        exam: config.exam === "Other..." ? config.customExam : config.exam,
-        totalQuestions: generatedQuestions.length,
-        duration: config.count * 1.2, // Auto-timer
-        negativeMarking: 0.25,
-        status: "published",
-        accessType: "pass_plus",
-        languageMode: "bilingual",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        source: "NEURAL_FORGE_V12"
-      });
-
-      const batch = writeBatch(db);
-      generatedQuestions.forEach((q, idx) => {
-        const qRef = doc(collection(db, "mocks", mockRef.id, "questions"));
-        batch.set(qRef, { ...q, id: qRef.id, order: idx, createdAt: Date.now() });
-        
-        const bankRef = doc(collection(db, "questions"));
-        batch.set(bankRef, { ...q, id: bankRef.id, status: "published", source: "NEURAL_FORGE", createdAt: Date.now() });
-      });
-
-      await batch.commit();
-      toast({ title: "Live Published", description: "Simulation is now active in student arena." });
-    } catch (e: any) {
-      toast({ title: "Publish Failed", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  }
+    const batch = writeBatch(db);
+    qs.forEach((q, i) => {
+      const qRef = doc(collection(db, "mocks", mockRef.id, "questions"));
+      batch.set(qRef, { ...q, order: i });
+    });
+    await batch.commit();
+    toast({ title: "Live Published", description: "Mock is now live in the student arena." });
+  };
 
   return (
     <AdminProtect>
-      <div className="flex bg-[#05070a] min-h-screen text-white overflow-hidden">
+      <div className="flex bg-[#0a0a0f] min-h-screen text-white overflow-hidden">
         <AdminSidebar />
-        <main className="flex-1 flex flex-col h-screen">
-          <header className="h-16 px-10 border-b border-white/5 flex items-center justify-between bg-black/40 backdrop-blur-xl shrink-0 z-30">
-            <div className="flex items-center gap-4">
-              <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center blue-glow">
-                <BrainCircuit className="text-primary w-5 h-5" />
-              </div>
-              <h1 className="text-sm font-black uppercase tracking-widest">Neural Forge AI v12</h1>
-            </div>
-            <div className="flex gap-3">
-               <Button onClick={handleLivePublish} disabled={loading || generatedQuestions.length === 0} className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg">
-                  <Rocket className="mr-2 w-3.5 h-3.5" /> LIVE PUBLISH
-               </Button>
-            </div>
+        
+        <main className="flex-1 flex flex-col h-screen relative">
+          {/* HEADER CONFIGURATION */}
+          <header className="h-20 border-b border-white/5 bg-black/40 backdrop-blur-xl z-30 px-8 flex items-center justify-between shrink-0">
+             <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center blue-glow">
+                   <BrainCircuit className="text-primary w-6 h-6" />
+                </div>
+                <div>
+                   <h1 className="text-lg font-black uppercase tracking-tighter">Neural Forge v2</h1>
+                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Conversational Mock Studio</p>
+                </div>
+             </div>
+
+             <div className="flex items-center gap-3">
+                <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
+                   <SelectTrigger className="w-48 bg-white/5 border-white/5 rounded-xl h-10 text-[10px] uppercase font-black">
+                      <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent className="bg-zinc-950 text-white border-white/10">
+                      {EXAM_LIST.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                   </SelectContent>
+                </Select>
+
+                <Select value={config.difficulty} onValueChange={v => setConfig({...config, difficulty: v})}>
+                   <SelectTrigger className="w-32 bg-white/5 border-white/5 rounded-xl h-10 text-[10px] uppercase font-black">
+                      <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent className="bg-zinc-950 text-white border-white/10">
+                      {['easy', 'medium', 'hard'].map(d => <SelectItem key={d} value={d}>{d.toUpperCase()}</SelectItem>)}
+                   </SelectContent>
+                </Select>
+
+                <Input 
+                   type="number" 
+                   value={config.count} 
+                   onChange={e => setConfig({...config, count: Number(e.target.value)})}
+                   className="w-20 bg-white/5 border-white/5 rounded-xl h-10 text-center font-black"
+                />
+             </div>
           </header>
 
-          <div className="flex-1 flex overflow-hidden">
-             {/* LEFT: CONFIGURATION */}
-             <aside className="w-[360px] border-r border-white/5 p-8 overflow-y-auto no-scrollbar bg-black/20 shrink-0 space-y-10">
-                <div className="space-y-6">
-                   <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                      <Settings2 className="text-primary w-4 h-4" />
-                      <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Configuration Matrix</h3>
-                   </div>
-
-                   <div className="space-y-5">
+          {/* CHAT AREA */}
+          <ScrollArea className="flex-1 px-8 py-10" ref={scrollRef}>
+             <div className="max-w-4xl mx-auto space-y-12 pb-32">
+                {messages.length === 0 && (
+                   <div className="py-20 text-center space-y-8 opacity-40">
+                      <Sparkles size={80} className="mx-auto text-primary" />
                       <div className="space-y-2">
-                         <label className="text-[9px] font-black uppercase text-zinc-500 px-1 tracking-widest">Mock Identity</label>
-                         <Input placeholder="e.g. SI Elite Mock #01" value={config.title} onChange={e => setConfig({...config, title: e.target.value})} className="h-11 bg-zinc-900 border-white/5 rounded-xl text-xs font-bold" />
+                        <h2 className="text-3xl font-black uppercase tracking-tighter">Neural Interface Active</h2>
+                        <p className="text-zinc-500 font-medium italic">Command the AI to synthesize institutional-grade artifacts.</p>
                       </div>
-
-                      <div className="space-y-2">
-                         <label className="text-[9px] font-black uppercase text-zinc-500 px-1 tracking-widest">Target Board</label>
-                         <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
-                            <SelectTrigger className="h-10 bg-zinc-900 border-white/5 rounded-xl text-[10px] uppercase font-bold"><SelectValue /></SelectTrigger>
-                            <SelectContent className="bg-zinc-950 text-white border-white/10">
-                               {EXAM_LIST.map(ex => <SelectItem key={ex} value={ex}>{ex}</SelectItem>)}
-                            </SelectContent>
-                         </Select>
-                         {config.exam === "Other..." && <Input placeholder="Enter custom board..." className="h-10 mt-2 bg-zinc-900/50 border-white/10 text-xs" value={config.customExam} onChange={e => setConfig({...config, customExam: e.target.value})} />}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black uppercase text-zinc-500 px-1 tracking-widest">Difficulty</label>
-                           <Select value={config.difficulty} onValueChange={v => setConfig({...config, difficulty: v})}>
-                              <SelectTrigger className="h-10 bg-zinc-900 border-white/5 rounded-xl text-[10px] uppercase font-bold"><SelectValue /></SelectTrigger>
-                              <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                 {['easy', 'medium', 'hard'].map(d => <SelectItem key={d} value={d}>{d.toUpperCase()}</SelectItem>)}
-                              </SelectContent>
-                           </Select>
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black uppercase text-zinc-500 px-1 tracking-widest">Artifacts</label>
-                           <Input type="number" value={config.count} onChange={e => setConfig({...config, count: Number(e.target.value)})} className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-black" />
-                        </div>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="pt-10 border-t border-white/5 space-y-4">
-                   <h4 className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Institutional Pulse</h4>
-                   <div className="p-5 rounded-3xl bg-primary/5 border border-primary/20 space-y-2">
-                      <p className="text-[10px] font-bold text-primary flex items-center gap-2 uppercase tracking-widest"><Zap size={12} fill="currentColor" /> Active Signal</p>
-                      <p className="text-[11px] text-zinc-400 leading-relaxed italic">"Neural Forge v12 is currently processing bilingual signals with 99.8% Raavi fidelity."</p>
-                   </div>
-                </div>
-             </aside>
-
-             {/* CENTER: NEURAL TERMINAL */}
-             <section className="flex-1 p-8 overflow-hidden bg-black/40 flex flex-col gap-6">
-                <Card className="flex-1 rounded-[48px] bg-zinc-950 border border-white/5 p-10 flex flex-col relative overflow-hidden shadow-2xl">
-                   <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none"><Terminal size={300} /></div>
-                   <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.4em] mb-8 flex items-center gap-2 z-10">
-                      <Terminal size={14} /> Execution Stream
-                   </h4>
-                   <ScrollArea className="flex-1 pr-6 z-10">
-                      <div className="space-y-4 font-mono text-[10px] text-zinc-500">
-                         {jobData?.logs?.map((log: string, i: number) => (
-                           <div key={i} className="flex gap-4 border-b border-white/[0.03] pb-3 animate-in fade-in slide-in-from-left-2">
-                              <span className="text-primary font-black shrink-0">&gt;</span>
-                              <span className="break-words leading-relaxed">{log}</span>
-                           </div>
+                      <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+                         {["Generate PSSSB Clerk Full Mock", "Difficult Reasoning for Police SI", "Punjab GK Raavi Artifacts", "Current Affairs 2024 Pack"].map(t => (
+                            <button key={t} onClick={() => handleSend(t)} className="p-4 rounded-2xl border border-white/5 hover:border-primary/40 hover:bg-primary/5 transition-all text-[10px] font-bold uppercase text-zinc-400">
+                               {t}
+                            </button>
                          ))}
-                         {loading && <div className="flex items-center gap-2 text-primary animate-pulse font-black uppercase tracking-widest"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing Neural Payload...</div>}
-                         <div ref={logEndRef} />
                       </div>
-                   </ScrollArea>
-                </Card>
-
-                <Card className="rounded-[40px] bg-zinc-900 border border-white/5 p-6 space-y-6 shrink-0 shadow-2xl">
-                   <div className="flex items-center gap-3">
-                      <BrainCircuit className="text-primary w-5 h-5" />
-                      <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Instruction Buffer</h4>
                    </div>
-                   <div className="flex gap-4">
-                      <Textarea 
-                        placeholder="Define custom syllabus constraints or patterns..." 
-                        className="bg-black border-white/5 rounded-2xl min-h-[80px] p-4 text-xs resize-none font-medium focus:border-primary/50 transition-colors"
-                        value={prompt}
-                        onChange={e => setPrompt(e.target.value)}
-                      />
-                      <Button 
-                        onClick={handleForge} 
-                        disabled={loading}
-                        className="h-auto px-8 rounded-3xl bg-primary hover:bg-primary/90 shadow-xl blue-glow font-black text-xs uppercase tracking-widest transition-transform active:scale-95"
-                      >
-                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-                      </Button>
-                   </div>
-                </Card>
-             </section>
+                )}
 
-             {/* RIGHT: PREVIEW PANEL */}
-             <aside className="w-[480px] border-l border-white/5 p-8 overflow-y-auto no-scrollbar bg-black/20 shrink-0 space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                   <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                      <Database className="text-primary w-4 h-4" /> Artifact Log ({generatedQuestions.length})
-                   </h3>
-                </div>
+                <AnimatePresence mode="popLayout">
+                   {messages.map((msg) => (
+                     <motion.div 
+                        key={msg.id} 
+                        initial={{ opacity: 0, y: 10 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        className={cn("flex gap-6", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}
+                     >
+                        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg", msg.role === 'user' ? "bg-accent" : "bg-primary")}>
+                           {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
+                        </div>
+                        
+                        <div className={cn("max-w-[85%] space-y-4", msg.role === 'user' ? "text-right" : "text-left")}>
+                           <div className={cn(
+                             "p-6 rounded-[32px] text-sm leading-relaxed shadow-2xl",
+                             msg.role === 'user' ? "bg-white/5 border border-white/10 rounded-tr-none" : "bg-zinc-900 border border-white/5 rounded-tl-none"
+                           )}>
+                              {msg.status === 'thinking' && (
+                                 <div className="flex items-center gap-3 text-zinc-500 italic">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>{msg.content}</span>
+                                 </div>
+                              )}
+                              {msg.status !== 'thinking' && (
+                                 <p className="whitespace-pre-wrap">{msg.content}</p>
+                              )}
+                           </div>
 
-                <div className="grid gap-6">
-                   {generatedQuestions.map((q, i) => (
-                     <Card key={i} className="rounded-3xl bg-zinc-950 border border-white/5 p-6 space-y-6 group hover:border-primary/30 transition-all shadow-xl overflow-hidden relative">
-                        <div className="flex justify-between items-start">
-                           <Badge className="bg-zinc-900 border-white/10 text-zinc-500 text-[8px] font-black uppercase px-3 py-1">ARTIFACT #{i+1}</Badge>
-                           <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary"><Edit3 size={14} /></Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-destructive/10 text-destructive"><Trash2 size={14} /></Button>
-                           </div>
+                           {msg.questions && (
+                             <div className="grid gap-6">
+                                {msg.questions.map((q, i) => (
+                                  <Card key={i} className="rounded-[40px] bg-zinc-950 border border-white/5 overflow-hidden group hover:border-primary/30 transition-all">
+                                     <div className="p-8 space-y-8">
+                                        <div className="flex justify-between items-start">
+                                           <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-3 py-1">Artifact #{i+1}</Badge>
+                                           <Badge variant="outline" className="border-white/10 text-zinc-500 text-[8px] font-bold uppercase">{q.subject}</Badge>
+                                        </div>
+                                        <div className="space-y-4">
+                                           <p className="text-lg font-bold text-white leading-relaxed">{q.question_en}</p>
+                                           <p className="text-lg font-medium text-zinc-400 italic border-l-4 border-primary/20 pl-6">{q.question_pa}</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                           {q.options_en.map((opt: string, idx: number) => (
+                                             <div key={idx} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                                                <p className="text-xs font-bold text-zinc-300">{opt}</p>
+                                                <p className="text-[10px] text-zinc-500 italic mt-1">{q.options_pa[idx]}</p>
+                                             </div>
+                                           ))}
+                                        </div>
+                                        <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                                           <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Key: {q.correctAnswer}</span>
+                                           <div className="flex gap-2">
+                                              <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/5"><RotateCcw size={14} /></Button>
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </Card>
+                                ))}
+
+                                <div className="flex gap-4 pt-4">
+                                   <Button onClick={() => handleLivePublish(msg.questions!)} className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black text-[11px] uppercase tracking-[0.2em] shadow-xl">
+                                      <Rocket className="mr-3 w-4 h-4" /> Live Publish Mock
+                                   </Button>
+                                   <Button onClick={() => handleSaveToBank(msg.questions!)} className="flex-1 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black text-[11px] uppercase tracking-[0.2em] shadow-xl">
+                                      <Database className="mr-3 w-4 h-4" /> Sync to Bank
+                                   </Button>
+                                </div>
+                             </div>
+                           )}
                         </div>
-                        <div className="space-y-4">
-                           <div className="space-y-1">
-                              <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">English Core</p>
-                              <p className="text-xs font-bold leading-relaxed">{q.en.question}</p>
-                           </div>
-                           <div className="space-y-1 border-t border-white/5 pt-4">
-                              <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Raavi Signal</p>
-                              <p className="text-xs font-medium text-zinc-400 italic leading-relaxed">{q.pa.question}</p>
-                           </div>
-                           <div className="pt-2">
-                              <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">KEY: {q.correctAnswer}</p>
-                           </div>
-                        </div>
-                     </Card>
+                     </motion.div>
                    ))}
-                   {generatedQuestions.length === 0 && (
-                     <div className="py-40 text-center border-2 border-dashed border-white/5 rounded-[40px] opacity-20">
-                        <Database size={60} className="mx-auto mb-4" />
-                        <p className="text-xs font-black uppercase tracking-widest">Neural Buffer Empty</p>
-                     </div>
-                   )}
-                </div>
-             </aside>
-          </div>
+                </AnimatePresence>
+             </div>
+          </ScrollArea>
+
+          {/* INPUT BAR */}
+          <footer className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-4xl px-8 z-40">
+             <div className="relative group">
+                <div className="absolute inset-0 bg-primary/20 blur-[60px] opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                <Card className="rounded-[40px] bg-[#12121a] border border-white/10 p-4 shadow-2xl relative">
+                   <div className="flex gap-4 items-end">
+                      <div className="flex flex-col gap-2 mb-2">
+                         <input 
+                            type="file" 
+                            className="hidden" 
+                            ref={fileInputRef} 
+                            onChange={handleFileUpload} 
+                            accept=".pdf,.png,.jpg" 
+                         />
+                         <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="icon" 
+                            className="rounded-2xl h-12 w-12 bg-white/5 hover:bg-white/10 text-zinc-500"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                         >
+                            {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus size={24} />}
+                         </Button>
+                      </div>
+                      
+                      <Textarea 
+                         placeholder="Command the Forge... (e.g. Generate 50 PSSSB Punjab GK artifacts)"
+                         className="flex-1 bg-transparent border-none focus-visible:ring-0 text-lg font-medium p-4 no-scrollbar resize-none min-h-[60px] max-h-[200px]"
+                         value={input}
+                         onChange={e => setInput(e.target.value)}
+                         onKeyDown={e => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                               e.preventDefault();
+                               handleSend();
+                            }
+                         }}
+                      />
+
+                      <div className="mb-2">
+                         <Button 
+                            onClick={() => handleSend()}
+                            disabled={loading || !input.trim()}
+                            className="h-12 w-12 rounded-2xl bg-primary hover:bg-primary/90 blue-glow shadow-xl"
+                         >
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send size={20} />}
+                         </Button>
+                      </div>
+                   </div>
+                </Card>
+             </div>
+             <p className="text-center text-[8px] font-black uppercase text-zinc-700 tracking-[0.4em] mt-4">
+                Neural Forge v2.5 — Infrastructure by Arsh Grewal
+             </p>
+          </footer>
         </main>
       </div>
     </AdminProtect>
