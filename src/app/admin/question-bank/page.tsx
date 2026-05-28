@@ -70,7 +70,6 @@ function QuestionBankContent() {
       setQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e: any) {
       console.error("Firestore Load Error:", e);
-      // We don't throw here to prevent the whole page from crashing
     } finally {
       setLoading(false);
     }
