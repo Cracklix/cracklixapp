@@ -3,71 +3,54 @@
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "Student account, pass status, and performance metrics.",
+      "description": "Comprehensive student identity and subscription node.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string" },
         "role": { "type": "string", "enum": ["student", "admin", "superadmin", "creator"] },
-        "activePass": { "type": "string", "enum": ["free", "silver", "gold", "elite"] },
+        "activePass": { "type": "string", "enum": ["free", "pass_plus", "premium", "elite"] },
         "passExpiry": { "type": "number" },
-        "purchasedTests": { "type": "array" },
-        "languageMode": { "type": "string" },
         "xp": { "type": "number" },
         "streak": { "type": "number" },
+        "district": { "type": "string" },
+        "targetExam": { "type": "string" },
         "createdAt": { "type": "number" },
         "updatedAt": { "type": "number" }
       }
     },
-    "Question": {
-      "title": "Question",
-      "description": "Bilingual academic question artifact.",
-      "type": "object",
-      "properties": {
-        "en": { "type": "object", "properties": { "question": { "type": "string" }, "options": { "type": "array" }, "explanation": { "type": "string" }, "image": { "type": "string" } } },
-        "pa": { "type": "object", "properties": { "question": { "type": "string" }, "options": { "type": "array" }, "explanation": { "type": "string" } } },
-        "hi": { "type": "object", "properties": { "question": { "type": "string" }, "options": { "type": "array" }, "explanation": { "type": "string" } } },
-        "correctAnswer": { "type": "string" },
-        "subject": { "type": "string" },
-        "topic": { "type": "string" },
-        "difficulty": { "type": "string" },
-        "marks": { "type": "number" },
-        "negativeMarks": { "type": "number" },
-        "status": { "type": "string" },
-        "source": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
     "MockTest": {
-      "title": "Mock Simulation",
-      "description": "Standardized computer-based test simulation.",
+      "title": "Simulation Artifact",
+      "description": "Standardized competitive exam simulation.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
         "exam": { "type": "string" },
-        "category": { "type": "string" },
+        "category": { "type": "string", "enum": ["full", "sectional", "subject", "chapter", "pyq"] },
         "duration": { "type": "number" },
         "totalQuestions": { "type": "number" },
         "negativeMarking": { "type": "number" },
-        "status": { "type": "string" },
-        "accessType": { "type": "string" },
+        "accessType": { "type": "string", "enum": ["free", "pass_plus", "premium", "elite"] },
+        "status": { "type": "string", "enum": ["draft", "published"] },
         "sections": { "type": "array" },
         "createdAt": { "type": "number" }
       }
     },
     "ExamAttempt": {
-      "title": "Exam Attempt",
-      "description": "User specific session data for a mock test.",
+      "title": "CBT Session Log",
+      "description": "Real-time state and result audit for an exam attempt.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
         "mockId": { "type": "string" },
-        "status": { "type": "string" },
+        "status": { "type": "string", "enum": ["ongoing", "paused", "completed"] },
         "answers": { "type": "object" },
-        "timeSpent": { "type": "object" },
         "score": { "type": "number" },
         "accuracy": { "type": "number" },
+        "percentile": { "type": "number" },
+        "rank": { "type": "number" },
+        "timeSpent": { "type": "object" },
         "startedAt": { "type": "number" },
         "completedAt": { "type": "number" }
       }
@@ -79,19 +62,27 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Student identity nodes."
+      "description": "Student identity records."
+    },
+    "/mocks/{mockId}": {
+      "schema": "MockTest",
+      "description": "Institutional exam definitions."
     },
     "/questions/{questionId}": {
       "schema": "Question",
       "description": "Global atomic question bank."
     },
-    "/mocks/{mockId}": {
-      "schema": "MockTest",
-      "description": "Simulation clusters."
-    },
     "/attempts/{attemptId}": {
       "schema": "ExamAttempt",
-      "description": "CBT session state logs."
+      "description": "User performance audit trail."
+    },
+    "/plans/{planId}": {
+      "schema": "Plan",
+      "description": "Subscription tier definitions."
+    },
+    "/transactions/{txnId}": {
+      "schema": "Transaction",
+      "description": "Razorpay payment ledger."
     }
   }
 }

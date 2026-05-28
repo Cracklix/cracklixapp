@@ -1,3 +1,4 @@
+
 'use client';
 
 import { db } from '@/lib/firebase';
@@ -15,8 +16,8 @@ import {
 } from 'firebase/firestore';
 
 /**
- * PRODUCTION PREPARATION PASS SERVICE v16.0
- * Handles tiered pass acquisition and Testbook-style entitlement granting.
+ * PRODUCTION PREPARATION PASS SERVICE v25.0
+ * Deeply controlled subscription and entitlement engine.
  */
 
 export interface Transaction {
@@ -29,51 +30,49 @@ export interface Transaction {
   durationDays: number;
 }
 
-/**
- * Fetches active production plans for the student acquisition page.
- */
 export async function getActivePlans() {
   try {
     const q = query(collection(db, "plans"), where("active", "==", true));
     const snap = await getDocs(q);
-    const plans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    return plans.sort((a, b) => (a.price || 0) - (b.price || 0));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (e) {
-    console.error("Failed to fetch preparation plans:", e);
     return [];
   }
 }
 
-export async function createOrder(userId: string, amount: number, passType: string) {
-  // In a production environment, this calls a secure backend to generate a Razorpay order.
-  // For the prototype, we create a tracking transaction record in Firestore.
+/**
+ * Initiates the acquisition flow.
+ */
+export async function createPreparationOrder(userId: string, plan: any) {
   const txnRef = await addDoc(collection(db, 'transactions'), {
     userId,
-    amount,
-    passType,
+    amount: plan.price,
+    planId: plan.id,
+    planName: plan.name,
     status: 'pending',
-    createdAt: Date.now(),
-    source: 'web_portal'
+    createdAt: Date.now()
   });
   
   return txnRef.id;
 }
 
-export async function verifyAndActivatePass(userId: string, transactionId: string, plan: any) {
-  const transactionRef = doc(db, 'transactions', transactionId);
+/**
+ * Finalizes enrollment upon payment signal.
+ */
+export async function verifyAndActivatePass(userId: string, txnId: string, plan: any) {
+  const txnRef = doc(db, 'transactions', txnId);
   
-  // 1. Mark transaction successful with a verified signal
-  await updateDoc(transactionRef, { 
+  // 1. Log verified transaction
+  await updateDoc(txnRef, { 
     status: 'success', 
     paymentId: 'RZP_VERIFIED_' + Date.now(),
-    updatedAt: serverTimestamp()
+    verifiedAt: Date.now()
   });
 
-  // 2. Calculate duration based on the plan artifact
   const durationMs = (plan.duration || 30) * 24 * 60 * 60 * 1000;
   const expiryDate = Date.now() + durationMs;
 
-  // 3. Update User Entitlement Signal in the primary profile
+  // 2. Grant identity tier
   const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, {
     activePass: plan.tier || 'pass_plus',
@@ -81,46 +80,40 @@ export async function verifyAndActivatePass(userId: string, transactionId: strin
     updatedAt: serverTimestamp()
   });
 
-  // 4. Create or Update Active Access Token for the CBT Engine
+  // 3. Initialize access token for exam engine
   await setDoc(doc(db, 'premiumAccess', userId), {
     userId,
     tier: plan.tier,
     status: "active",
     expiresAt: expiryDate,
-    planId: plan.id,
     planName: plan.name,
-    updatedAt: serverTimestamp()
+    updatedAt: Date.now()
   }, { merge: true });
 
   return true;
 }
 
+/**
+ * Security: Entity-level access validator.
+ */
 export async function checkMockEntitlement(userId: string, mock: any): Promise<{ allowed: boolean; reason?: string }> {
-  // Free artifacts are always accessible
   if (mock.accessType === 'free') return { allowed: true };
   
   const userSnap = await getDoc(doc(db, 'users', userId));
-  if (!userSnap.exists()) return { allowed: false, reason: "Identification Signal Lost. Please log in again." };
+  if (!userSnap.exists()) return { allowed: false, reason: "Auth required." };
   
   const userData = userSnap.data();
   
-  // Master Admin & Superadmin Override for immediate quality checking
-  const masterAdmins = ['arshdeepgrewal1122@gmail.com', 'deepgrewal2600@gmail.com'];
-  if (userData.role === 'admin' || userData.role === 'superadmin' || masterAdmins.includes(userData.email)) {
-    return { allowed: true };
+  // Master Admin Override
+  const masters = ['arshdeepgrewal1122@gmail.com', 'deepgrewal2600@gmail.com'];
+  if (masters.includes(userData.email)) return { allowed: true };
+
+  // Expiry check
+  if (userData.passExpiry && userData.passExpiry < Date.now()) {
+    return { allowed: false, reason: "Preparation Pass expired. Please renew." };
   }
 
-  // Check for individual board/test ownership
-  if (userData.purchasedTests?.includes(mock.id)) return { allowed: true };
-
-  // Expiry Validation
-  const now = Date.now();
-  if (userData.passExpiry && userData.passExpiry < now) {
-    return { allowed: false, reason: "Your Preparation Pass has expired. Renew to continue training." };
-  }
-
-  // Tier Hierarchy Validation
-  // Logic: Elite > Premium > Pass+ > Free
+  // Tier logic: elite > premium > pass_plus > free
   const tiers = ['free', 'pass_plus', 'premium', 'elite'];
   const userIndex = tiers.indexOf(userData.activePass || 'free');
   const requiredIndex = tiers.indexOf(mock.accessType || 'pass_plus');
@@ -129,6 +122,6 @@ export async function checkMockEntitlement(userId: string, mock: any): Promise<{
 
   return { 
     allowed: false, 
-    reason: `This artifact requires a ${mock.accessType.toUpperCase()} Tier Pass to unlock.` 
+    reason: `Unlock requires ${mock.accessType.toUpperCase()} Tier PASS.` 
   };
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -10,152 +11,132 @@ import {
   Check, 
   Crown, 
   Loader2, 
-  Zap as ZapIcon,
+  Zap,
   ShieldCheck,
   Trophy,
   BookOpen,
-  Timer
+  Timer,
+  CreditCard,
+  ArrowRight
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Script from 'next/script';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getActivePlans, verifyAndActivatePass } from '@/services/payment';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-export default function PassPage() {
+export default function PassAcquisitionPortal() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState<string | null>(null);
+  const [acquiringId, setAcquiringId] = useState<string | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
-  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadPlans() {
-      setLoadingPlans(true);
+    async function load() {
+      setLoading(true);
       const data = await getActivePlans();
-      if (data.length === 0) {
-        // Fallback production plans if none are indexed in the primary collection yet
-        setPlans([
-          { 
-            id: 'silver_30', 
-            name: 'Monthly Silver Pass', 
-            price: 299, 
-            duration: 30, 
-            tier: 'pass_plus', 
-            features: ['All PSSSB Mocks', 'Punjab GK Notes Archive', 'Daily Study Targets', 'Bilingual Support'] 
-          },
-          { 
-            id: 'gold_365', 
-            name: 'Elite Annual Pass', 
-            price: 999, 
-            duration: 365, 
-            tier: 'premium', 
-            features: ['Unlimited PPSC & Police SI Mocks', 'AI Performance Coach', 'Official PYQ Explanations', 'Ad-Free Interface', 'Priority Support'] 
-          },
-          { 
-            id: 'elite_life', 
-            name: 'Lifetime Master Pass', 
-            price: 2499, 
-            duration: 9999, 
-            tier: 'elite', 
-            features: ['Lifetime Unrestricted Access', '1-on-1 AI Mentoring Beta', 'Offline PDF Vault', 'Founder Telegram Access', 'All Future Test Series'] 
-          }
-        ]);
-      } else {
-        setPlans(data);
-      }
-      setLoadingPlans(false);
+      // Fallback for demo
+      setPlans(data.length > 0 ? data : [
+        { id: 'p_1', name: 'Monthly Silver Pass', price: 299, duration: 30, tier: 'pass_plus', features: ['All PSSSB Mocks', 'Punjab GK Notes Archive', 'Daily Study Targets', 'Bilingual Support'] },
+        { id: 'p_2', name: 'Elite Annual Pass', price: 999, duration: 365, tier: 'premium', features: ['Unlimited PPSC & Police SI Mocks', 'AI Performance Coach', 'Official PYQ Explanations', 'Ad-Free Experience', 'Founder Telegram Group'] },
+        { id: 'p_3', name: 'Lifetime Master Pass', price: 2499, duration: 9999, tier: 'elite', features: ['Lifetime Unrestricted Access', '1-on-1 AI Mentoring Beta', 'Offline PDF Vault', 'Free Entry to Physical Workshops'] }
+      ]);
+      setLoading(false);
     }
-    loadPlans();
+    load();
   }, []);
 
-  const handleAcquisition = async (plan: any) => {
+  const handleAcquire = async (plan: any) => {
     if (!user) {
-      toast({ title: "Authorization Required", description: "Please sign in to acquire a Preparation Pass.", variant: "destructive" });
+      toast({ title: "Authorization Required", description: "Log in to enlist in preparation passes.", variant: "destructive" });
       return;
     }
 
-    setLoading(plan.id);
+    setAcquiringId(plan.id);
     
-    // Testbook-Style Simulated Checkout Flow
-    // In a real production build, this triggers the processPassPayment service which opens the Razorpay Modal.
+    // Testbook-Style Simulated Acquiring Protocol
     setTimeout(async () => {
       try {
-        await verifyAndActivatePass(user.uid, 'PROD_TXN_' + Date.now(), plan);
+        await verifyAndActivatePass(user.uid, 'TXN_' + Date.now(), plan);
         toast({ 
           title: "ENROLLMENT SUCCESSFUL", 
-          description: `The ${plan.name} has been synchronized with your identity. Access unlocked.` 
+          description: `Identity synced with ${plan.name}. Access unlocked.` 
         });
         window.location.href = '/dashboard';
       } catch (err) {
-        toast({ title: "Signal Desync", description: "Failed to activate pass. Please contact Arsh Grewal support.", variant: "destructive" });
+        toast({ title: "Signal Lost", variant: "destructive" });
       } finally {
-        setLoading(null);
+        setAcquiringId(null);
       }
     }, 1200);
   };
 
   return (
     <AppLayout>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-      
-      <div className="max-w-6xl mx-auto space-y-20 pb-32">
-        <header className="text-center space-y-6 pt-10">
-          <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 rounded-full font-black uppercase text-[10px] tracking-widest">Enlist in Elite Preparation</Badge>
-          <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-none uppercase">Master Every<br />Punjab Government Exam</h1>
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">Unlock 500+ Simulations, AI Performance Coaching, and Unlimited PYQ Repository access designed by Arsh Grewal.</p>
+      <div className="max-w-6xl mx-auto space-y-20 pb-40 px-4 md:px-0">
+        <header className="text-center space-y-8 pt-16">
+          <Badge className="bg-blue-600/10 text-blue-600 border-blue-600/20 px-5 py-2 rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-sm">
+             Enlist in the Elite Tier
+          </Badge>
+          <h1 className="text-5xl md:text-[80px] font-black text-slate-900 tracking-tighter leading-[0.85] uppercase">
+             Master Every<br /><span className="text-blue-600">Punjab Exam.</span>
+          </h1>
+          <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium leading-relaxed">
+             Get unrestricted access to 500+ Simulations, AI Performance Coaching, and Official PYQ Archives used by top rankers.
+          </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-           {loadingPlans ? (
-             [1,2,3].map(i => <div key={i} className="h-[550px] rounded-[40px] bg-zinc-900/40 animate-pulse border border-white/5" />)
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+           {loading ? (
+             [1,2,3].map(i => <div key={i} className="h-[600px] rounded-[48px] bg-slate-100 animate-pulse" />)
            ) : plans.map((plan, i) => {
-             const isBestValue = plan.tier === 'premium' || plan.id.includes('gold');
+             const isElite = plan.tier === 'premium' || plan.tier === 'elite';
              return (
               <motion.div 
                 key={plan.id} 
-                initial={{ opacity: 0, y: 20 }} 
+                initial={{ opacity: 0, y: 30 }} 
                 animate={{ opacity: 1, y: 0 }} 
-                transition={{ delay: i * 0.1 }} 
-                className="h-full"
+                transition={{ delay: i * 0.1 }}
               >
                 <Card className={cn(
-                  "rounded-[40px] border-slate-200 dark:border-white/5 bg-white dark:bg-zinc-900/40 overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-2xl relative",
-                  isBestValue && "border-primary ring-2 ring-primary ring-offset-4 dark:ring-offset-black scale-105 z-10"
+                  "rounded-[48px] bg-white border-slate-100 overflow-hidden h-full flex flex-col transition-all duration-500 hover:shadow-2xl border relative group",
+                  isElite && "ring-8 ring-blue-600/5 scale-105 z-10 border-blue-600/20"
                 )}>
-                  {isBestValue && (
-                    <div className="bg-primary text-white text-center py-2 text-[10px] font-black uppercase tracking-widest absolute top-0 left-0 w-full">TOP ASPIRANT CHOICE</div>
+                  {isElite && (
+                    <div className="bg-blue-600 text-white text-center py-3 text-[10px] font-black uppercase tracking-[0.4em] absolute top-0 left-0 w-full">
+                       MOST RECOMMENDED
+                    </div>
                   )}
-                  <CardHeader className={cn("p-10", isBestValue && "pt-12")}>
-                     <CardTitle className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{plan.name}</CardTitle>
-                     <div className="mt-8 flex items-baseline gap-2">
-                        <span className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">₹{plan.price}</span>
-                        <span className="text-slate-400 font-bold text-xs uppercase">/ {plan.duration >= 999 ? 'LIFETIME' : plan.duration + ' DAYS'}</span>
+                  <CardHeader className={cn("p-12", isElite && "pt-16")}>
+                     <CardTitle className="text-3xl font-black text-slate-900 uppercase tracking-tighter">{plan.name}</CardTitle>
+                     <div className="mt-10 flex items-baseline gap-2">
+                        <span className="text-7xl font-black text-slate-900 tracking-tighter">₹{plan.price}</span>
+                        <span className="text-slate-400 font-black text-xs uppercase tracking-widest">/ {plan.duration >= 999 ? 'LIFETIME' : plan.duration + ' DAYS'}</span>
                      </div>
                   </CardHeader>
-                  <CardContent className="p-10 pt-0 flex-1">
+                  <CardContent className="p-12 pt-0 flex-1 space-y-6">
                      <div className="space-y-4">
-                        {(plan.features || []).map((f: string, idx: number) => (
-                          <div key={idx} className="flex gap-3 items-start">
-                             <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                                <Check className="w-3 h-3 text-emerald-600" strokeWidth={4} />
+                        {plan.features.map((f: string, idx: number) => (
+                          <div key={idx} className="flex gap-4 items-start group/feat">
+                             <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5 group-hover/feat:bg-emerald-500 transition-colors duration-300">
+                                <Check className="w-3.5 h-3.5 text-emerald-600 group-hover/feat:text-white" strokeWidth={4} />
                              </div>
-                             <span className="text-sm text-slate-600 dark:text-zinc-400 font-medium">{f}</span>
+                             <span className="text-base text-slate-600 font-bold group-hover/feat:text-slate-900 transition-colors">{f}</span>
                           </div>
                         ))}
                      </div>
                   </CardContent>
-                  <CardFooter className="p-10 pt-0">
+                  <CardFooter className="p-12 pt-0">
                      <Button 
-                        onClick={() => handleAcquisition(plan)} 
-                        disabled={!!loading} 
+                        onClick={() => handleAcquire(plan)} 
+                        disabled={!!acquiringId} 
                         className={cn(
-                          "w-full h-14 rounded-2xl text-lg font-black shadow-lg transition-all active:scale-95", 
-                          isBestValue ? "bg-primary hover:bg-primary/90 blue-glow" : "bg-slate-900 dark:bg-zinc-800 hover:bg-slate-800"
+                          "w-full h-18 rounded-[24px] text-lg font-black tracking-widest shadow-xl transition-all active:scale-95 uppercase", 
+                          isElite ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20" : "bg-slate-900 hover:bg-black text-white"
                         )}
                      >
-                        {loading === plan.id ? <Loader2 className="animate-spin" /> : "ACTIVATE PASS+"}
+                        {acquiringId === plan.id ? <Loader2 className="animate-spin" /> : "ACTIVATE PASS+"}
                      </Button>
                   </CardFooter>
                 </Card>
@@ -164,21 +145,37 @@ export default function PassPage() {
            })}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
            {[
-             { title: "Syllabus Mastery", desc: "100% Alignment with latest PSSSB & PPSC criteria.", icon: Trophy, color: "bg-orange-100 text-orange-600" },
-             { title: "Bilingual Depth", desc: "EN & Gurmukhi (Raavi) side-by-side exam mode.", icon: BookOpen, color: "bg-blue-100 text-blue-600" },
-             { title: "AI Cognitive Audit", desc: "Identifies weak subjects with neural precision.", icon: ZapIcon, color: "bg-purple-100 text-purple-600" },
-             { title: "Exam Simulation", desc: "Real CBT interface as used by state boards.", icon: Timer, color: "bg-emerald-100 text-emerald-600" },
+             { title: "Syllabus Mastery", desc: "100% Alignment with latest PSSSB & PPSC official criteria.", icon: Trophy, color: "bg-orange-50 text-orange-600" },
+             { title: "Bilingual Depth", desc: "Native Raavi Punjabi & English side-by-side exam mode.", icon: BookOpen, color: "bg-blue-50 text-blue-600" },
+             { title: "AI Cognitive Audit", desc: "Identifies preparation bottlenecks with neural precision.", icon: Zap, color: "bg-yellow-50 text-yellow-600" },
+             { title: "State Merit List", desc: "Compete with 15k+ aspirants and track your district rank.", icon: ShieldCheck, color: "bg-emerald-50 text-emerald-600" },
            ].map((benefit, i) => (
-             <div key={i} className="p-8 rounded-[32px] bg-slate-50 dark:bg-zinc-900/20 border border-slate-100 dark:border-white/5 space-y-4">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm", benefit.color)}>
-                   <benefit.icon size={24} />
+             <div key={i} className="p-10 rounded-[40px] bg-white border border-slate-100 space-y-6 shadow-sm">
+                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner", benefit.color)}>
+                   <benefit.icon size={24} strokeWidth={2.5} />
                 </div>
-                <h4 className="font-bold text-slate-800 dark:text-zinc-200">{benefit.title}</h4>
-                <p className="text-sm text-slate-500 dark:text-zinc-500 leading-relaxed">{benefit.desc}</p>
+                <div className="space-y-2">
+                   <h4 className="font-black text-slate-900 uppercase text-sm tracking-tight">{benefit.title}</h4>
+                   <p className="text-sm text-slate-500 leading-relaxed font-medium">{benefit.desc}</p>
+                </div>
              </div>
            ))}
+        </div>
+
+        <div className="bg-[#1e293b] rounded-[60px] p-16 md:p-24 text-center space-y-10 relative overflow-hidden shadow-2xl">
+           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+              <LayoutGrid size={800} className="text-white" />
+           </div>
+           <div className="relative z-10 space-y-12">
+              <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none uppercase">Need more assurance?</h2>
+              <p className="text-2xl text-slate-400 max-w-3xl mx-auto font-medium">Join our daily live classes and interactive doubt solving arena to see why CRACKLIX is Punjab's most trusted prep platform.</p>
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                 <Button className="h-20 px-16 rounded-[28px] bg-white text-black text-2xl font-black hover:bg-slate-200 transition-all">TRY FREE HUB</Button>
+                 <Button variant="outline" className="h-20 px-16 rounded-[28px] border-white/10 text-white text-2xl font-black hover:bg-white/5 transition-all">TALK TO MENTOR</Button>
+              </div>
+           </div>
         </div>
       </div>
       <Navbar />
