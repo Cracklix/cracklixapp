@@ -15,7 +15,19 @@ import InstallPrompt from '@/components/pwa/install-prompt';
 import SupportTrigger from '@/components/support/support-trigger';
 import ReadinessPredictor from '@/components/dashboard/readiness-predictor';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BrainCircuit, Globe, Briefcase, Trophy, Sparkles, BookOpen, Zap, ChevronRight, Gift } from 'lucide-react';
+import { 
+  BrainCircuit, 
+  Globe, 
+  Briefcase, 
+  Trophy, 
+  Sparkles, 
+  BookOpen, 
+  Zap, 
+  ChevronRight, 
+  Gift,
+  MessageCircle,
+  Users
+} from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -71,6 +83,10 @@ export default function DashboardPage() {
                         <div className="h-full bg-accent w-[92%] cyan-glow" />
                      </div>
                   </div>
+                  <div className="mt-8 p-4 rounded-2xl bg-black/20 border border-white/5 flex items-center justify-between">
+                     <span className="text-[10px] font-bold text-zinc-500 uppercase">District: Ludhiana</span>
+                     <Badge variant="outline" className="text-[9px] border-accent/20 text-accent">#42 Local</Badge>
+                  </div>
                 </CardContent>
              </Card>
           </motion.div>
@@ -120,6 +136,41 @@ export default function DashboardPage() {
             </div>
 
             <DailyQuiz />
+
+            {/* Growth Community Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <Card className="rounded-[40px] bg-emerald-500/10 border-emerald-500/20 p-8 flex flex-col justify-between">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                      <MessageCircle className="text-white w-6 h-6" />
+                    </div>
+                    <Badge className="bg-emerald-500 text-white font-bold text-[9px]">LIVE</Badge>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">Telegram Community</h3>
+                    <p className="text-xs text-zinc-500 mb-6">Daily Punjab current affairs PDFs and MCQ challenges.</p>
+                    <Button variant="outline" className="w-full rounded-xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all font-bold">
+                      Join 12k+ Aspirants
+                    </Button>
+                  </div>
+               </Card>
+
+               <Card className="rounded-[40px] bg-primary/10 border-primary/20 p-8 flex flex-col justify-between">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                      <Users className="text-white w-6 h-6" />
+                    </div>
+                    <Badge className="bg-primary text-white font-bold text-[9px]">NEW</Badge>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">WhatsApp Channel</h3>
+                    <p className="text-xs text-zinc-500 mb-6">Instant exam notifications and job alert broadcasts.</p>
+                    <Button variant="outline" className="w-full rounded-xl border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-bold">
+                      Subscribe Alerts
+                    </Button>
+                  </div>
+               </Card>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <DailyTargets />

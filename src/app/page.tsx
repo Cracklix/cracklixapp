@@ -10,16 +10,14 @@ import {
   Sparkles, 
   Star,
   Flame,
-  ShieldCheck
+  ShieldCheck,
+  Globe,
+  MessageSquare
 } from "lucide-react";
 import GlassCard from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-/**
- * Premium Landing Page
- * Designed for High-Performance conversion with Testbook-style trust factors.
- */
 export default function LandingPage() {
   const container = {
     hidden: { opacity: 0 },
@@ -51,9 +49,9 @@ export default function LandingPage() {
           <span className="font-headline text-2xl font-black tracking-tighter uppercase">CRACKLIX</span>
         </div>
         <nav className="hidden lg:flex gap-12 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-500">
-          <Link href="#features" className="hover:text-primary transition-colors">Technology</Link>
+          <Link href="#technology" className="hover:text-primary transition-colors">Technology</Link>
+          <Link href="/exams" className="hover:text-primary transition-colors">Exams</Link>
           <Link href="/leaderboard" className="hover:text-primary transition-colors">Leaderboard</Link>
-          <Link href="/marketplace" className="hover:text-primary transition-colors">Notes</Link>
           <Link href="/pass" className="hover:text-primary transition-colors">Pricing</Link>
         </nav>
         <div className="flex gap-4">
@@ -61,7 +59,7 @@ export default function LandingPage() {
             <Link href="/login">Sign In</Link>
           </Button>
           <Button asChild className="bg-primary hover:bg-primary/90 text-white font-black text-[11px] uppercase tracking-widest rounded-2xl h-12 px-8 blue-glow transition-all hover:scale-105">
-            <Link href="/login?tab=signup">Get Started</Link>
+            <Link href="/signup">Get Started</Link>
           </Button>
         </div>
       </header>
@@ -77,23 +75,23 @@ export default function LandingPage() {
           >
             <Badge className="bg-primary/10 border-primary/20 text-primary px-5 py-2 rounded-full font-black uppercase tracking-[0.3em] text-[10px]">
               <Sparkles className="w-3.5 h-3.5 mr-2" />
-              v3.0 ENTERPRISE ENGINE NOW LIVE
+              PUNJAB’S #1 AI-POWERED ECOSYSTEM
             </Badge>
             <h1 className="text-7xl md:text-[100px] font-black leading-[0.85] tracking-tighter">
               DOMINATE <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-accent">PUNJAB</span> EXAMS.
             </h1>
             <p className="text-xl text-zinc-500 max-w-xl leading-relaxed font-medium">
-              The smartest AI-driven learning ecosystem for Punjab Govt aspirants. Realistic simulations, deep analytics, and 24/7 AI mentoring.
+              The only bilingual prep platform engineered exclusively for PPSC, PSSSB, and Punjab Police aspirants. Real-time district rankings and 24/7 AI mentoring.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 pt-4">
               <Button asChild size="lg" className="h-20 px-12 rounded-[24px] bg-primary hover:bg-primary/90 text-xl font-black blue-glow group">
-                <Link href="/login?tab=signup">
+                <Link href="/signup">
                   Start Training Free
                   <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-2 transition-transform" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-20 px-12 rounded-[24px] border-white/10 hover:bg-white/5 text-xl font-bold">
-                <Link href="/pass">View PASS Plans</Link>
+                <Link href="/pass">Unlock Premium PASS</Link>
               </Button>
             </div>
             
@@ -109,7 +107,7 @@ export default function LandingPage() {
                 <div className="flex text-yellow-500 gap-1">
                   {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
                 </div>
-                <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">Trust of <span className="text-white">15,000+</span> Aspirants</p>
+                <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">Trusted by <span className="text-white">15,000+</span> Punjab Aspirants</p>
               </div>
             </div>
           </motion.div>
@@ -124,7 +122,7 @@ export default function LandingPage() {
             <div className="cracklix-glass relative z-10 p-12 rounded-[48px] animate-float shadow-2xl">
               <div className="flex justify-between items-start mb-16">
                 <div className="space-y-3">
-                  <p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[10px]">Aspirant Profile</p>
+                  <p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[10px]">Aspirant Pulse</p>
                   <h2 className="text-5xl font-black tracking-tighter">Punjab Rank <span className="text-primary">#12</span></h2>
                 </div>
                 <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-primary to-accent p-0.5 shadow-2xl">
@@ -147,7 +145,7 @@ export default function LandingPage() {
 
               <div className="space-y-5">
                 <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
-                  <span>Target: SI Rank 1</span>
+                  <span>Target: Punjab Police SI</span>
                   <span className="text-white">8,420 / 10,000 XP</span>
                 </div>
                 <div className="h-4 w-full bg-white/[0.03] rounded-full overflow-hidden">
@@ -164,20 +162,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF */}
+      {/* CORE BOARDS */}
       <section className="border-y border-white/5 bg-white/[0.01] py-16">
         <div className="container mx-auto px-6 flex flex-wrap justify-center md:justify-between items-center gap-12 opacity-50 grayscale hover:opacity-100 transition-opacity duration-500">
-          {['PPSC PCS', 'PSSSB CLERK', 'PUNJAB POLICE SI', 'PATWARI 2024', 'EXCISE INSPECTOR'].map(exam => (
+          {['PPSC PCS', 'PSSSB CLERK', 'PUNJAB POLICE', 'PATWARI 2024', 'TEACHING EXAMS', 'PSPCL JE'].map(exam => (
             <span key={exam} className="text-xl font-black tracking-tighter text-zinc-600">{exam}</span>
           ))}
         </div>
       </section>
 
       {/* FEATURES SECTION */}
-      <section id="features" className="container mx-auto max-w-7xl px-6 py-40 relative">
+      <section id="technology" className="container mx-auto max-w-7xl px-6 py-40 relative">
         <div className="text-center space-y-6 mb-24">
-          <h2 className="text-5xl md:text-7xl font-black tracking-tighter">ENGINEERED FOR <span className="text-primary uppercase">EXCELLENCE.</span></h2>
-          <p className="text-zinc-500 text-xl max-w-2xl mx-auto font-medium">Proprietary AI technology designed to isolate weaknesses and accelerate your learning velocity.</p>
+          <h2 className="text-5xl md:text-7xl font-black tracking-tighter">ENGINEERED FOR <span className="text-primary uppercase">DOMINANCE.</span></h2>
+          <p className="text-zinc-500 text-xl max-w-2xl mx-auto font-medium">Proprietary AI and real-time competitive systems designed to maximize your rank across 23 Punjab districts.</p>
         </div>
 
         <motion.div 
@@ -189,31 +187,31 @@ export default function LandingPage() {
         >
           {[
             { 
-              icon: BrainCircuit, 
-              title: "AI COMMAND CENTER", 
-              desc: "Deep-learning analysis of your CBT results to generate hyper-personalized study blueprints.",
-              color: "text-blue-500",
-              badge: "PRO"
+              icon: Globe, 
+              iconColor: "text-blue-500",
+              title: "BILINGUAL ENGINE", 
+              desc: "Seamlessly switch between English and Punjabi for all mock tests, PYQs, and AI explanations.",
+              badge: "NATIVE"
             },
             { 
               icon: Zap, 
-              title: "NATIVE MOCK ENGINE", 
-              desc: "Timed simulations that mirror the real PPSC/PSSSB exam environment with adaptive difficulty.",
-              color: "text-accent",
+              iconColor: "text-accent",
+              title: "LIVE ARENA", 
+              desc: "Compete in scheduled Sunday Mega Tests with server-synced timers and anti-cheat protection.",
               badge: "LIVE"
             },
             { 
-              icon: Trophy, 
-              title: "REALTIME RANKING", 
-              desc: "Compare your performance against thousands of real aspirants across 23 districts in Punjab.",
-              color: "text-orange-500",
-              badge: "GLOBAL"
+              icon: BrainCircuit, 
+              iconColor: "text-purple-500",
+              title: "AI PERFORMANCE COACH", 
+              desc: "Deep analysis of your CBT results to identify weak subjects and generate tactical revision plans.",
+              badge: "PRO"
             }
           ].map((feature, i) => (
             <motion.div key={i} variants={item}>
               <div className="cracklix-glass h-full group p-10 rounded-[40px] hover:bg-white/[0.05] transition-all duration-500">
                 <div className="flex justify-between items-start mb-10">
-                  <div className={`w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform ${feature.color}`}>
+                  <div className={`w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform ${feature.iconColor}`}>
                     <feature.icon className="w-8 h-8" />
                   </div>
                   <Badge className="bg-white/5 text-zinc-500 border-white/10 text-[9px] font-black px-3 py-1">{feature.badge}</Badge>
@@ -235,19 +233,15 @@ export default function LandingPage() {
           </div>
           
           <div className="relative z-10 text-center space-y-10">
-            <h2 className="text-5xl md:text-8xl font-black tracking-tighter leading-none">READY TO<br /><span className="text-primary">DOMINATE?</span></h2>
-            <p className="text-2xl text-zinc-400 max-w-2xl mx-auto font-medium">Join the next generation of Punjab Government officers today. Your journey to Rank 1 begins here.</p>
+            <h2 className="text-5xl md:text-8xl font-black tracking-tighter leading-none">READY TO<br /><span className="text-primary">MASTER PUNJAB?</span></h2>
+            <p className="text-2xl text-zinc-400 max-w-2xl mx-auto font-medium">Join the elite rankers today. Secure your PASS and get unrestricted access to the most powerful prep engine in the state.</p>
             <div className="flex flex-col sm:flex-row justify-center gap-8">
               <Button asChild size="lg" className="h-24 px-16 rounded-3xl bg-white text-black hover:bg-zinc-200 text-2xl font-black transition-transform hover:scale-105 shadow-2xl">
-                <Link href="/login?tab=signup">Get Started Free</Link>
+                <Link href="/signup">Start Free Training</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-24 px-16 rounded-3xl border-white/10 bg-white/5 hover:bg-white/10 text-2xl font-black">
-                <Link href="/pass">Go Premium</Link>
+                <Link href="/pass">View Premium PASS</Link>
               </Button>
-            </div>
-            <div className="flex items-center justify-center gap-4 text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em]">
-              <ShieldCheck className="w-4 h-4 text-primary" />
-              Secure Stream • ISO 27001 Ready
             </div>
           </div>
         </div>
@@ -261,32 +255,34 @@ export default function LandingPage() {
               <Zap className="text-primary w-8 h-8 fill-current" />
               <span className="font-headline text-2xl font-black tracking-tighter uppercase">CRACKLIX</span>
             </div>
-            <p className="text-zinc-500 max-w-md text-lg leading-relaxed font-medium">The most advanced AI learning ecosystem engineered exclusively for Punjab Government exam excellence.</p>
-            <div className="flex gap-6">
-               {[1, 2, 3, 4].map(i => <div key={i} className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-primary/50 transition-colors" />)}
+            <p className="text-zinc-500 max-w-md text-lg leading-relaxed font-medium">The state-of-the-art AI learning ecosystem engineered exclusively for Punjab Government exam excellence.</p>
+            <div className="flex gap-4">
+               <Button size="icon" variant="outline" className="rounded-xl border-white/5 bg-white/[0.03] hover:text-primary"><MessageSquare size={18} /></Button>
+               <Button size="icon" variant="outline" className="rounded-xl border-white/5 bg-white/[0.03] hover:text-primary"><Trophy size={18} /></Button>
+               <Button size="icon" variant="outline" className="rounded-xl border-white/5 bg-white/[0.03] hover:text-primary"><Globe size={18} /></Button>
             </div>
           </div>
           <div className="space-y-8">
-            <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Ecosystem</h4>
+            <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Punjab Elite</h4>
             <ul className="space-y-4 text-sm text-zinc-500 font-bold uppercase tracking-widest">
-              <li><Link href="/exams" className="hover:text-primary transition-colors">Exam Engine</Link></li>
-              <li><Link href="/leaderboard" className="hover:text-primary transition-colors">Rankings</Link></li>
-              <li><Link href="/marketplace" className="hover:text-primary transition-colors">Creator Hub</Link></li>
-              <li><Link href="/pass" className="hover:text-primary transition-colors">Pass Pricing</Link></li>
+              <li><Link href="/exams" className="hover:text-primary transition-colors">Exam Hub</Link></li>
+              <li><Link href="/leaderboard" className="hover:text-primary transition-colors">Punjab Rankings</Link></li>
+              <li><Link href="/marketplace" className="hover:text-primary transition-colors">Notes Marketplace</Link></li>
+              <li><Link href="/pass" className="hover:text-primary transition-colors">PASS Subscription</Link></li>
             </ul>
           </div>
           <div className="space-y-8">
-            <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Resources</h4>
+            <h4 className="font-black text-xs uppercase tracking-[0.3em] text-white">Support</h4>
             <ul className="space-y-4 text-sm text-zinc-500 font-bold uppercase tracking-widest">
+              <li><Link href="#" className="hover:text-primary transition-colors">Telegram Community</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Career Prep</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Privacy Core</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Service Level</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Privacy Shield</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
         <div className="container mx-auto max-w-7xl pt-24 mt-24 border-t border-white/5 text-center text-[10px] font-black uppercase tracking-[0.5em] text-zinc-700">
-          © 2024 CRACKLIX ENTERPRISE ECOSYSTEM • ALL RIGHTS RESERVED
+          © 2024 CRACKLIX EDTECH ENTERPRISE • ENGINEERED FOR PUNJAB
         </div>
       </footer>
     </div>
