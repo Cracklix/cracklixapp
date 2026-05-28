@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -22,18 +23,18 @@ import { db } from '@/lib/firebase';
 import { MockTest, Question, ExamAttempt, AttemptAnswer } from '@/types';
 
 /**
- * PRODUCTION SERVICE: Mock Factory & CBT Management
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry
  */
 
 // 1. REGISTRY OPERATIONS
 export async function getAllMocks(): Promise<MockTest[]> {
   try {
-    const q = query(collection(db, 'mocks'), limit(100));
+    const q = query(collection(db, 'mocks'), limit(200));
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest));
     return data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   } catch (e) {
-    console.error("Registry Fetch Error:", e);
+    console.error("Registry Fetch Failure:", e);
     return [];
   }
 }
@@ -53,7 +54,7 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
 
 export async function updateMock(id: string, data: Partial<MockTest>) {
   const ref = doc(db, 'mocks', id);
-  await updateDoc(ref, { ...data, updatedAt: Date.now() });
+  updateDoc(ref, { ...data, updatedAt: Date.now() }).catch(() => {});
 }
 
 export async function duplicateMock(id: string) {
@@ -62,7 +63,7 @@ export async function duplicateMock(id: string) {
   const { id: _, ...data } = mock;
   return await addDoc(collection(db, "mocks"), {
     ...data,
-    title: `${data.title} (Copy)`,
+    title: `${data.title} (Clone)`,
     status: "draft",
     createdAt: Date.now(),
     publishedAt: null,
@@ -75,24 +76,24 @@ export async function deleteMock(mockId: string) {
   await deleteDoc(ref);
 }
 
-// 2. QUESTION LINKING
+// 2. ARTIFACT LINKING ENGINE
 export async function linkQuestionToMock(mockId: string, questionId: string) {
   const ref = doc(db, 'mocks', mockId);
-  await updateDoc(ref, {
+  updateDoc(ref, {
     questionIds: arrayUnion(questionId),
     totalQuestions: increment(1)
-  });
+  }).catch(() => {});
 }
 
 export async function unlinkQuestionFromMock(mockId: string, questionId: string) {
   const ref = doc(db, 'mocks', mockId);
-  await updateDoc(ref, {
+  updateDoc(ref, {
     questionIds: arrayRemove(questionId),
     totalQuestions: increment(-1)
-  });
+  }).catch(() => {});
 }
 
-// 3. PUBLISH & LIVE PROTOCOLS
+// 3. PRODUCTION WORKFLOWS
 export async function publishMock(mockId: string) {
   const mockRef = doc(db, 'mocks', mockId);
   const mockSnap = await getDoc(mockRef);
@@ -104,6 +105,7 @@ export async function publishMock(mockId: string) {
     publishedAt: Date.now()
   });
 
+  // Quarantine linked questions to prevent duplicate series delivery
   questionIds.forEach((qId: string) => {
     const qRef = doc(db, 'questions', qId);
     batch.update(qRef, {
@@ -117,31 +119,75 @@ export async function publishMock(mockId: string) {
 }
 
 export async function setMockLive(mockId: string, isLive: boolean) {
-  const ref = doc(db, 'mocks', id);
-  await updateDoc(ref, { 
+  const ref = doc(db, 'mocks', mockId);
+  updateDoc(ref, { 
     status: isLive ? 'live' : 'published',
     liveAt: isLive ? Date.now() : null
-  });
+  }).catch(() => {});
 }
 
-// 4. CBT ENGINE LOGIC (Student Side)
+// 4. CBT ANALYTICS RETRIEVAL
+export async function getMockAnalytics(mockId: string) {
+  try {
+    const q = query(
+      collection(db, 'attempts'), 
+      where('mockId', '==', mockId), 
+      where('status', '==', 'completed'),
+      limit(1000)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return { totalAttempts: 0, avgScore: 0, avgAccuracy: 0, highScore: 0 };
+    
+    const scores = snap.docs.map(d => d.data().score || 0);
+    const accuracies = snap.docs.map(d => d.data().accuracy || 0);
+    
+    return {
+      totalAttempts: snap.size,
+      avgScore: (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1),
+      avgAccuracy: Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length),
+      highScore: Math.max(...scores)
+    };
+  } catch (e) {
+    return { totalAttempts: 0, avgScore: 0, avgAccuracy: 0, highScore: 0 };
+  }
+}
+
+// 5. STUDENT ENGINE DATA
+export async function getMockQuestions(mockId: string): Promise<Question[]> {
+  const mockRef = doc(db, 'mocks', mockId);
+  const mockSnap = await getDoc(mockRef);
+  const questionIds = mockSnap.data()?.questionIds || [];
+  
+  if (questionIds.length === 0) return [];
+
+  const questions: Question[] = [];
+  const fetches = questionIds.map((id: string) => getDoc(doc(db, "questions", id)));
+  const snapshots = await Promise.all(fetches);
+  
+  snapshots.forEach(qSnap => {
+    if (qSnap.exists()) {
+      questions.push({ id: qSnap.id, ...qSnap.data() } as Question);
+    }
+  });
+  
+  return questions;
+}
+
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
-  // Admin universal override
   const userSnap = await getDoc(doc(db, 'users', userId));
   const userData = userSnap.data();
+  // Admin universal key
   if (userData?.role === 'admin' || userData?.role === 'superadmin' || userData?.email === 'arshdeepgrewal1122@gmail.com') {
     return { allowed: true };
   }
   
-  // Free access logic
   if (mock.accessType === 'free') return { allowed: true };
   
-  // Premium subscription logic
   const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
   if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().endDate < Date.now()) {
     return { 
       allowed: false, 
-      reason: mock.accessType === 'pass_plus' ? "Requires PASS+ subscription." : "Requires Premium Access." 
+      reason: "Membership required for this CBT session. Upgrade to PASS+." 
     };
   }
   
@@ -168,10 +214,10 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
     lastActiveAt: startedAt,
     currentQuestionIndex: 0,
     cheatFlags: 0,
-    deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'
+    deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Terminal'
   };
 
-  await setDoc(attemptRef, payload, { merge: true });
+  setDoc(attemptRef, payload, { merge: true }).catch(() => {});
   return attemptId;
 }
 
@@ -190,14 +236,12 @@ export async function getAttemptState(attemptId: string) {
 
 export async function saveQuestionState(attemptId: string, qIndex: number, data: AttemptAnswer) {
   const answerRef = doc(db, 'attempts', attemptId, 'answers', qIndex.toString());
-  setDoc(answerRef, { ...data, lastSavedAt: Date.now() }, { merge: true })
-    .catch(() => console.warn("Background sync latency..."));
+  setDoc(answerRef, { ...data, lastSavedAt: Date.now() }, { merge: true }).catch(() => {});
 }
 
 export async function updateAttemptActivity(attemptId: string, updates: any) {
   const ref = doc(db, 'attempts', attemptId);
-  updateDoc(ref, { ...updates, lastActiveAt: Date.now() })
-    .catch(() => {});
+  updateDoc(ref, { ...updates, lastActiveAt: Date.now() }).catch(() => {});
 }
 
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any, xpGain: number) {
@@ -220,48 +264,4 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
   });
 
   await batch.commit();
-}
-
-export async function getMockQuestions(mockId: string): Promise<Question[]> {
-  const mockRef = doc(db, 'mocks', mockId);
-  const mockSnap = await getDoc(mockRef);
-  const questionIds = mockSnap.data()?.questionIds || [];
-  
-  if (questionIds.length === 0) return [];
-
-  const questions: Question[] = [];
-  const fetches = questionIds.map((id: string) => getDoc(doc(db, "questions", id)));
-  const snapshots = await Promise.all(fetches);
-  
-  snapshots.forEach(qSnap => {
-    if (qSnap.exists()) {
-      questions.push({ id: qSnap.id, ...qSnap.data() } as Question);
-    }
-  });
-  
-  return questions;
-}
-
-export async function getMockAnalytics(mockId: string) {
-  try {
-    const q = query(
-      collection(db, 'attempts'), 
-      where('mockId', '==', mockId), 
-      where('status', '==', 'completed'),
-      limit(500)
-    );
-    const snap = await getDocs(q);
-    if (snap.empty) return { totalAttempts: 0, avgScore: 0, avgAccuracy: 0 };
-    
-    const scores = snap.docs.map(d => d.data().score || 0);
-    const accuracies = snap.docs.map(d => d.data().accuracy || 0);
-    
-    return {
-      totalAttempts: snap.size,
-      avgScore: (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1),
-      avgAccuracy: Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length),
-    };
-  } catch (e) {
-    return { totalAttempts: 0, avgScore: 0, avgAccuracy: 0 };
-  }
 }
