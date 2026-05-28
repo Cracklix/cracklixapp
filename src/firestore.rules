@@ -2,8 +2,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // TEMPORARY DEVELOPMENT RULES: Allowing all reads/writes to resolve unblocking failures.
-    // WARNING: These should be hardened before production release.
+    // EMERGENCY DEVELOPMENT RULES: Unrestricted access to resolve blocking permission errors.
+    // This allows all administrative actions (Edit, Delete, Publish) to proceed without failure.
     match /{document=**} {
       allow read, write: if true;
     }
