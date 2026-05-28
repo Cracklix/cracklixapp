@@ -17,65 +17,72 @@ import {
   Mic,
   MicOff,
   ShieldCheck,
-  ChevronRight,
-  LayoutGrid,
   BookOpen,
   History,
   Rocket,
-  Plus,
   Zap,
   Globe,
   Languages,
-  CheckCircle2,
-  AlertCircle,
   SlidersHorizontal,
-  ChevronDown
+  BrainCircuit,
+  AlertCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, writeBatch, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import 'regenerator-runtime/runtime';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
+import { SUBJECTS } from '@/types';
 
 const EXAM_DATABASE = {
-  "PSSSB": [
+  "PSSSB Authorities": [
+    { id: "clerk", name: "Clerk / Clerk IT / Accounts" },
     { id: "sa", name: "Senior Assistant" },
     { id: "ei", name: "Excise Inspector" },
     { id: "p", name: "Patwari" },
-    { id: "clerk", name: "Clerk" },
+    { id: "je_civil", name: "JE Civil" },
+    { id: "je_elec", name: "JE Electrical" },
+    { id: "je_mech", name: "JE Mechanical" },
     { id: "lab_att", name: "Lab Attendant" },
   ],
   "Punjab Police": [
     { id: "psi", name: "Sub-Inspector" },
     { id: "pc", name: "Constable" },
+    { id: "ia", name: "Intelligence Assistant" },
     { id: "jw", name: "Jail Warder" },
   ],
-  "Technical": [
+  "Technical Boards": [
     { id: "pspcl_je", name: "PSPCL JE" },
     { id: "pstcl_je", name: "PSTCL JE" },
+    { id: "technical_cadre", name: "Technical Cadre" },
   ],
-  "Teaching": [
-    { id: "pstet", name: "PSTET" },
-    { id: "ctet", name: "CTET" },
+  "Teaching Exams": [
+    { id: "pstet_p1", name: "PSTET Paper 1" },
+    { id: "pstet_p2", name: "PSTET Paper 2" },
+    { id: "ctet_p1", name: "CTET Paper 1" },
+    { id: "ctet_p2", name: "CTET Paper 2" },
   ],
-  "State Exam Center": [
+  "State Center": [
+    { id: "pcs", name: "PPSC PCS" },
     { id: "steno", name: "Stenographer" },
     { id: "deo", name: "Data Entry Operator" },
     { id: "group_d", name: "Group D" },
+  ],
+  "Advanced Entities": [
+    { id: "other", name: "Custom / Other Exam..." },
   ]
 };
 
 const BLUEPRINTS = [
   { id: 'pss_clerk', label: "PSSSB Clerk Full Mock", exam: 'clerk', count: '100', prompt: "Create a 100Q PSSSB Clerk Full Mock with 30Q Punjabi Qualifying Part A." },
-  { id: 'ctet_p1', label: "CTET Paper 1 Marathon", exam: 'ctet', count: '150', prompt: "Generate 150Q CTET Paper 1 Marathon with focus on CDP and EVS." },
+  { id: 'ctet_p1', label: "CTET Paper 1 Marathon", exam: 'ctet_p1', count: '150', prompt: "Generate 150Q CTET Paper 1 Marathon with focus on CDP and EVS." },
   { id: 'pb_pol_si', label: "Punjab Police Rapid Test", exam: 'psi', count: '50', prompt: "50Q Punjab Police SI Rapid Revision focusing on Indian Constitution and Law." },
-  { id: 'je_civil', label: "JE Civil Technical Drill", exam: 'pspcl_je', count: '80', prompt: "80Q Technical Subject Drill for JE Civil focusing on SOM and Surveying." }
 ];
 
 export default function AiMockStudioV8() {
@@ -87,7 +94,10 @@ export default function AiMockStudioV8() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   
   // Calibration State
-  const [exam, setExam] = useState("ei");
+  const [exam, setExam] = useState("clerk");
+  const [customExam, setCustomExam] = useState("");
+  const [activeSubject, setActiveSubject] = useState("General Knowledge");
+  const [customSubject, setCustomSubject] = useState("");
   const [mode, setMode] = useState("full");
   const [count, setCount] = useState("50");
   const [customCount, setCustomCount] = useState("");
@@ -125,7 +135,7 @@ export default function AiMockStudioV8() {
     setLogs([]);
     addLog("Initializing Neural Synthesis Engine v8.5...");
 
-    const examName = Object.values(EXAM_DATABASE).flat().find(e => e.id === exam)?.name || "Punjab Exam";
+    const examName = exam === 'other' ? customExam : (Object.values(EXAM_DATABASE).flat().find(e => e.id === exam)?.name || "Punjab Exam");
     const finalCount = count === "custom" ? Number(customCount) : Number(count);
 
     try {
@@ -179,7 +189,6 @@ export default function AiMockStudioV8() {
       
       for (const section of output.sections) {
         for (const q of section.questions) {
-          // A. Push to Mock Subcollection
           const mockQRef = doc(collection(db, "mocks", mockRef.id, "questions"));
           const qData = {
             id: mockQRef.id,
@@ -197,7 +206,6 @@ export default function AiMockStudioV8() {
           };
           batch.set(mockQRef, qData);
 
-          // B. Optional Atomic Bank Sync
           if (saveToBank) {
             const bankQRef = doc(collection(db, "questions"));
             batch.set(bankQRef, {
@@ -225,12 +233,12 @@ export default function AiMockStudioV8() {
 
   return (
     <AdminProtect>
-      <div className="flex bg-[#05070a] min-h-screen text-white overflow-hidden">
+      <div className="flex bg-[#05070a] min-h-screen text-white overflow-hidden max-w-full">
         <AdminSidebar />
         
         <main className="flex-1 flex flex-row h-screen overflow-hidden">
-          {/* Main AI Workspace */}
-          <div className="flex-1 flex flex-col relative bg-[#020408]">
+          {/* Main AI Workspace - Responsive Calculation */}
+          <div className="flex-1 flex flex-col relative bg-[#020408] max-w-[calc(100%-380px)] overflow-hidden">
              <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl z-30">
                 <div className="flex items-center gap-3">
                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center blue-glow"><Sparkles size={16} className="text-primary" /></div>
@@ -245,8 +253,8 @@ export default function AiMockStudioV8() {
                 </div>
              </header>
 
-             <ScrollArea className="flex-1 p-8 md:p-12" ref={scrollRef}>
-                <div className="max-w-6xl mx-auto space-y-12 pb-40">
+             <ScrollArea className="flex-1 p-6 md:p-10" ref={scrollRef}>
+                <div className="max-w-5xl mx-auto space-y-12 pb-40">
                    {!output && !loading && (
                      <div className="py-24 text-center space-y-12">
                         <div className="w-20 h-20 rounded-[32px] bg-zinc-900 mx-auto flex items-center justify-center shadow-2xl relative group">
@@ -254,8 +262,8 @@ export default function AiMockStudioV8() {
                            <div className="absolute inset-0 bg-primary/10 blur-[40px] rounded-full" />
                         </div>
                         <div className="space-y-4">
-                           <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white leading-none">Synthesize<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-accent">Mock Intelligence</span></h2>
-                           <p className="text-zinc-500 font-medium text-lg max-w-2xl mx-auto leading-relaxed italic">
+                           <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white leading-none">Synthesize<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-accent">Mock Intelligence</span></h2>
+                           <p className="text-zinc-500 font-medium text-lg max-w-xl mx-auto leading-relaxed italic">
                               Architect professional trilingual simulations for Punjab state exams. Use AI Blueprints or custom calibration for surgical precision.
                            </p>
                         </div>
@@ -264,7 +272,7 @@ export default function AiMockStudioV8() {
                            <p className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.3em]">AI Blueprint Templates</p>
                            <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
                               {BLUEPRINTS.map(bp => (
-                                <button key={bp.id} onClick={() => applyBlueprint(bp)} className="px-6 py-4 rounded-3xl bg-zinc-900/40 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:border-primary transition-all flex items-center gap-3 group">
+                                <button key={bp.id} onClick={() => applyBlueprint(bp)} className="px-5 py-3 rounded-2xl bg-zinc-900/40 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:border-primary transition-all flex items-center gap-3 group">
                                    <Zap size={14} className="text-primary group-hover:text-white" />
                                    {bp.label}
                                 </button>
@@ -295,46 +303,46 @@ export default function AiMockStudioV8() {
 
                    {output && (
                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-                        <div className="flex flex-col lg:flex-row gap-10 items-start">
-                           <div className="flex-1 space-y-10">
+                        <div className="flex flex-col gap-10 items-start">
+                           <div className="w-full space-y-10">
                               <div className="space-y-4">
                                  <div className="flex items-center gap-4">
                                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg"><Rocket className="text-white" /></div>
-                                   <h3 className="text-4xl font-black uppercase tracking-tighter text-white">{output.title}</h3>
+                                   <h3 className="text-3xl font-black uppercase tracking-tighter text-white">{output.title}</h3>
                                  </div>
-                                 <p className="text-zinc-500 font-medium italic text-xl leading-relaxed">"{output.summary}"</p>
+                                 <p className="text-zinc-500 font-medium italic text-lg leading-relaxed">"{output.summary}"</p>
                               </div>
 
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                  {[
                                    { label: "Board", val: output.exam, icon: Globe },
                                    { label: "Duration", val: `${manualTime || output.duration}m`, icon: History },
-                                   { label: "Coverage", val: `${output.syllabusCoverage}%`, icon: LayoutGrid },
-                                   { label: "Artifacts", val: output.sections.reduce((acc, s) => acc + s.questions.length, 0), icon: Database },
+                                   { label: "Coverage", val: `${output.syllabusCoverage}%`, icon: Database },
+                                   { label: "Artifacts", val: output.sections.reduce((acc, s) => acc + s.questions.length, 0), icon: BrainCircuit },
                                  ].map((stat, i) => (
-                                   <div key={i} className="p-6 rounded-[32px] bg-white/5 border border-white/5 space-y-3">
-                                      <stat.icon className="text-primary w-5 h-5" />
+                                   <div key={i} className="p-5 rounded-[24px] bg-white/5 border border-white/5 space-y-3">
+                                      <stat.icon className="text-primary w-4 h-4" />
                                       <div>
                                          <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">{stat.label}</p>
-                                         <p className="text-base font-bold text-white truncate">{stat.val}</p>
+                                         <p className="text-sm font-bold text-white truncate">{stat.val}</p>
                                       </div>
                                    </div>
                                  ))}
                               </div>
 
-                              <div className="p-10 rounded-[48px] bg-white/[0.02] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-10">
+                              <div className="p-8 rounded-[40px] bg-white/[0.02] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-10">
                                  <div className="flex items-center gap-6">
-                                    <div className="w-16 h-16 rounded-[28px] bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20"><ShieldCheck className="text-emerald-500 w-8 h-8" /></div>
+                                    <div className="w-16 h-16 rounded-[28px] bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0"><ShieldCheck className="text-emerald-500 w-8 h-8" /></div>
                                     <div>
                                        <h4 className="text-xl font-bold">Neural Verification Complete</h4>
                                        <p className="text-xs text-zinc-500 uppercase tracking-widest font-black mt-1">Ready for production injection.</p>
                                     </div>
                                  </div>
                                  <div className="flex gap-4 w-full md:w-auto">
-                                    <Button onClick={executeEnterpriseWorkflow} disabled={loading} className="h-16 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-sm font-black uppercase tracking-widest blue-glow">
+                                    <Button onClick={executeEnterpriseWorkflow} disabled={loading} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-[11px] font-black uppercase tracking-widest blue-glow">
                                        {loading ? <Loader2 className="animate-spin" /> : (directPublish ? 'Publish Live' : 'Push to Staging')}
                                     </Button>
-                                    <Button variant="outline" onClick={() => setOutput(null)} className="h-16 px-10 rounded-3xl border-white/10 bg-zinc-800 text-sm font-black uppercase tracking-widest">Discard Session</Button>
+                                    <Button variant="outline" onClick={() => setOutput(null)} className="h-14 px-8 rounded-2xl border-white/10 bg-zinc-800 text-[11px] font-black uppercase tracking-widest">Discard Session</Button>
                                  </div>
                               </div>
 
@@ -351,12 +359,15 @@ export default function AiMockStudioV8() {
                                         </div>
                                         <div className="grid gap-4">
                                           {section.questions.map((q, qIdx) => (
-                                            <div key={qIdx} className="p-8 rounded-[40px] bg-zinc-900/50 border border-white/5 hover:border-primary/20 transition-all group">
+                                            <div key={qIdx} className="p-8 rounded-[40px] bg-zinc-900/50 border border-white/5 hover:border-primary/20 transition-all group overflow-hidden">
                                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                                 <div className="space-y-4">
-                                                   <div className="flex items-center gap-3">
-                                                     <Badge variant="outline" className="border-blue-500/20 text-blue-500 text-[8px] font-black uppercase">EN Signal</Badge>
-                                                     <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest">Artifact #{qIdx+1}</span>
+                                                   <div className="flex items-center justify-between">
+                                                      <div className="flex items-center gap-3">
+                                                         <Badge variant="outline" className="border-blue-500/20 text-blue-500 text-[8px] font-black uppercase">EN Signal</Badge>
+                                                         <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest">Artifact #{qIdx+1}</span>
+                                                      </div>
+                                                      <span className="text-[8px] font-black uppercase text-zinc-600">{q.difficulty}</span>
                                                    </div>
                                                    <p className="text-lg font-bold leading-relaxed">{q.questionEnglish}</p>
                                                    <div className="grid grid-cols-1 gap-2 pt-4">
@@ -377,11 +388,6 @@ export default function AiMockStudioV8() {
                                                    </div>
                                                 </div>
                                               </div>
-                                              <div className="mt-8 p-6 rounded-3xl bg-white/[0.01] border border-white/5">
-                                                 <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-2">Rationalization Engine</p>
-                                                 <p className="text-xs text-zinc-400 leading-relaxed">{q.explanationEnglish}</p>
-                                                 <p className="text-[10px] italic text-zinc-500 mt-2">{q.explanationPunjabi || q.explanationHindi}</p>
-                                              </div>
                                             </div>
                                           ))}
                                         </div>
@@ -396,7 +402,7 @@ export default function AiMockStudioV8() {
                 </div>
              </ScrollArea>
 
-             <footer className="p-8 bg-[#020408] border-t border-white/5 z-50">
+             <footer className="p-6 bg-[#020408] border-t border-white/5 z-50">
                 <div className="max-w-4xl mx-auto">
                    <div className="relative group">
                       <div className="absolute inset-0 bg-primary/5 blur-[40px] group-focus-within:bg-primary/10 transition-all rounded-[40px]" />
@@ -405,27 +411,27 @@ export default function AiMockStudioV8() {
                         onChange={(e) => setPromptInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleLaunchSynthesis()}
                         placeholder="Instruct the AI OS to forge your simulation..."
-                        className="h-24 bg-zinc-900/80 border-white/10 rounded-[40px] px-12 text-xl font-bold relative z-10 focus:ring-primary/20 placeholder:text-zinc-700 shadow-2xl"
+                        className="h-20 bg-zinc-900/80 border-white/10 rounded-[32px] px-10 text-lg font-bold relative z-10 focus:ring-primary/20 placeholder:text-zinc-700 shadow-2xl"
                       />
-                      <div className="absolute right-8 top-5 z-20 flex gap-4">
+                      <div className="absolute right-6 top-3.5 z-20 flex gap-4">
                          {browserSupportsSpeechRecognition && (
-                           <button onClick={() => listening ? SpeechRecognition.stopListening() : SpeechRecognition.startListening()} className={cn("h-14 w-14 rounded-2xl flex items-center justify-center transition-all", listening ? "bg-red-500 text-white animate-pulse" : "text-zinc-600 hover:text-white hover:bg-white/5")}>
-                              {listening ? <MicOff size={24} /> : <Mic size={24} />}
+                           <button onClick={() => listening ? SpeechRecognition.stopListening() : SpeechRecognition.startListening()} className={cn("h-12 w-12 rounded-xl flex items-center justify-center transition-all", listening ? "bg-red-500 text-white animate-pulse" : "text-zinc-600 hover:text-white hover:bg-white/5")}>
+                              {listening ? <MicOff size={20} /> : <Mic size={20} />}
                            </button>
                          )}
-                         <Button onClick={handleLaunchSynthesis} disabled={!promptInput.trim() || loading} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 blue-glow font-black text-sm uppercase tracking-widest shadow-xl">
-                            {loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={24} />}
+                         <Button onClick={handleLaunchSynthesis} disabled={!promptInput.trim() || loading} className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 blue-glow font-black text-xs uppercase tracking-widest shadow-xl">
+                            {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={20} />}
                          </Button>
                       </div>
                    </div>
-                   <div className="mt-6 flex justify-center gap-10">
+                   <div className="mt-4 flex justify-center gap-8">
                       {[
                         { id: 'full', label: "Full Mock" },
                         { id: 'sectional', label: "Sectional Test" },
                         { id: 'subject', label: "Subject Quiz" },
                         { id: 'pyq', label: "PYQ Mode" }
                       ].map(m => (
-                        <button key={m.id} onClick={() => setMode(m.id)} className={cn("text-[10px] font-black uppercase tracking-widest transition-all hover:text-primary pb-1 border-b-2", mode === m.id ? "text-primary border-primary" : "text-zinc-600 border-transparent")}>
+                        <button key={m.id} onClick={() => setMode(m.id)} className={cn("text-[9px] font-black uppercase tracking-widest transition-all hover:text-primary pb-1 border-b-2", mode === m.id ? "text-primary border-primary" : "text-zinc-600 border-transparent")}>
                           {m.label}
                         </button>
                       ))}
@@ -434,8 +440,8 @@ export default function AiMockStudioV8() {
              </footer>
           </div>
 
-          {/* Config Calibration Panel */}
-          <aside className="w-[450px] border-l border-white/5 bg-zinc-950 flex flex-col shrink-0 relative overflow-hidden">
+          {/* Config Calibration Panel - Fixed Width */}
+          <aside className="w-[380px] border-l border-white/5 bg-zinc-950 flex flex-col shrink-0 relative overflow-hidden">
              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent" />
              <header className="p-8 border-b border-white/5 flex items-center justify-between bg-zinc-950/50">
                 <div className="flex items-center gap-3">
@@ -449,30 +455,56 @@ export default function AiMockStudioV8() {
              </header>
 
              <ScrollArea className="flex-1">
-                <div className="p-10 space-y-12">
+                <div className="p-8 space-y-10">
                    
                    <div className="space-y-4">
                       <label className="text-[10px] font-black uppercase text-zinc-700 tracking-[0.3em] px-2 flex items-center gap-2"><Globe size={12} className="text-primary" /> Institutional Board</label>
                       <Select value={exam} onValueChange={setExam}>
-                         <SelectTrigger className="h-16 bg-zinc-900/50 border-white/5 rounded-2xl font-black text-sm uppercase px-6 hover:bg-zinc-900 transition-all"><SelectValue /></SelectTrigger>
-                         <SelectContent className="bg-zinc-950 border-white/10 text-white max-h-[600px]">
+                         <SelectTrigger className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-black text-xs uppercase px-6"><SelectValue /></SelectTrigger>
+                         <SelectContent className="bg-zinc-950 border-white/10 text-white max-h-[500px]">
                             {Object.entries(EXAM_DATABASE).map(([board, exams]) => (
                               <SelectGroup key={board}>
-                                 <SelectLabel className="text-primary text-[10px] font-black uppercase tracking-widest bg-white/5 py-3 px-6">{board}</SelectLabel>
+                                 <SelectLabel className="text-primary text-[10px] font-black uppercase tracking-widest bg-white/5 py-2 px-6">{board}</SelectLabel>
                                  {exams.map(ex => (
-                                   <SelectItem key={ex.id} value={ex.id} className="font-bold py-4 px-6 focus:bg-primary/10">{ex.name}</SelectItem>
+                                   <SelectItem key={ex.id} value={ex.id} className="font-bold py-3 px-6 focus:bg-primary/10">{ex.name}</SelectItem>
                                  ))}
                               </SelectGroup>
                             ))}
                          </SelectContent>
                       </Select>
+                      {exam === 'other' && (
+                        <Input 
+                          placeholder="Enter Custom Exam Name..." 
+                          value={customExam}
+                          onChange={e => setCustomExam(e.target.value)}
+                          className="h-12 bg-zinc-900 border-white/5 rounded-xl px-4 font-bold text-xs"
+                        />
+                      )}
                    </div>
 
-                   <div className="grid grid-cols-2 gap-6">
+                   <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Primary Subject</label>
+                      <Select value={activeSubject} onValueChange={setActiveSubject}>
+                         <SelectTrigger className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-bold text-xs uppercase px-6"><SelectValue /></SelectTrigger>
+                         <SelectContent className="bg-zinc-950 text-white border-white/10">
+                            {SUBJECTS.map(s => <SelectItem key={s} value={s} className="font-bold py-3 px-6">{s}</SelectItem>)}
+                         </SelectContent>
+                      </Select>
+                      {activeSubject === 'Other' && (
+                        <Input 
+                          placeholder="Enter Custom Subject..." 
+                          value={customSubject}
+                          onChange={e => setCustomSubject(e.target.value)}
+                          className="h-12 bg-zinc-900 border-white/5 rounded-xl px-4 font-bold text-xs"
+                        />
+                      )}
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-4">
                          <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Questions Count</label>
                          <Select value={count} onValueChange={setCount}>
-                            <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs uppercase px-5"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-[10px] uppercase px-4"><SelectValue /></SelectTrigger>
                             <SelectContent className="bg-zinc-950 text-white">
                                {[10, 20, 50, 75, 100, 120, 150].map(c => <SelectItem key={c} value={c.toString()}>{c} Artifacts</SelectItem>)}
                                <SelectItem value="custom">Custom Value</SelectItem>
@@ -480,11 +512,11 @@ export default function AiMockStudioV8() {
                          </Select>
                       </div>
                       <div className="space-y-4">
-                         <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Negative Coefficient</label>
+                         <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Negative Penalty</label>
                          <Select value={negativeMarking} onValueChange={setNegativeMarking}>
-                            <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs uppercase px-5 text-red-500"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-[10px] uppercase px-4 text-red-500"><SelectValue /></SelectTrigger>
                             <SelectContent className="bg-zinc-950 text-white">
-                               {["0", "0.25", "0.50", "1.0"].map(m => <SelectItem key={m} value={m}>-{m} Penalty</SelectItem>)}
+                               {["0", "0.25", "0.50", "1.0"].map(m => <SelectItem key={m} value={m}>-{m} Marks</SelectItem>)}
                             </SelectContent>
                          </Select>
                       </div>
@@ -496,20 +528,18 @@ export default function AiMockStudioV8() {
                      </div>
                    )}
 
-                   <div className="space-y-6">
-                      <div className="space-y-4">
-                         <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Linguistic Fidelity</label>
-                         <Select value={language} onValueChange={setLanguage}>
-                            <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs uppercase px-5"><SelectValue /></SelectTrigger>
-                            <SelectContent className="bg-zinc-950 text-white">
-                               <SelectItem value="en">English Only</SelectItem>
-                               <SelectItem value="pa">Punjabi Only</SelectItem>
-                               <SelectItem value="hi">Hindi Only</SelectItem>
-                               <SelectItem value="en_pa">Bilingual (EN + PA)</SelectItem>
-                               <SelectItem value="en_hi">Bilingual (EN + HI)</SelectItem>
-                            </SelectContent>
-                         </Select>
-                      </div>
+                   <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Linguistic Fidelity</label>
+                      <Select value={language} onValueChange={setLanguage}>
+                         <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold text-xs uppercase px-6"><SelectValue /></SelectTrigger>
+                         <SelectContent className="bg-zinc-950 text-white border-white/10">
+                            <SelectItem value="en">English Only</SelectItem>
+                            <SelectItem value="pa">Punjabi Only</SelectItem>
+                            <SelectItem value="hi">Hindi Only</SelectItem>
+                            <SelectItem value="en_pa">Bilingual (EN + PA)</SelectItem>
+                            <SelectItem value="en_hi">Bilingual (EN + HI)</SelectItem>
+                         </SelectContent>
+                      </Select>
                    </div>
 
                    <AnimatePresence>
@@ -523,17 +553,17 @@ export default function AiMockStudioV8() {
                           <div className="space-y-4">
                              <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Pro Parameters</label>
                              <div className="grid gap-3">
-                                <div className="p-5 rounded-3xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
+                                <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
                                    <div className="flex items-center gap-3">
                                       <History size={16} className="text-orange-500" />
-                                      <span className="text-[11px] font-bold">Strict PYQ Only</span>
+                                      <span className="text-[10px] font-bold">Strict PYQ Only</span>
                                    </div>
                                    <Switch checked={pyqOnly} onCheckedChange={setPyqOnly} />
                                 </div>
-                                <div className="p-5 rounded-3xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
+                                <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
                                    <div className="flex items-center gap-3">
                                       <BrainCircuit size={16} className="text-purple-500" />
-                                      <span className="text-[11px] font-bold">AI Smart Mix</span>
+                                      <span className="text-[10px] font-bold">AI Smart Mix</span>
                                    </div>
                                    <Switch checked={smartMix} onCheckedChange={setSmartMix} />
                                 </div>
@@ -544,26 +574,24 @@ export default function AiMockStudioV8() {
                              <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Custom Duration (Min)</label>
                              <Input 
                                type="number" 
-                               placeholder="Auto (e.g. 60, 120)" 
+                               placeholder="Auto Timing" 
                                value={manualTime} 
                                onChange={e => setManualTime(e.target.value)} 
-                               className="h-14 bg-zinc-900 border-white/5 rounded-2xl px-6 font-bold"
+                               className="h-12 bg-zinc-900 border-white/5 rounded-xl px-4 font-bold text-xs"
                              />
                           </div>
 
                           <div className="space-y-4">
-                             <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Difficulty Ratio</label>
-                             <div className="p-6 rounded-3xl bg-zinc-900/50 border border-white/5 space-y-4">
-                                <Select value={difficulty} onValueChange={setDifficulty}>
-                                   <SelectTrigger className="h-10 bg-zinc-800 border-none text-[10px] font-bold"><SelectValue /></SelectTrigger>
-                                   <SelectContent className="bg-zinc-950 text-white">
-                                      <SelectItem value="easy">100% Easy</SelectItem>
-                                      <SelectItem value="balanced">20/50/30 (Balanced)</SelectItem>
-                                      <SelectItem value="hard">100% Hard</SelectItem>
-                                      <SelectItem value="adaptive">AI Adaptive</SelectItem>
-                                   </SelectContent>
-                                </Select>
-                             </div>
+                             <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Difficulty Balancing</label>
+                             <Select value={difficulty} onValueChange={setDifficulty}>
+                                <SelectTrigger className="h-12 bg-zinc-900 border-white/5 rounded-xl text-[10px] font-bold uppercase"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-zinc-950 text-white">
+                                   <SelectItem value="easy">100% Easy</SelectItem>
+                                   <SelectItem value="balanced">20/50/30 (Balanced)</SelectItem>
+                                   <SelectItem value="hard">100% Hard</SelectItem>
+                                   <SelectItem value="adaptive">AI Adaptive</SelectItem>
+                                </SelectContent>
+                             </Select>
                           </div>
                        </motion.div>
                      )}
@@ -572,33 +600,33 @@ export default function AiMockStudioV8() {
                    <div className="space-y-4">
                       <p className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Workflow Controls</p>
                       <div className="grid gap-3">
-                         <div className="p-5 rounded-3xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
+                         <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                <Rocket size={16} className="text-emerald-500" />
-                               <span className="text-[11px] font-bold">Direct Publish</span>
+                               <span className="text-[10px] font-bold">Direct Publish</span>
                             </div>
                             <Switch checked={directPublish} onCheckedChange={setDirectPublish} />
                          </div>
-                         <div className="p-5 rounded-3xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
+                         <div className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                <Database size={16} className="text-primary" />
-                               <span className="text-[11px] font-bold">Sync to Atomic Bank</span>
+                               <span className="text-[10px] font-bold">Sync to Atomic Bank</span>
                             </div>
                             <Switch checked={saveToBank} onCheckedChange={setSaveToBank} />
                          </div>
                       </div>
                    </div>
 
-                   <div className="p-8 rounded-[40px] bg-primary/5 border border-primary/20 space-y-4 shadow-xl">
-                      <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> <span className="text-[10px] font-black text-primary uppercase tracking-widest">Syllabus Engine Active</span></div>
-                      <p className="text-[11px] text-zinc-500 leading-relaxed italic">
-                        "OS v8.5 is now indexed with latest PSSSB Patterns. AI will auto-calculate Part A (Qualifying) vs Part B (Scoring) distribution."
+                   <div className="p-6 rounded-[32px] bg-primary/5 border border-primary/20 space-y-4 shadow-xl">
+                      <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> <span className="text-[9px] font-black text-primary uppercase tracking-widest">Syllabus Engine Active</span></div>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed italic">
+                        "OS v8.5 is now indexed with latest Punjab Patterns. AI will auto-calculate subject distribution based on board logic."
                       </p>
                    </div>
                 </div>
              </ScrollArea>
              
-             <footer className="p-8 border-t border-white/5 bg-zinc-950">
+             <footer className="p-6 border-t border-white/5 bg-zinc-950">
                 <Button variant="ghost" onClick={() => setOutput(null)} className="w-full text-zinc-700 hover:text-red-500 text-[10px] font-black uppercase tracking-widest">Flush Synthesis Memory</Button>
              </footer>
           </aside>

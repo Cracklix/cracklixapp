@@ -74,6 +74,7 @@ export default function SimulationFactoryPage() {
       }
       
       toast({ title: "Sync Complete", description: `Operation ${action} verified.` });
+      // Force immediate reload to ensure delete reflects in UI
       loadMocks();
     } catch (e: any) {
       toast({ title: "Action Failed", description: e.message, variant: "destructive" });
@@ -89,9 +90,9 @@ export default function SimulationFactoryPage() {
 
   return (
     <AdminProtect>
-      <div className="flex bg-[#05070a] min-h-screen text-white">
+      <div className="flex bg-[#05070a] min-h-screen text-white overflow-x-hidden">
         <AdminSidebar />
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto no-scrollbar">
+        <main className="flex-1 p-6 md:p-10 overflow-y-auto no-scrollbar max-w-full">
           <div className="max-w-[1600px] mx-auto space-y-10">
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -146,16 +147,16 @@ export default function SimulationFactoryPage() {
                  </div>
               </div>
 
-              <div className="bg-zinc-900/30 border border-white/5 rounded-[48px] overflow-hidden shadow-2xl">
-                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+              <div className="bg-zinc-900/30 border border-white/5 rounded-[40px] overflow-hidden shadow-2xl">
+                 <div className="w-full">
+                    <table className="w-full text-left table-fixed">
                        <thead className="bg-zinc-900/60 text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 border-b border-white/5">
                           <tr>
-                             <th className="px-12 py-8">Simulation Identity</th>
-                             <th className="px-12 py-8">Board Profile</th>
-                             <th className="px-12 py-8 text-center">Artifact Count</th>
-                             <th className="px-12 py-8">Status Signals</th>
-                             <th className="px-12 py-8 text-right">Operations</th>
+                             <th className="px-10 py-8 w-[40%]">Simulation Identity</th>
+                             <th className="px-10 py-8 w-[20%]">Board Profile</th>
+                             <th className="px-10 py-8 text-center w-[15%]">Artifacts</th>
+                             <th className="px-10 py-8 w-[15%]">Status</th>
+                             <th className="px-10 py-8 text-right w-[10%]">Actions</th>
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-white/5">
@@ -164,14 +165,14 @@ export default function SimulationFactoryPage() {
                           ) : filtered.length > 0 ? (
                             filtered.map(m => (
                             <tr key={m.id} className="hover:bg-white/[0.01] transition-colors group">
-                               <td className="px-12 py-8">
-                                  <div className="flex items-center gap-6">
-                                     <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center border border-white/5 shadow-lg relative">
+                               <td className="px-10 py-8">
+                                  <div className="flex items-center gap-6 overflow-hidden">
+                                     <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center border border-white/5 shadow-lg relative shrink-0">
                                         <BookOpen className="text-zinc-500 w-5 h-5 group-hover:text-primary transition-colors" />
                                         {m.aiGenerated && <Sparkles size={10} className="absolute -top-1 -right-1 text-primary fill-current" />}
                                      </div>
-                                     <div>
-                                        <p className="font-bold text-zinc-100 text-base leading-none mb-2">{m.title}</p>
+                                     <div className="min-w-0">
+                                        <p className="font-bold text-zinc-100 text-base leading-none mb-2 truncate">{m.title}</p>
                                         <div className="flex items-center gap-3">
                                            <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest">ID: {m.id.substring(0,8)}</span>
                                            <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest">•</span>
@@ -180,15 +181,15 @@ export default function SimulationFactoryPage() {
                                      </div>
                                   </div>
                                </td>
-                               <td className="px-12 py-8">
+                               <td className="px-10 py-8">
                                   <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-3 h-5 mb-2">{m.category || 'FULL MOCK'}</Badge>
-                                  <p className="text-xs font-black text-white uppercase tracking-tighter">{m.exam}</p>
+                                  <p className="text-xs font-black text-white uppercase tracking-tighter truncate">{m.exam}</p>
                                </td>
-                               <td className="px-12 py-8 text-center">
+                               <td className="px-10 py-8 text-center">
                                   <p className="text-sm font-black text-white">{m.totalQuestions || 0} Qs</p>
                                   <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{m.attemptCount || 0} Attempts</p>
                                </td>
-                               <td className="px-12 py-8">
+                               <td className="px-10 py-8">
                                   <div className="flex flex-col gap-2">
                                      <Badge className={cn("text-[8px] font-black uppercase px-3 py-1 rounded-lg border-none w-fit", m.accessType === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/20 text-primary')}>
                                         {m.accessType === 'free' ? 'FREE HUB' : 'PASS+ ONLY'}
@@ -198,30 +199,16 @@ export default function SimulationFactoryPage() {
                                      </Badge>
                                   </div>
                                </td>
-                               <td className="px-12 py-8 text-right">
-                                  <div className="flex justify-end items-center gap-3">
-                                     <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} className="h-10 px-6 rounded-xl bg-zinc-800 border border-white/10 hover:bg-white/5 text-[10px] font-black uppercase tracking-widest transition-all">
-                                        Calibrate
-                                     </Button>
-                                     
-                                     <div className="h-8 w-px bg-white/5 mx-2" />
-
-                                     <div className="flex items-center gap-1.5">
-                                       <Button onClick={() => handleAction(m.id, 'duplicate')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-blue-600/10 text-zinc-600 hover:text-blue-500" title="Clone Signal"><Copy size={16} /></Button>
-                                       
-                                       {m.accessType === 'free' ? (
-                                          <Button onClick={() => handleAction(m.id, 'lock')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 text-zinc-600 hover:text-primary" title="Restrict to PASS+"><Lock size={16} /></Button>
-                                       ) : (
-                                          <Button onClick={() => handleAction(m.id, 'unlock')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-emerald-500/10 text-zinc-600 hover:text-emerald-500" title="Unlock for All"><Unlock size={16} /></Button>
-                                       )}
-
-                                       {m.status === 'draft' ? (
-                                         <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-emerald-600/10 text-zinc-600 hover:text-emerald-500" title="Mark Live"><PlayCircle size={16} /></Button>
-                                       ) : (
-                                         <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-orange-500/10 text-zinc-600 hover:text-orange-500" title="Revert to Staging"><RefreshCw size={16} /></Button>
-                                       )}
-                                       <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-red-500/10 text-zinc-600 hover:text-red-500" title="Purge Artifact"><Trash2 size={16} /></Button>
-                                     </div>
+                               <td className="px-10 py-8 text-right">
+                                  <div className="flex justify-end items-center gap-2">
+                                     <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 text-zinc-500 hover:text-primary" title="Calibrate"><Edit3 size={16} /></Button>
+                                     <Button onClick={() => handleAction(m.id, 'duplicate')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-blue-600/10 text-zinc-500 hover:text-blue-500" title="Clone"><Copy size={16} /></Button>
+                                     {m.status === 'draft' ? (
+                                       <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-emerald-600/10 text-zinc-500 hover:text-emerald-500" title="Publish"><PlayCircle size={16} /></Button>
+                                     ) : (
+                                       <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-orange-500/10 text-zinc-500 hover:text-orange-500" title="Unpublish"><RefreshCw size={16} /></Button>
+                                     )}
+                                     <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-red-500/10 text-zinc-500 hover:text-red-500" title="Delete"><Trash2 size={16} /></Button>
                                   </div>
                                </td>
                             </tr>
@@ -245,4 +232,3 @@ export default function SimulationFactoryPage() {
     </AdminProtect>
   );
 }
-

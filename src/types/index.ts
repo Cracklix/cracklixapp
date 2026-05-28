@@ -6,10 +6,25 @@
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
 
 export type Subject = 
-  | 'Punjab GK' | 'Quant' | 'Reasoning' | 'English' | 'Punjabi' | 'Computer' | 'Current Affairs' | 'Science' | 'History' | 'Polity' | 'Geography';
+  | 'General Knowledge' 
+  | 'Current Affairs' 
+  | 'Punjab History' 
+  | 'Punjabi' 
+  | 'English' 
+  | 'Hindi' 
+  | 'Reasoning' 
+  | 'Quant' 
+  | 'ICT' 
+  | 'Science' 
+  | 'EVS' 
+  | 'Child Pedagogy' 
+  | 'Civil Engineering' 
+  | 'Electrical Engineering' 
+  | 'Mechanical' 
+  | 'Other';
 
 export const SUBJECTS: Subject[] = [
-  'Punjab GK', 'Quant', 'Reasoning', 'English', 'Punjabi', 'Computer', 'Current Affairs', 'Science', 'History', 'Polity', 'Geography'
+  'General Knowledge', 'Current Affairs', 'Punjab History', 'Punjabi', 'English', 'Hindi', 'Reasoning', 'Quant', 'ICT', 'Science', 'EVS', 'Child Pedagogy', 'Civil Engineering', 'Electrical Engineering', 'Mechanical', 'Other'
 ];
 
 export interface UserProfile {
