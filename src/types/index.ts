@@ -1,6 +1,6 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v10.0
+ * Production-grade Architecture Layer v15.0 (Testbook Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -48,11 +48,10 @@ export interface Question {
   topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
   bloomLevel?: 'knowledge' | 'understanding' | 'application' | 'analysis';
-  exam?: string;
-  year?: number;
+  examId?: string;
+  testId?: string;
   marks: number;
   negativeMarks: number;
-  estimatedTimeSeconds?: number;
   status: 'draft' | 'published';
   usageCount: number;
   qualityScore?: number;
@@ -61,12 +60,39 @@ export interface Question {
   order?: number;
 }
 
+export interface TestSeries {
+  id: string;
+  title: string;
+  category: string; // PSSSB, Punjab Police, PPSC
+  description: string;
+  thumbnail: string;
+  totalTests: number;
+  freeTests: number;
+  languages: string[]; // ["EN", "PA"]
+  price?: number;
+  isActive: boolean;
+  createdAt: number;
+}
+
+export interface ExamSubject {
+  id: string;
+  seriesId: string;
+  name: string;
+  icon: string;
+  totalTests: number;
+  freeTests: number;
+  difficulty: string;
+  weightage?: number;
+}
+
 export type MockStatus = 'draft' | 'published' | 'live' | 'archived';
 export type MockAccessType = 'free' | 'pass_plus' | 'premium';
 export type MockCategory = 'full' | 'sectional' | 'subject' | 'chapter' | 'quiz' | 'live_test' | 'pyq' | 'marathon' | 'revision';
 
 export interface MockTest {
   id: string;
+  seriesId?: string;
+  subjectId?: string;
   title: string;
   exam: string;
   category: MockCategory;
@@ -79,12 +105,9 @@ export interface MockTest {
   updatedAt: number;
   publishedAt?: number | null;
   attemptCount?: number;
-  avgScore?: number;
   questionIds?: string[];
-  instructions?: string[];
   aiGenerated?: boolean;
-  syllabusCoverage?: number;
-  languageMode?: string;
+  languageMode?: 'en' | 'pa' | 'bilingual';
 }
 
 export interface ExamAttempt {
