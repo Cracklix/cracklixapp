@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -54,7 +53,7 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
 
 export async function updateMock(id: string, data: Partial<MockTest>) {
   const ref = doc(db, 'mocks', id);
-  updateDoc(ref, { ...data, updatedAt: Date.now() }).catch(() => {});
+  return updateDoc(ref, { ...data, updatedAt: Date.now() });
 }
 
 export async function duplicateMock(id: string) {
@@ -79,18 +78,18 @@ export async function deleteMock(mockId: string) {
 // 2. ARTIFACT LINKING ENGINE
 export async function linkQuestionToMock(mockId: string, questionId: string) {
   const ref = doc(db, 'mocks', mockId);
-  updateDoc(ref, {
+  return updateDoc(ref, {
     questionIds: arrayUnion(questionId),
     totalQuestions: increment(1)
-  }).catch(() => {});
+  });
 }
 
 export async function unlinkQuestionFromMock(mockId: string, questionId: string) {
   const ref = doc(db, 'mocks', mockId);
-  updateDoc(ref, {
+  return updateDoc(ref, {
     questionIds: arrayRemove(questionId),
     totalQuestions: increment(-1)
-  }).catch(() => {});
+  });
 }
 
 // 3. PRODUCTION WORKFLOWS
@@ -119,11 +118,11 @@ export async function publishMock(mockId: string) {
 }
 
 export async function setMockLive(mockId: string, isLive: boolean) {
-  const ref = doc(db, 'mocks', mockId);
-  updateDoc(ref, { 
+  const ref = doc(db, 'mocks', id);
+  return updateDoc(ref, { 
     status: isLive ? 'live' : 'published',
     liveAt: isLive ? Date.now() : null
-  }).catch(() => {});
+  });
 }
 
 // 4. CBT ANALYTICS RETRIEVAL
@@ -143,9 +142,9 @@ export async function getMockAnalytics(mockId: string) {
     
     return {
       totalAttempts: snap.size,
-      avgScore: (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1),
-      avgAccuracy: Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length),
-      highScore: Math.max(...scores)
+      avgScore: (scores.reduce((a, b) => a + b, 0) / (scores.length || 1)).toFixed(1),
+      avgAccuracy: Math.round(accuracies.reduce((a, b) => a + b, 0) / (accuracies.length || 1)),
+      highScore: Math.max(0, ...scores)
     };
   } catch (e) {
     return { totalAttempts: 0, avgScore: 0, avgAccuracy: 0, highScore: 0 };
@@ -184,7 +183,7 @@ export async function checkMockAccess(userId: string, mock: MockTest): Promise<{
   if (mock.accessType === 'free') return { allowed: true };
   
   const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
-  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().endDate < Date.now()) {
+  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().expiresAt < Date.now()) {
     return { 
       allowed: false, 
       reason: "Membership required for this CBT session. Upgrade to PASS+." 
@@ -217,7 +216,7 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
     deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Terminal'
   };
 
-  setDoc(attemptRef, payload, { merge: true }).catch(() => {});
+  await setDoc(attemptRef, payload, { merge: true });
   return attemptId;
 }
 
@@ -236,12 +235,12 @@ export async function getAttemptState(attemptId: string) {
 
 export async function saveQuestionState(attemptId: string, qIndex: number, data: AttemptAnswer) {
   const answerRef = doc(db, 'attempts', attemptId, 'answers', qIndex.toString());
-  setDoc(answerRef, { ...data, lastSavedAt: Date.now() }, { merge: true }).catch(() => {});
+  return setDoc(answerRef, { ...data, lastSavedAt: Date.now() }, { merge: true });
 }
 
 export async function updateAttemptActivity(attemptId: string, updates: any) {
   const ref = doc(db, 'attempts', attemptId);
-  updateDoc(ref, { ...updates, lastActiveAt: Date.now() }).catch(() => {});
+  return updateDoc(ref, { ...updates, lastActiveAt: Date.now() });
 }
 
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any, xpGain: number) {

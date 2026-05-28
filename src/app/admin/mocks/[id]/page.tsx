@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, use } from "react";
@@ -427,4 +426,3 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     </AdminProtect>
   );
 }
-
