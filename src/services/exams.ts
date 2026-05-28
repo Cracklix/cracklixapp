@@ -1,32 +1,14 @@
-
 'use client';
 
 import { collection, getDocs, query, orderBy, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-
-export interface ExamCategory {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string;
-  category: string; // 'Punjab'
-  department: string;
-  totalMocks: number;
-  activeStudents: number;
-  premium: boolean;
-  negativeMarking?: number;
-  duration?: number;
-  totalMarks?: number;
-  subjects?: string[];
-  createdAt: number;
-}
+import { Exam } from '@/types';
 
 /**
  * Strictly focused on Punjab Government Exams.
  */
-export async function getAllExams() {
+export async function getAllExams(): Promise<Exam[]> {
   const examsRef = collection(db, 'exams');
-  // Filters to ensure only Punjab context exams are fetched
   const q = query(
     examsRef, 
     where('category', '==', 'Punjab'), 
@@ -38,17 +20,13 @@ export async function getAllExams() {
   return snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as ExamCategory[];
+  })) as Exam[];
 }
 
-export async function getExamBySlug(slug: string): Promise<ExamCategory | null> {
+export async function getExamBySlug(slug: string): Promise<Exam | null> {
   const q = query(collection(db, 'exams'), where('slug', '==', slug), limit(1));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() } as ExamCategory;
-}
-
-export async function getPunjabExams() {
-  return getAllExams();
+  return { id: doc.id, ...doc.data() } as Exam;
 }

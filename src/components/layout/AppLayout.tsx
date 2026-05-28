@@ -1,10 +1,10 @@
-
 "use client";
 
 import React from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n } from '@/app/lib/i18n-context';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUIStore } from '@/store/ui-store';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -50,9 +50,9 @@ const SidebarItem = ({ href, icon: Icon, label, active }: { href: string, icon: 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth();
   const { t } = useI18n();
+  const { sidebarOpen, toggleSidebar } = useUIStore();
   const router = useRouter();
   const pathname = usePathname();
-  const [isSidebarOpen, setSidebarOpen] = React.useState(true);
 
   React.useEffect(() => {
     if (!loading && !user) {
@@ -91,10 +91,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: isSidebarOpen ? 300 : 0 }}
+        animate={{ width: sidebarOpen ? 300 : 0 }}
         className={cn(
           "hidden md:flex bg-zinc-950/50 backdrop-blur-3xl border-r border-white/5 flex-col transition-all duration-500",
-          !isSidebarOpen && "border-none overflow-hidden"
+          !sidebarOpen && "border-none overflow-hidden"
         )}
       >
         <div className="p-8">
@@ -102,7 +102,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center shrink-0 blue-glow">
               <Zap className="text-white w-6 h-6 fill-current" />
             </div>
-            <span className={cn("font-headline text-2xl font-black tracking-tighter whitespace-nowrap", !isSidebarOpen && "opacity-0")}>CRACKLIX</span>
+            <span className={cn("font-headline text-2xl font-black tracking-tighter whitespace-nowrap", !sidebarOpen && "opacity-0")}>CRACKLIX</span>
           </Link>
 
           <nav className="space-y-1.5 overflow-y-auto no-scrollbar max-h-[550px]">
@@ -117,7 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="mt-auto p-8 space-y-6">
-          <div className={cn("p-6 rounded-[28px] bg-white/[0.02] border border-white/5 space-y-4", !isSidebarOpen && "opacity-0")}>
+          <div className={cn("p-6 rounded-[28px] bg-white/[0.02] border border-white/5 space-y-4", !sidebarOpen && "opacity-0")}>
             <div className="flex justify-between items-center text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em]">
               <span>Coins: {profile?.coins || 0}</span>
               <span className="text-primary">{profile?.xp || 0} XP</span>
@@ -147,7 +147,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 relative">
         <header className="h-24 border-b border-white/5 flex items-center justify-between px-8 md:px-12 bg-[#050816]/80 backdrop-blur-xl z-20">
           <div className="flex items-center gap-6">
-            <Button variant="ghost" size="icon" className="md:flex hidden rounded-xl hover:bg-white/5" onClick={() => setSidebarOpen(!isSidebarOpen)}>
+            <Button variant="ghost" size="icon" className="md:flex hidden rounded-xl hover:bg-white/5" onClick={toggleSidebar}>
               <Menu className="w-5 h-5 text-zinc-400" />
             </Button>
             
@@ -208,7 +208,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </motion.div>
             </AnimatePresence>
           </div>
-          {/* Padding for mobile bottom nav */}
           <div className="h-24 md:hidden" />
         </main>
       </div>
