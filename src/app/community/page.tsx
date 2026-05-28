@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -11,26 +10,25 @@ import {
   subscribeToMessages, 
   sendMessage, 
   uploadCommunityMedia,
-  getRooms
+  deleteMessage
 } from '@/services/community';
 import { 
   MessageSquare, 
   Send, 
   FileText, 
   Search, 
-  CheckCircle2,
   Sparkles,
-  Bot,
   MoreVertical,
   Paperclip,
   Image as ImageIcon,
-  ShieldCheck,
   Zap,
-  Plus,
-  ShieldAlert,
   Download,
   Loader2,
-  X
+  Trash2,
+  Users,
+  Target,
+  Flame,
+  Volume2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,34 +38,36 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const ROOM_PRESETS: CommunityRoom[] = [
-  { id: 'general', title: 'General Arena', slug: 'general', category: 'General', description: 'Punjab-wide aspirant discussions', icon: 'Sparkles', memberCount: 1240, roomType: 'general' },
-  { id: 'police', title: 'Police Recruits', slug: 'police', category: 'Exam', description: 'SI & Constable focus group', icon: 'ShieldCheck', memberCount: 850, roomType: 'exam' },
-  { id: 'ppsc', title: 'PPSC PCS Elite', slug: 'ppsc', category: 'Exam', description: 'Civil Services strategy room', icon: 'CheckCircle2', memberCount: 420, roomType: 'exam' },
-  { id: 'psssb', title: 'PSSSB Command', slug: 'psssb', category: 'Exam', description: 'Clerk, Patwari & VDO preparation', icon: 'FileText', memberCount: 2100, roomType: 'exam' },
-  { id: 'news', title: 'Daily News Pulse', slug: 'news', category: 'Updates', description: 'Analysis & PDF sharing', icon: 'Zap', memberCount: 3500, roomType: 'general' },
+const GLOBAL_ROOMS: CommunityRoom[] = [
+  { id: 'general', title: 'General Arena', slug: 'general', category: 'Global', description: 'Main hub for all Punjab aspirants', icon: 'Sparkles', memberCount: 12400 },
+  { id: 'doubts', title: 'Doubt Hub', slug: 'doubts', category: 'Academic', description: 'Ask questions, get expert solutions', icon: 'Target', memberCount: 8500 },
+  { id: 'notes', title: 'Notes Exchange', slug: 'notes', category: 'Resources', description: 'Share and download study materials', icon: 'FileText', memberCount: 5200 },
+  { id: 'announcements', title: 'Announcements', slug: 'announcements', category: 'Official', description: 'Board updates and exam notices', icon: 'Zap', memberCount: 15000 },
+  { id: 'motivation', title: 'Motivation', slug: 'motivation', category: 'Mindset', description: 'Stay focused on the PPSC/PSSSB goal', icon: 'Flame', memberCount: 3100 },
+  { id: 'off-topic', title: 'Off Topic', slug: 'off-topic', category: 'Social', description: 'Unwind and chat with fellow students', icon: 'Volume2', memberCount: 4200 },
 ];
-
-const FOUNDER_EMAIL = 'deepgrewal2600@gmail.com';
 
 export default function CommunityPage() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [activeRoom, setActiveRoom] = useState(ROOM_PRESETS[0]);
+  const [activeRoom, setActiveRoom] = useState(GLOBAL_ROOMS[0]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // STABLE REALTIME LISTENER
   useEffect(() => {
     setLoading(true);
     const unsub = subscribeToMessages(activeRoom.id, (msgs) => {
       setMessages(msgs);
       setLoading(false);
-      // Auto-scroll logic
+      // Auto-scroll to bottom
       setTimeout(() => {
         const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) viewport.scrollTop = viewport.scrollHeight;
@@ -92,59 +92,72 @@ export default function CommunityPage() {
         senderName: profile?.name || 'Aspirant',
         text,
         messageType: 'text',
-        role: profile?.role || 'student'
       });
     } catch (e) {
-      toast({ title: "Signal Lost", variant: "destructive" });
+      toast({ title: "Failed to send message", variant: "destructive" });
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'pdf') => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    if (type === 'pdf' && file.size > 15 * 1024 * 1024) {
+      toast({ title: "File too large", description: "PDF limit is 15MB.", variant: "destructive" });
+      return;
+    }
+    if (type === 'image' && file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image too large", description: "Image limit is 5MB.", variant: "destructive" });
+      return;
+    }
+
     setUploading(true);
     try {
-      const { url, name, size } = await uploadCommunityMedia(file, activeRoom.id);
+      const { url, name, size } = await uploadCommunityMedia(file, type);
       await sendMessage({
         roomId: activeRoom.id,
         senderId: user.uid,
         senderEmail: user.email!,
         senderName: profile?.name || 'Aspirant',
-        text: `Attached ${file.type.includes('image') ? 'Image' : 'PDF'}: ${name}`,
-        messageType: file.type.includes('image') ? 'image' : 'pdf',
+        text: `Attached ${type.toUpperCase()}: ${name}`,
+        messageType: type,
         mediaUrl: url,
         fileName: name,
-        fileSize: size,
-        role: profile?.role || 'student'
+        fileSize: size
       });
       toast({ title: "Artifact Uploaded" });
     } catch (err) {
-      toast({ title: "Upload Failed", variant: "destructive" });
+      toast({ title: "Upload failed", variant: "destructive" });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleMessageAction = async (id: string) => {
+    if (confirm("Delete this message?")) {
+      await deleteMessage(id);
     }
   };
 
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto h-[calc(100vh-160px)] flex gap-6 pb-6">
-        {/* Sidebar Channels */}
+        {/* Navigation Panel */}
         <aside className="w-80 hidden lg:flex flex-col gap-6">
-           <div className="bg-zinc-900/50 border border-white/5 rounded-[40px] flex-1 overflow-hidden flex flex-col">
+           <div className="bg-zinc-900/50 border border-white/5 rounded-[40px] flex-1 overflow-hidden flex flex-col shadow-2xl">
               <div className="p-8 border-b border-white/5">
                 <div className="flex items-center justify-between mb-2">
-                   <h3 className="text-xs font-black uppercase text-zinc-500 tracking-[0.2em]">Exam Rooms</h3>
-                   <Button variant="ghost" size="icon" className="h-6 w-6 rounded-lg text-zinc-600 hover:text-white"><Plus size={14} /></Button>
+                   <h3 className="text-xs font-black uppercase text-zinc-500 tracking-[0.2em]">Community Hub</h3>
+                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
                 <div className="relative mt-4">
                    <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-600" />
-                   <Input placeholder="Filter channels..." className="h-9 bg-black/20 border-white/5 pl-9 rounded-xl text-[10px] uppercase font-black tracking-widest" />
+                   <Input placeholder="Search messages..." className="h-9 bg-black/20 border-white/5 pl-9 rounded-xl text-[10px] uppercase font-black" />
                 </div>
               </div>
               <ScrollArea className="flex-1 p-4">
                  <div className="space-y-1">
-                    {ROOM_PRESETS.map(room => (
+                    {GLOBAL_ROOMS.map(room => (
                       <button 
                         key={room.id} 
                         onClick={() => setActiveRoom(room)}
@@ -152,7 +165,7 @@ export default function CommunityPage() {
                           "w-full text-left p-4 rounded-2xl transition-all flex items-center gap-3.5 group",
                           activeRoom.id === room.id 
                             ? "bg-primary text-white blue-glow shadow-xl" 
-                            : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300"
+                            : "text-zinc-500 hover:bg-white/5"
                         )}
                       >
                          <div className={cn(
@@ -160,17 +173,18 @@ export default function CommunityPage() {
                            activeRoom.id === room.id ? "bg-white/20" : "bg-zinc-800"
                          )}>
                             {room.id === 'general' && <Sparkles size={16} />}
-                            {room.id === 'police' && <ShieldCheck size={16} />}
-                            {room.id === 'ppsc' && <CheckCircle2 size={16} />}
-                            {room.id === 'psssb' && <FileText size={16} />}
-                            {room.id === 'news' && <Zap size={16} />}
+                            {room.id === 'doubts' && <Target size={16} />}
+                            {room.id === 'notes' && <FileText size={16} />}
+                            {room.id === 'announcements' && <Zap size={16} />}
+                            {room.id === 'motivation' && <Flame size={16} />}
+                            {room.id === 'off-topic' && <Volume2 size={16} />}
                          </div>
                          <div className="overflow-hidden flex-1">
                             <p className="font-bold text-xs truncate">{room.title}</p>
                             <p className={cn(
-                             "text-[9px] truncate font-black uppercase tracking-tighter",
+                             "text-[9px] font-black uppercase tracking-tighter",
                              activeRoom.id === room.id ? "text-white/60" : "text-zinc-700"
-                            )}>{room.memberCount.toLocaleString()} Aspirants</p>
+                            )}>{room.memberCount.toLocaleString()} Members</p>
                          </div>
                       </button>
                     ))}
@@ -180,8 +194,8 @@ export default function CommunityPage() {
         </aside>
 
         {/* Chat Arena */}
-        <main className="flex-1 bg-zinc-900/30 border border-white/5 rounded-[48px] flex flex-col overflow-hidden relative shadow-2xl">
-           <header className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between bg-zinc-950/20 backdrop-blur-xl z-10">
+        <main className="flex-1 bg-zinc-950 border border-white/5 rounded-[48px] flex flex-col overflow-hidden relative shadow-2xl">
+           <header className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between bg-zinc-900/20 backdrop-blur-xl z-10">
               <div className="flex items-center gap-4">
                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shadow-lg border border-primary/20">
                     <MessageSquare className="text-primary w-6 h-6" />
@@ -191,8 +205,11 @@ export default function CommunityPage() {
                     <p className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em]">{activeRoom.description}</p>
                  </div>
               </div>
-              <div className="flex gap-2">
-                 <Button variant="ghost" size="icon" className="rounded-xl border border-white/5 hidden sm:flex hover:bg-white/5 transition-all"><Bot size={18} /></Button>
+              <div className="flex items-center gap-3">
+                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] font-black text-emerald-500 uppercase">Live Stream</span>
+                 </div>
                  <Button variant="ghost" size="icon" className="rounded-xl border border-white/5 hover:bg-white/5"><MoreVertical size={18} /></Button>
               </div>
            </header>
@@ -200,14 +217,21 @@ export default function CommunityPage() {
            <ScrollArea className="flex-1 p-6 md:p-10" ref={scrollRef}>
               <div className="space-y-8">
                  {loading ? (
-                    <div className="py-20 text-center animate-pulse space-y-4">
-                       <Loader2 className="w-10 h-10 mx-auto text-primary animate-spin" />
-                       <p className="text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Establishing Tactical Signal...</p>
+                    <div className="space-y-6">
+                       {[1,2,3,4].map(i => (
+                         <div key={i} className="flex gap-4 items-start">
+                            <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                            <div className="space-y-2 flex-1">
+                               <Skeleton className="h-4 w-24 rounded" />
+                               <Skeleton className="h-16 w-full max-w-md rounded-2xl" />
+                            </div>
+                         </div>
+                       ))}
                     </div>
                  ) : messages.length > 0 ? (
                    messages.map((msg) => {
                     const isMe = msg.senderId === user?.uid;
-                    const isFounder = msg.senderEmail === FOUNDER_EMAIL || msg.role === 'admin';
+                    const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
                     
                     return (
                       <motion.div 
@@ -216,54 +240,57 @@ export default function CommunityPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className={cn("flex gap-4", isMe ? "flex-row-reverse" : "flex-row")}
                       >
-                         <Avatar className={cn("w-10 h-10 border shrink-0", isFounder ? "border-primary shadow-lg shadow-primary/10" : "border-white/10")}>
+                         <Avatar className="w-10 h-10 border border-white/10 shrink-0">
                             <AvatarImage src={`https://picsum.photos/seed/${msg.senderId}/100`} />
                             <AvatarFallback className="bg-zinc-800 text-[10px] font-black">{msg.senderName?.charAt(0)}</AvatarFallback>
                          </Avatar>
                          <div className={cn("max-w-[75%] space-y-1.5", isMe ? "text-right" : "text-left")}>
                             <div className={cn("flex items-center gap-2 px-1", isMe ? "flex-row-reverse" : "flex-row")}>
-                               <p className={cn(
-                                 "text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5", 
-                                 isFounder ? "text-primary" : "text-zinc-500"
-                               )}>
-                                 {msg.senderName} 
-                                 {isFounder && <ShieldAlert size={10} className="fill-current text-primary" />}
+                               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                                 {msg.senderName}
                                </p>
-                               <span className="text-[9px] text-zinc-700 font-bold uppercase">
-                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                               <span className="text-[8px] text-zinc-700 font-bold uppercase">
+                                 {msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                                </span>
                             </div>
 
                             <div className={cn(
-                              "p-4 rounded-[28px] text-sm leading-relaxed shadow-xl relative",
+                              "p-4 rounded-[24px] text-sm leading-relaxed shadow-xl group relative",
                               isMe 
                                 ? "bg-primary text-white rounded-tr-none" 
-                                : isFounder 
-                                  ? "bg-primary/10 border border-primary/20 text-white rounded-tl-none"
-                                  : "bg-white/5 border border-white/5 rounded-tl-none"
+                                : "bg-zinc-900 border border-white/5 rounded-tl-none text-zinc-100"
                             )}>
-                               {msg.messageType === 'text' && <p>{msg.text}</p>}
+                               {msg.messageType === 'text' && <p className="break-words">{msg.text}</p>}
                                
                                {msg.messageType === 'image' && (
                                  <div className="space-y-3">
-                                   <img src={msg.mediaUrl} className="rounded-2xl max-h-80 w-auto object-cover border border-white/10" alt="Attachment" />
-                                   <p className="text-xs opacity-80">{msg.fileName}</p>
+                                   <img src={msg.mediaUrl} className="rounded-xl max-h-80 w-full object-cover border border-white/10" alt="Attachment" />
+                                   {msg.text && <p className="text-xs opacity-90">{msg.text}</p>}
                                  </div>
                                )}
 
                                {msg.messageType === 'pdf' && (
-                                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-black/40 border border-white/10 group/pdf">
+                                 <div className="flex items-center gap-4 p-4 rounded-xl bg-black/40 border border-white/10 group/pdf">
                                     <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                                        <FileText className="text-primary w-5 h-5" />
                                     </div>
                                     <div className="flex-1 overflow-hidden">
                                        <p className="font-bold text-xs truncate">{msg.fileName}</p>
-                                       <p className="text-[9px] uppercase font-black text-zinc-500">{(msg.fileSize! / 1024 / 1024).toFixed(1)} MB • PDF Artifact</p>
+                                       <p className="text-[9px] uppercase font-black text-zinc-500">{(msg.fileSize! / 1024 / 1024).toFixed(1)} MB • PDF</p>
                                     </div>
                                     <a href={msg.mediaUrl} target="_blank" className="p-2 rounded-lg hover:bg-white/5 transition-colors">
                                        <Download size={16} className="text-primary" />
                                     </a>
                                  </div>
+                               )}
+
+                               {(isMe || isAdmin) && (
+                                 <button 
+                                   onClick={() => handleMessageAction(msg.id)}
+                                   className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                                 >
+                                    <Trash2 size={10} />
+                                 </button>
                                )}
                             </div>
                          </div>
@@ -271,25 +298,38 @@ export default function CommunityPage() {
                     );
                    })
                  ) : (
-                   <div className="py-40 text-center space-y-4 opacity-30">
-                      <MessageSquare size={64} className="mx-auto" />
-                      <p className="font-black uppercase tracking-[0.3em] text-xs">Awaiting First Signal</p>
+                   <div className="py-40 text-center space-y-4 opacity-30 flex flex-col items-center">
+                      <div className="w-20 h-20 rounded-[32px] bg-zinc-900 flex items-center justify-center mb-4">
+                        <MessageSquare size={32} className="text-zinc-600" />
+                      </div>
+                      <p className="font-black uppercase tracking-[0.3em] text-xs">Start the Conversation</p>
                    </div>
                  )}
               </div>
            </ScrollArea>
 
-           <footer className="p-6 md:p-8 bg-zinc-950/40 border-t border-white/5">
+           <footer className="p-6 md:p-8 bg-zinc-950 border-t border-white/5">
               <form onSubmit={handleSend} className="flex gap-4">
                  <div className="relative flex-1">
                     <Input 
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
-                      placeholder={`Broadcast to #${activeRoom.slug}...`}
-                      className="h-14 bg-zinc-900 border-white/10 rounded-2xl px-6 pr-24 text-sm font-medium"
+                      placeholder={`Message in #${activeRoom.slug}...`}
+                      className="h-14 bg-zinc-900 border-white/10 rounded-2xl px-6 pr-24 text-sm font-medium focus:ring-primary/20"
                     />
                     <div className="absolute right-3 top-3 flex gap-1">
-                       <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,application/pdf" />
+                       <input 
+                         type="file" 
+                         className="hidden" 
+                         ref={fileInputRef} 
+                         onChange={(e) => {
+                           const file = e.target.files?.[0];
+                           if (!file) return;
+                           const type = file.type.includes('image') ? 'image' : 'pdf';
+                           handleFileUpload(e, type);
+                         }} 
+                         accept="image/*,application/pdf" 
+                       />
                        <Button 
                          type="button" 
                          variant="ghost" 
@@ -304,14 +344,14 @@ export default function CommunityPage() {
                         type="button" 
                         variant="ghost" 
                         size="icon" 
-                        className="rounded-xl text-zinc-600 hover:text-primary"
+                        className="rounded-xl text-zinc-600 hover:text-primary hidden sm:flex"
                         onClick={() => fileInputRef.current?.click()}
                       >
                           <ImageIcon size={18} />
                        </Button>
                     </div>
                  </div>
-                 <Button type="submit" disabled={!inputText.trim()} className="w-14 h-14 rounded-2xl bg-primary hover:bg-primary/90 blue-glow shrink-0">
+                 <Button type="submit" disabled={!inputText.trim() || uploading} className="w-14 h-14 rounded-2xl bg-primary hover:bg-primary/90 blue-glow shrink-0">
                     <Send size={20} />
                  </Button>
               </form>

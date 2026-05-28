@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -13,17 +12,15 @@ import {
   updateDoc, 
   deleteDoc, 
   getDocs,
-  startAfter,
   Timestamp,
-  increment,
-  getDoc
+  serverTimestamp
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 
 /**
- * PRODUCTION COMMUNITY SERVICE
- * Optimized for high-concurrency Telegram-style chat logic.
+ * PRODUCTION COMMUNITY SERVICE v2
+ * Optimized for a single global community with functional rooms.
  */
 
 export interface CommunityRoom {
@@ -34,9 +31,6 @@ export interface CommunityRoom {
   description: string;
   icon: string;
   memberCount: number;
-  roomType: 'general' | 'exam' | 'premium';
-  lastMessage?: string;
-  lastActivity?: number;
 }
 
 export interface ChatMessage {
@@ -45,35 +39,25 @@ export interface ChatMessage {
   senderId: string;
   senderName: string;
   senderEmail: string;
-  senderPhoto?: string;
   text: string;
   messageType: 'text' | 'image' | 'pdf' | 'system';
   mediaUrl?: string;
   fileName?: string;
   fileSize?: number;
-  replyTo?: string;
-  role: string;
-  createdAt: number;
+  createdAt: any;
 }
 
-// 1. ROOM MANAGEMENT
-export async function getRooms(): Promise<CommunityRoom[]> {
-  const q = query(collection(db, 'communityRooms'), orderBy('memberCount', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as CommunityRoom));
-}
-
-// 2. REALTIME MESSAGING ENGINE
+// 1. REALTIME LISTENER (Loop-Protected)
 export function subscribeToMessages(
   roomId: string, 
-  callback: (messages: ChatMessage[]) => void,
-  pageSize: number = 50
+  callback: (messages: ChatMessage[]) => void
 ) {
+  // Use communityMessages as specified in the overhaul objective
   const q = query(
-    collection(db, 'community_messages'),
+    collection(db, 'communityMessages'),
     where('roomId', '==', roomId),
     orderBy('createdAt', 'desc'),
-    limit(pageSize)
+    limit(50)
   );
 
   return onSnapshot(q, (snap) => {
@@ -81,37 +65,28 @@ export function subscribeToMessages(
       id: doc.id, 
       ...doc.data() 
     } as ChatMessage));
-    // Sort ascending for UI consumption
-    callback(messages.reverse());
+    // Sort ascending for the chat feed UI
+    callback(messages.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0)));
   }, (err) => {
-    console.error("[Community Service] Stream Interrupted:", err);
+    console.warn("[Community Service] Stream sync paused. Retrying...");
   });
 }
 
-// 3. BROADCAST PROTOCOL
+// 2. STABLE SEND PROTOCOL
 export async function sendMessage(payload: Omit<ChatMessage, 'id' | 'createdAt'>) {
   const msgData = {
     ...payload,
-    createdAt: Date.now(),
-    serverTimestamp: Timestamp.now()
+    createdAt: serverTimestamp()
   };
 
-  const docRef = await addDoc(collection(db, 'community_messages'), msgData);
-  
-  // Update Room Metadata Pulse
-  const roomRef = doc(db, 'communityRooms', payload.roomId);
-  updateDoc(roomRef, {
-    lastMessage: payload.text.substring(0, 50),
-    lastActivity: Date.now()
-  }).catch(() => {}); // Non-critical update
-
-  return docRef.id;
+  return await addDoc(collection(db, 'communityMessages'), msgData);
 }
 
-// 4. MULTIMEDIA UPLOAD ENGINE
-export async function uploadCommunityMedia(file: File, roomId: string): Promise<{ url: string; name: string; size: number }> {
-  const path = file.type.includes('image') ? 'images' : 'pdfs';
-  const fileRef = ref(storage, `community/${roomId}/${path}/${Date.now()}_${file.name}`);
+// 3. MEDIA UPLOAD ENGINE
+export async function uploadCommunityMedia(file: File, type: 'image' | 'pdf'): Promise<{ url: string; name: string; size: number }> {
+  const path = type === 'image' ? 'community/images' : 'community/pdfs';
+  const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+  const fileRef = ref(storage, `${path}/${fileName}`);
   
   await uploadBytes(fileRef, file);
   const url = await getDownloadURL(fileRef);
@@ -123,18 +98,7 @@ export async function uploadCommunityMedia(file: File, roomId: string): Promise<
   };
 }
 
-// 5. MODERATION ACTIONS
+// 4. MODERATION
 export async function deleteMessage(messageId: string) {
-  return deleteDoc(doc(db, 'community_messages', messageId));
-}
-
-export async function reportMessage(messageId: string, reason: string, reporterId: string) {
-  return addDoc(collection(db, 'reports'), {
-    targetId: messageId,
-    targetType: 'message',
-    reason,
-    reporterId,
-    status: 'pending',
-    createdAt: Date.now()
-  });
+  return deleteDoc(doc(db, 'communityMessages', messageId));
 }
