@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -24,6 +25,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // AUTO-REDIRECT LOGIC: If user is already logged in, send them to dashboard
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        checkRoleAndRedirect(user.uid, user.email!);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const checkRoleAndRedirect = async (uid: string, userEmail: string) => {
     const userRef = doc(db, "users", uid);
@@ -65,13 +76,15 @@ export default function LoginPage() {
       const finalDoc = await getDoc(userRef);
       const data = finalDoc.data();
       
-      if (data?.role === 'admin' || data?.role === 'superadmin' || userEmail === 'arshdeepgrewal1122@gmail.com') {
+      const masterAdmins = ['arshdeepgrewal1122@gmail.com', 'deepgrewal2600@gmail.com'];
+      
+      if (data?.role === 'admin' || data?.role === 'superadmin' || masterAdmins.includes(userEmail)) {
         router.push('/admin');
       } else {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      toast({ title: "Sync Error", description: "Identity synchronization failed.", variant: "destructive" });
+      console.error("Redirect logic failed:", err);
     }
   };
 
@@ -91,8 +104,11 @@ export default function LoginPage() {
       await checkRoleAndRedirect(res.user.uid, res.user.email!);
     } catch (error: any) {
       let msg = "Invalid credentials. Please check your access key.";
-      if (error.code === 'auth/user-not-found') msg = "No account found.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        msg = "No account found or incorrect credentials. Try signing up?";
+      }
       if (error.code === 'auth/wrong-password') msg = "Incorrect access key.";
+      if (error.code === 'auth/too-many-requests') msg = "Too many attempts. Try again later.";
       
       toast({
         title: "Access Denied",
@@ -214,7 +230,7 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black shadow-lg" disabled={loading}>
+              <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black shadow-lg" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize Entry"}
               </Button>
             </form>
