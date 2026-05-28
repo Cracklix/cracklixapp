@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,9 +6,9 @@ import AdminProtect from "@/components/admin/admin-protect";
 import { 
   Rocket, Plus, Zap, Loader2, Search, BookOpen, 
   Trash2, Edit3, Copy, PlayCircle, Lock, Unlock, 
-  Database, BarChart3, AlertTriangle, ShieldCheck,
-  CheckCircle2, Globe, Clock, Sparkles, Filter,
-  ChevronRight, MoreVertical, RefreshCw
+  Database, BarChart3, ShieldCheck, CheckCircle2,
+  Filter, ChevronRight, MoreVertical, RefreshCw,
+  Clock, Target, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +20,8 @@ import {
   deleteMock, 
   duplicateMock, 
   updateMock,
-  getMockAnalytics
 } from "@/services/mocks";
-import { MockTest, MockStatus } from "@/types";
+import { MockTest } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -92,119 +90,151 @@ export default function SimulationFactoryPage() {
 
   return (
     <AdminProtect>
-      <div className="flex bg-black min-h-screen text-white">
+      <div className="flex bg-[#05070a] min-h-screen text-white">
         <AdminSidebar />
         <main className="flex-1 p-6 md:p-8 overflow-y-auto no-scrollbar">
-          <div className="max-w-[1600px] mx-auto space-y-8">
-            {/* Quick Action Hub */}
-            <div className="flex justify-between items-center border-b border-white/5 pb-6">
-              <div className="space-y-1">
-                <h1 className="font-headline text-3xl font-black tracking-tighter uppercase">Simulation Factory</h1>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">Operational Oversight Platform</p>
-              </div>
-              <div className="flex gap-3">
-                 <Button onClick={() => router.push('/admin/mock-generator')} variant="outline" className="h-11 px-6 rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-black text-[10px] uppercase tracking-widest">
-                    <Sparkles className="mr-2 w-3.5 h-3.5" /> AI Generator
-                 </Button>
-                 <Button onClick={() => router.push('/admin/mock-generator')} className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-widest blue-glow">
-                    <Plus className="mr-2 w-4 h-4" /> Create Mock
-                 </Button>
-              </div>
+          <div className="max-w-[1600px] mx-auto space-y-10">
+            
+            {/* KPI Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+               {[
+                 { label: "Total Artifacts", val: mocks.length, icon: Database, color: "text-blue-500", bg: "bg-blue-500/10" },
+                 { label: "Live Productions", val: mocks.filter(m => m.status === 'published').length, icon: PlayCircle, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                 { label: "Staging Area", val: mocks.filter(m => m.status === 'draft').length, icon: Layers, color: "text-orange-500", bg: "bg-orange-500/10" },
+                 { label: "Attempt Volume", val: mocks.reduce((acc, m) => acc + (m.attemptCount || 0), 0), icon: BarChart3, color: "text-primary", bg: "bg-primary/10" },
+               ].map((kpi, i) => (
+                 <div key={i} className="p-6 rounded-[32px] bg-zinc-900/40 border border-white/5 space-y-4 group hover:bg-zinc-900 transition-all">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110", kpi.bg, kpi.color)}>
+                       <kpi.icon size={20} />
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest mb-1">{kpi.label}</p>
+                       <h2 className="text-3xl font-black">{kpi.val}</h2>
+                    </div>
+                 </div>
+               ))}
             </div>
 
-            {/* Tactical Registry */}
+            <header className="flex justify-between items-end border-b border-white/5 pb-8">
+              <div className="space-y-1">
+                <h1 className="font-headline text-4xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Institutional Operations Dashboard v5.2</p>
+              </div>
+              <div className="flex gap-4">
+                 <Button onClick={() => router.push('/admin/ai-mock-studio')} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] uppercase tracking-widest blue-glow shadow-2xl">
+                    <Plus className="mr-2 w-4 h-4" /> Create New Mock
+                 </Button>
+              </div>
+            </header>
+
             <div className="space-y-6">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-zinc-950/40 p-4 rounded-3xl border border-white/5 backdrop-blur-xl">
-                 <div className="relative w-full md:w-96">
-                    <Search className="absolute left-4 top-3 w-4 h-4 text-zinc-600" />
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-zinc-950/40 p-4 rounded-[32px] border border-white/5 backdrop-blur-xl">
+                 <div className="relative w-full md:w-[450px]">
+                    <Search className="absolute left-5 top-4 w-5 h-5 text-zinc-600" />
                     <Input 
-                      placeholder="Filter factory by identity..." 
-                      className="h-10 bg-zinc-900 border-white/5 rounded-xl pl-12 font-bold text-xs"
+                      placeholder="Filter factory artifacts by identity or board..." 
+                      className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl pl-14 font-bold text-sm"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
                  </div>
-                 <div className="flex items-center gap-4">
-                    <div className="text-right border-r border-white/10 pr-4">
-                       <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Live Artifacts</p>
-                       <p className="text-lg font-black text-white leading-none">{mocks.filter(m => m.status === 'published').length}</p>
+                 <div className="flex items-center gap-6 px-4">
+                    <div className="flex items-center gap-3">
+                       <Filter size={16} className="text-zinc-600" />
+                       <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Active Filters: None</span>
                     </div>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-none font-black text-[9px] uppercase tracking-widest py-1.5 px-4 animate-pulse">Sync Active</Badge>
+                    <div className="h-8 w-px bg-white/10" />
+                    <Button variant="ghost" size="sm" onClick={loadMocks} className="text-zinc-500 hover:text-white"><RefreshCw size={14} className="mr-2" /> Sync Feed</Button>
                  </div>
               </div>
 
-              <div className="bg-zinc-900/30 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+              <div className="bg-zinc-900/30 border border-white/5 rounded-[48px] overflow-hidden shadow-2xl">
                  <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                       <thead className="bg-zinc-900/60 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500 border-b border-white/5">
+                       <thead className="bg-zinc-900/60 text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 border-b border-white/5">
                           <tr>
-                             <th className="px-8 py-5">Identity Signal</th>
-                             <th className="px-8 py-5">Classification</th>
-                             <th className="px-8 py-5 text-center">Qs / Payload</th>
-                             <th className="px-8 py-5">Access Tier</th>
-                             <th className="px-8 py-5 text-right">Operational Logic</th>
+                             <th className="px-12 py-8">Simulation Identity</th>
+                             <th className="px-12 py-8">Recruitment Board</th>
+                             <th className="px-12 py-8 text-center">Qs / Volume</th>
+                             <th className="px-12 py-8">Access Level</th>
+                             <th className="px-12 py-8 text-right">Operational Logic</th>
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-white/5">
                           {loading ? (
-                            [1,2,3,4].map(i => <tr key={i} className="animate-pulse"><td colSpan={5} className="h-16" /></tr>)
+                            [1,2,3,4,5].map(i => <tr key={i} className="animate-pulse"><td colSpan={5} className="h-24" /></tr>)
                           ) : filtered.length > 0 ? (
                             filtered.map(m => (
                             <tr key={m.id} className="hover:bg-white/[0.01] transition-colors group">
-                               <td className="px-8 py-4">
-                                  <div className="flex items-center gap-4">
-                                     <div className="w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center border border-white/5 shadow-lg">
-                                        <BookOpen className="text-zinc-500 w-4 h-4 group-hover:text-primary transition-colors" />
+                               <td className="px-12 py-8">
+                                  <div className="flex items-center gap-6">
+                                     <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center border border-white/5 shadow-lg relative">
+                                        <BookOpen className="text-zinc-500 w-5 h-5 group-hover:text-primary transition-colors" />
+                                        {m.aiGenerated && <Sparkles size={10} className="absolute -top-1 -right-1 text-primary fill-current" />}
                                      </div>
                                      <div>
-                                        <p className="font-bold text-zinc-100 text-sm leading-none mb-1.5">{m.title}</p>
-                                        <p className="text-[8px] text-zinc-700 font-bold uppercase tracking-widest">ID: {m.id.substring(0,8)}</p>
+                                        <p className="font-bold text-zinc-100 text-base leading-none mb-2">{m.title}</p>
+                                        <div className="flex items-center gap-3">
+                                           <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest">ID: {m.id.substring(0,8)}</span>
+                                           <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest">•</span>
+                                           <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest flex items-center gap-1"><Clock size={10} /> {new Date(m.createdAt).toLocaleDateString()}</span>
+                                        </div>
                                      </div>
                                   </div>
                                </td>
-                               <td className="px-8 py-4">
-                                  <Badge className="bg-primary/20 text-primary text-[7px] font-black uppercase px-2 h-4 mb-1">{m.category || 'FULL'}</Badge>
-                                  <p className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">{m.exam}</p>
+                               <td className="px-12 py-8">
+                                  <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase px-3 h-5 mb-2">{m.category || 'FULL MOCK'}</Badge>
+                                  <p className="text-xs font-black text-white uppercase tracking-tighter">{m.exam}</p>
                                </td>
-                               <td className="px-8 py-4 text-center">
-                                  <p className="text-xs font-black text-white">{m.totalQuestions || 0} Qs</p>
-                                  <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">{m.duration}m Cluster</p>
+                               <td className="px-12 py-8 text-center">
+                                  <p className="text-sm font-black text-white">{m.totalQuestions || 0} Qs</p>
+                                  <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{m.attemptCount || 0} Aspirants</p>
                                </td>
-                               <td className="px-8 py-4">
-                                  <Badge className={cn("text-[8px] font-black uppercase px-3 py-0.5 rounded-lg border-none shadow-lg", m.accessType === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/20 text-primary')}>
-                                     {m.accessType === 'free' ? 'FREE HUB' : 'PASS+ ONLY'}
-                                  </Badge>
+                               <td className="px-12 py-8">
+                                  <div className="flex flex-col gap-2">
+                                     <Badge className={cn("text-[8px] font-black uppercase px-3 py-1 rounded-lg border-none w-fit", m.accessType === 'free' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/20 text-primary')}>
+                                        {m.accessType === 'free' ? 'FREE HUB' : 'PASS+ ONLY'}
+                                     </Badge>
+                                     <Badge className={cn("text-[8px] font-black uppercase px-3 py-1 rounded-lg border-none w-fit", m.status === 'published' ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-500')}>
+                                        {m.status}
+                                     </Badge>
+                                  </div>
                                </td>
-                               <td className="px-8 py-4 text-right">
-                                  <div className="flex justify-end gap-2">
-                                     <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} size="sm" className="h-8 px-4 rounded-xl bg-zinc-900 border border-white/10 hover:bg-white/5 text-[9px] font-black uppercase tracking-widest">
+                               <td className="px-12 py-8 text-right">
+                                  <div className="flex justify-end items-center gap-3">
+                                     <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} className="h-10 px-6 rounded-xl bg-zinc-800 border border-white/10 hover:bg-white/5 text-[10px] font-black uppercase tracking-widest transition-all">
                                         Calibrate
                                      </Button>
                                      
-                                     <div className="h-8 w-px bg-white/5 mx-1" />
+                                     <div className="h-8 w-px bg-white/5 mx-2" />
 
-                                     <div className="flex items-center gap-1">
-                                       <Button onClick={() => handleAction(m.id, 'duplicate')} variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-blue-600/10 text-zinc-600 hover:text-blue-500" title="Clone Mock"><Copy size={14} /></Button>
+                                     <div className="flex items-center gap-1.5">
+                                       <Button onClick={() => handleAction(m.id, 'duplicate')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-blue-600/10 text-zinc-600 hover:text-blue-500" title="Clone Signal"><Copy size={16} /></Button>
                                        
                                        {m.accessType === 'free' ? (
-                                          <Button onClick={() => handleAction(m.id, 'lock')} variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 text-zinc-600 hover:text-primary" title="Restrict to PASS+"><Lock size={14} /></Button>
+                                          <Button onClick={() => handleAction(m.id, 'lock')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 text-zinc-600 hover:text-primary" title="Restrict to PASS+"><Lock size={16} /></Button>
                                        ) : (
-                                          <Button onClick={() => handleAction(m.id, 'unlock')} variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 text-zinc-600 hover:text-emerald-500" title="Unlock for Everyone"><Unlock size={14} /></Button>
+                                          <Button onClick={() => handleAction(m.id, 'unlock')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-emerald-500/10 text-zinc-600 hover:text-emerald-500" title="Unlock for All"><Unlock size={16} /></Button>
                                        )}
 
                                        {m.status === 'draft' ? (
-                                         <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-emerald-600/10 text-zinc-600 hover:text-emerald-500" title="Mark Live"><PlayCircle size={14} /></Button>
+                                         <Button onClick={() => handleAction(m.id, 'publish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-emerald-600/10 text-zinc-600 hover:text-emerald-500" title="Mark Live"><PlayCircle size={16} /></Button>
                                        ) : (
-                                         <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-orange-500/10 text-zinc-600 hover:text-orange-500" title="Revert to Staging"><Database size={14} /></Button>
+                                         <Button onClick={() => handleAction(m.id, 'unpublish')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-orange-500/10 text-zinc-600 hover:text-orange-500" title="Revert to Staging"><RefreshCw size={16} /></Button>
                                        )}
-                                       <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-500" title="Purge Artifact"><Trash2 size={14} /></Button>
+                                       <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-red-500/10 text-zinc-600 hover:text-red-500" title="Purge Artifact"><Trash2 size={16} /></Button>
                                      </div>
                                   </div>
                                </td>
                             </tr>
                           ))
                           ) : (
-                            <tr><td colSpan={5} className="py-20 text-center text-zinc-700 text-[10px] font-black uppercase tracking-[0.4em]">No Simulations Indexed</td></tr>
+                            <tr><td colSpan={5} className="py-52 text-center">
+                                <div className="space-y-4 opacity-20">
+                                   <AlertCircle size={48} className="mx-auto" />
+                                   <p className="text-[11px] font-black uppercase tracking-[0.4em]">No Simulations Indexed in Factory</p>
+                                </div>
+                            </td></tr>
                           )}
                        </tbody>
                     </table>
@@ -216,4 +246,26 @@ export default function SimulationFactoryPage() {
       </div>
     </AdminProtect>
   );
+}
+
+// Simple Layers icon
+function Layers(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.1 6.27a2 2 0 0 0 0 3.46l9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09a2 2 0 0 0 0-3.46z" />
+      <path d="m2.1 14.73 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09" />
+      <path d="m2.1 19.16 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09" />
+    </svg>
+  )
 }

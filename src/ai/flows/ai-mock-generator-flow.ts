@@ -1,23 +1,27 @@
 'use server';
 /**
- * @fileOverview AI Mock Generator Flow.
- * Generates full-scale, structured, bilingual mocks based on conversational prompts.
+ * @fileOverview AI Mock Generator Flow v5.
+ * Generates full-scale, structured, nested bilingual mocks for institutional use.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-const QuestionSchema = z.object({
-  question_en: z.string(),
-  question_pa: z.string(),
-  options_en: z.array(z.string()).length(4),
-  options_pa: z.array(z.string()).length(4),
+const QuestionContentSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()).length(4),
+  explanation: z.string().optional(),
+});
+
+const NestedQuestionSchema = z.object({
+  en: QuestionContentSchema,
+  pa: QuestionContentSchema,
   correctAnswer: z.string().describe("Exact text match of the correct option in English."),
-  explanation_en: z.string(),
-  explanation_pa: z.string(),
   subject: z.string(),
   topic: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
+  marks: z.number().default(1),
+  negativeMarks: z.number().default(0.25),
 });
 
 const MockGeneratorInputSchema = z.object({
@@ -26,19 +30,22 @@ const MockGeneratorInputSchema = z.object({
   count: z.number().default(10).describe("Total questions to generate."),
   difficulty: z.enum(['easy', 'medium', 'hard', 'balanced']).default('balanced'),
   language: z.enum(['en', 'pa', 'bilingual']).default('bilingual'),
+  sourceMode: z.enum(['ai', 'bank', 'hybrid']).default('ai'),
 });
 export type MockGeneratorInput = z.infer<typeof MockGeneratorInputSchema>;
 
 const MockGeneratorOutputSchema = z.object({
   title: z.string(),
   exam: z.string(),
+  duration: z.number(),
+  negativeMarking: z.number(),
   structure: z.array(z.object({
     subject: z.string(),
     count: z.number(),
     weightage: z.number()
   })),
-  questions: z.array(QuestionSchema),
-  summary: z.string().describe("Brief summary of what was generated."),
+  questions: z.array(NestedQuestionSchema),
+  summary: z.string().describe("Brief summary of the generated simulation."),
 });
 export type MockGeneratorOutput = z.infer<typeof MockGeneratorOutputSchema>;
 
@@ -47,39 +54,40 @@ export async function generateAILogic(input: MockGeneratorInput): Promise<MockGe
 }
 
 const prompt = ai.definePrompt({
-  name: 'aiMockGeneratorPrompt',
+  name: 'aiMockGeneratorPromptV5',
   input: { schema: MockGeneratorInputSchema },
   output: { schema: MockGeneratorOutputSchema },
-  prompt: `You are the CRACKLIX National Exam Architect. 
+  prompt: `You are the CRACKLIX Enterprise Exam Architect. 
 
-Your mission is to generate a professional, high-yield mock test based on the following instructions:
+Your mission is to generate a high-yield, production-grade mock test based on:
 "{{{prompt}}}"
 
 Settings:
-- Exam Board: {{{exam}}}
-- Target Count: {{{count}}}
-- Difficulty Strategy: {{{difficulty}}}
-- Language Mode: {{{language}}}
+- Institutional Board: {{{exam}}}
+- Artifact Count: {{{count}}}
+- Complexity Profile: {{{difficulty}}}
+- Linguistic Mode: {{{language}}}
+- Generation Protocol: {{{sourceMode}}}
 
-STRICT INSTRUCTIONS:
-1. SYLLABUS ACCURACY: Use official patterns for Punjab State Exams (PPSC, PSSSB, Punjab Police).
-2. BILINGUAL FIDELITY: Ensure the Punjabi (Raavi font style) is accurate and formal.
-3. STRUCTURE: Decide on a subject split if none is provided (e.g. for PSSSB Clerk: 30% GK, 20% Math, 20% Reasoning, 15% English, 15% Punjabi).
-4. VALIDATION: Every question MUST have 4 options and 1 clear correctAnswer that matches an English option exactly.
-5. QUALITY: Provide deep explanations in both languages.
+STRICT ENTERPRISE REQUIREMENTS:
+1. NESTED SCHEMA: Use the nested { en, pa } structure for every question, option set, and explanation.
+2. PUNJABI FIDELITY: Ensure Gurmukhi (Raavi font) is academic and formal.
+3. SYLLABUS WEIGHTAGE: If creating a full mock for boards like PSSSB or Punjab Police, split subjects accurately (e.g., Punjab GK 30%, Reasoning 20%, etc.).
+4. VALIDATION: Every question MUST have 4 options and a correctAnswer that matches the English version exactly.
+5. EXPLANATIONS: Provide step-by-step rationalization in both languages.
 
 Format the output strictly as a JSON object matching the MockGeneratorOutputSchema.`,
 });
 
 const aiMockGeneratorFlow = ai.defineFlow(
   {
-    name: 'aiMockGeneratorFlow',
+    name: 'aiMockGeneratorFlowV5',
     inputSchema: MockGeneratorInputSchema,
     outputSchema: MockGeneratorOutputSchema,
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output) throw new Error("AI Synthesis failed to produce a valid response.");
+    if (!output) throw new Error("Neural Synthesis failed to forge simulation payload.");
     return output;
   }
 );
