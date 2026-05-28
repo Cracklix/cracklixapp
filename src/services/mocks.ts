@@ -197,6 +197,11 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
   return docRef.id;
 }
 
+export async function updateQuestionInMock(mockId: string, questionId: string, updates: Partial<Question>) {
+  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  return updateDoc(qRef, { ...updates, updatedAt: Date.now() });
+}
+
 export async function deleteQuestionFromMock(mockId: string, questionId: string) {
   const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
   await deleteDoc(qRef);
