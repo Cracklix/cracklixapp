@@ -1,11 +1,11 @@
 
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { collection, query, orderBy, limit, onSnapshot, doc, deleteDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import AdminSidebar from "@/components/admin/sidebar";
-import AdminProtect from "@/components/admin/admin-protect";
+import { useState, useEffect } from 'react';
+import { collection, query, orderBy, limit, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import AdminSidebar from '@/components/admin/sidebar';
+import AdminProtect from '@/components/admin/admin-protect';
 import { 
   MessageSquare, 
   Trash2, 
@@ -17,24 +17,25 @@ import {
   ShieldCheck,
   Search,
   Filter
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+} from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CommunityModerationPage() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
+    // Listen to ALL community messages for moderation
     const q = query(
-      collection(db, "community_messages"),
-      orderBy("createdAt", "desc"),
+      collection(db, 'community_messages'),
+      orderBy('createdAt', 'desc'),
       limit(100)
     );
 
@@ -47,16 +48,19 @@ export default function CommunityModerationPage() {
   }, []);
 
   async function handleDelete(id: string) {
-    if (!confirm("Permanent deletion cannot be undone. Proceed?")) return;
+    if (!confirm("Terminate this signal string permanently?")) return;
     try {
-      await deleteDoc(doc(db, "community_messages", id));
-      toast({ title: "Signal Terminated", description: "Message removed from all student terminals." });
-    } catch (e: any) {
+      await deleteDoc(doc(db, 'community_messages', id));
+      toast({ title: "Signal Terminated" });
+    } catch (e) {
       toast({ title: "Operation Failed", variant: "destructive" });
     }
   }
 
-  const filtered = messages.filter(m => m.text?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = messages.filter(m => 
+    m.text?.toLowerCase().includes(search.toLowerCase()) || 
+    m.senderName?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <AdminProtect>
@@ -72,7 +76,7 @@ export default function CommunityModerationPage() {
                   </div>
                   <h1 className="font-headline text-4xl font-black tracking-tight">Community Audit</h1>
                 </div>
-                <p className="text-zinc-500 font-medium">Real-time content moderation for exam-wise chat streams.</p>
+                <p className="text-zinc-500 font-medium">Real-time content moderation for global chat streams.</p>
               </div>
               <div className="flex gap-4 w-full md:w-auto">
                  <div className="relative flex-1 md:w-80">
@@ -84,16 +88,13 @@ export default function CommunityModerationPage() {
                       onChange={(e) => setSearch(e.target.value)}
                     />
                  </div>
-                 <Button variant="outline" className="h-12 w-12 rounded-2xl border-white/5 bg-zinc-900">
-                    <Filter className="w-4 h-4" />
-                 </Button>
               </div>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                <div className="lg:col-span-8 space-y-6">
                   <div className="flex items-center justify-between px-4">
-                    <h3 className="font-bold text-xs uppercase tracking-widest text-zinc-500">Live Stream Audit ({filtered.length})</h3>
+                    <h3 className="font-bold text-xs uppercase tracking-widest text-zinc-500">Live Stream Audit</h3>
                     <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[9px] uppercase animate-pulse">Monitoring Active</Badge>
                   </div>
 
@@ -101,13 +102,13 @@ export default function CommunityModerationPage() {
                      {loading ? (
                         [1,2,3,4].map(i => <div key={i} className="h-24 rounded-3xl bg-zinc-900/50 animate-pulse border border-white/5" />)
                      ) : filtered.length > 0 ? (
-                        <AnimatePresence>
+                        <AnimatePresence mode="popLayout">
                           {filtered.map(m => (
                              <motion.div 
                                key={m.id}
                                layout
-                               initial={{ opacity: 0, x: -10 }}
-                               animate={{ opacity: 1, x: 0 }}
+                               initial={{ opacity: 0 }}
+                               animate={{ opacity: 1 }}
                                exit={{ opacity: 0, scale: 0.95 }}
                                className="p-6 rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-white/10 transition-all group"
                              >
@@ -120,10 +121,10 @@ export default function CommunityModerationPage() {
                                       <div>
                                          <div className="flex items-center gap-2 mb-1">
                                             <h4 className="text-sm font-bold">{m.senderName}</h4>
-                                            <Badge variant="outline" className="text-[8px] border-white/10 text-zinc-600 font-black uppercase">{m.channelId}</Badge>
+                                            <Badge variant="outline" className="text-[8px] border-white/10 text-zinc-600 font-black uppercase">{m.roomId}</Badge>
                                          </div>
                                          <p className="text-zinc-400 text-sm leading-relaxed max-w-xl">{m.text}</p>
-                                         <span className="text-[9px] font-bold text-zinc-700 uppercase mt-3 inline-block">
+                                         <span className="text-[9px] font-bold text-zinc-700 uppercase mt-2 inline-block">
                                             {new Date(m.createdAt).toLocaleString()}
                                          </span>
                                       </div>
@@ -135,9 +136,6 @@ export default function CommunityModerationPage() {
                                       <Button variant="ghost" size="icon" className="rounded-xl hover:bg-orange-500/10 hover:text-orange-500">
                                          <Ban className="w-4 h-4" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="rounded-xl">
-                                         <MoreVertical className="w-4 h-4 text-zinc-600" />
-                                      </Button>
                                    </div>
                                 </div>
                              </motion.div>
@@ -146,7 +144,7 @@ export default function CommunityModerationPage() {
                      ) : (
                         <div className="py-32 text-center rounded-[48px] border-2 border-dashed border-white/5 bg-zinc-950/20">
                            <ShieldCheck className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-                           <p className="text-zinc-600 font-medium italic">All channels are within safety parameters.</p>
+                           <p className="text-zinc-600 font-medium italic">Tactical streams within safety parameters.</p>
                         </div>
                      )}
                   </div>
@@ -158,29 +156,18 @@ export default function CommunityModerationPage() {
                         <Flag className="text-primary w-4 h-4" />
                         Reported Signals
                      </h4>
-                     <div className="space-y-4">
-                        {[
-                          { user: "Arsh S.", reason: "Spam Link", count: 2 },
-                          { user: "Preet K.", reason: "Harassment", count: 1 },
-                        ].map((r, i) => (
-                           <div key={i} className="p-4 rounded-2xl bg-black/40 border border-white/5 flex justify-between items-center">
-                              <div>
-                                 <p className="text-xs font-bold">{r.user}</p>
-                                 <p className="text-[10px] text-destructive uppercase font-black">{r.reason}</p>
-                              </div>
-                              <Button size="sm" variant="outline" className="h-8 rounded-lg border-white/10 text-[9px] font-black uppercase">Review</Button>
-                           </div>
-                        ))}
+                     <div className="py-10 text-center opacity-20 border-2 border-dashed border-primary/20 rounded-3xl">
+                        <p className="text-[10px] font-black uppercase tracking-widest">No Active Violations</p>
                      </div>
                   </div>
 
                   <div className="p-8 rounded-[40px] bg-zinc-900 border border-white/5 space-y-6">
                      <h4 className="font-bold flex items-center gap-2 text-zinc-400">
                         <AlertCircle className="w-4 h-4" />
-                        Moderator Tips
+                        Moderator Protocol
                      </h4>
                      <p className="text-xs text-zinc-500 leading-relaxed italic">
-                        "Focus on high-traffic channels like #punjab-police SI during evening hours. Prohibit any sharing of unauthorized mock test screenshots."
+                        "Enforce Raavi-only Punjabi standards for clarity. Prohibit any sharing of pirated mock PDFs immediately."
                      </p>
                   </div>
                </div>
