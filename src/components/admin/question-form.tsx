@@ -1,3 +1,4 @@
+
 "use client";
 
 import { addDoc, collection } from "firebase/firestore";
@@ -8,18 +9,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, History, Star } from "lucide-react";
+import { Loader2, PlusCircle, History, Star, Languages } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function QuestionForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    question: "",
-    option1: "",
-    option2: "",
-    option3: "",
-    option4: "",
+    question_en: "",
+    question_pa: "",
+    option1_en: "",
+    option2_en: "",
+    option3_en: "",
+    option4_en: "",
+    option1_pa: "",
+    option2_pa: "",
+    option3_pa: "",
+    option4_pa: "",
     correctAnswer: "",
     subject: "Punjab GK",
     topic: "",
@@ -28,20 +35,19 @@ export default function QuestionForm() {
     pyq: false,
     year: new Date().getFullYear(),
     exam: "Punjab Police",
-    qualityScore: 80
+    qualityScore: 80,
+    explanation_en: "",
+    explanation_pa: "",
+    status: "published"
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData({ ...formData, pyq: checked });
-  };
-
   async function saveQuestion() {
-    if (!formData.question || !formData.correctAnswer) {
-      toast({ title: "Error", description: "Question and correct answer are required.", variant: "destructive" });
+    if (!formData.question_en || !formData.correctAnswer) {
+      toast({ title: "Error", description: "English question and correct answer are required.", variant: "destructive" });
       return;
     }
 
@@ -49,19 +55,27 @@ export default function QuestionForm() {
     try {
       await addDoc(collection(db, "questions"), {
         ...formData,
-        options: [formData.option1, formData.option2, formData.option3, formData.option4],
+        options_en: [formData.option1_en, formData.option2_en, formData.option3_en, formData.option4_en],
+        options_pa: [formData.option1_pa, formData.option2_pa, formData.option3_pa, formData.option4_pa],
         createdAt: Date.now(),
       });
 
-      toast({ title: "Success", description: "Question added to bank with AI scoring metadata." });
+      toast({ title: "Success", description: "Bilingual question added to bank." });
       setFormData({
         ...formData,
-        question: "",
-        option1: "",
-        option2: "",
-        option3: "",
-        option4: "",
-        correctAnswer: ""
+        question_en: "",
+        question_pa: "",
+        option1_en: "",
+        option2_en: "",
+        option3_en: "",
+        option4_en: "",
+        option1_pa: "",
+        option2_pa: "",
+        option3_pa: "",
+        option4_pa: "",
+        correctAnswer: "",
+        explanation_en: "",
+        explanation_pa: ""
       });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -71,111 +85,132 @@ export default function QuestionForm() {
   }
 
   return (
-    <div className="bg-zinc-900/50 border border-white/5 p-8 rounded-[40px] max-w-4xl">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-          <PlusCircle className="text-primary w-6 h-6" />
+    <div className="bg-zinc-900/50 border border-white/5 p-8 rounded-[40px] max-w-5xl space-y-8">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+            <PlusCircle className="text-primary w-6 h-6" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">Academic Content Injection</h2>
         </div>
-        <h2 className="text-2xl font-bold tracking-tight">Intelligent Question Bank</h2>
+        <Badge variant="outline" className="border-primary/20 text-primary">v4 Production Engine</Badge>
       </div>
 
-      <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-10">
+        {/* English Context */}
+        <div className="space-y-6">
+          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+            <Languages className="w-3 h-3 text-blue-500" /> English Content
+          </h3>
+          <div className="space-y-2">
+            <Label>Question (EN)</Label>
+            <Textarea
+              name="question_en"
+              value={formData.question_en}
+              onChange={handleChange}
+              className="min-h-[100px] bg-zinc-800/50 border-white/5 rounded-xl"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {[1, 2, 3, 4].map(i => (
+              <Input 
+                key={i}
+                name={`option${i}_en`}
+                value={(formData as any)[`option${i}_en`]}
+                onChange={handleChange}
+                placeholder={`Option ${i} (EN)`}
+                className="bg-zinc-800/50 border-white/5 h-10 rounded-lg"
+              />
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Label>Explanation (EN)</Label>
+            <Textarea
+              name="explanation_en"
+              value={formData.explanation_en}
+              onChange={handleChange}
+              placeholder="Why is this correct?"
+              className="min-h-[80px] bg-zinc-800/50 border-white/5 rounded-xl"
+            />
+          </div>
+        </div>
+
+        {/* Punjabi Context */}
+        <div className="space-y-6">
+          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+            <Languages className="w-3 h-3 text-primary" /> Punjabi Content (Raavi)
+          </h3>
+          <div className="space-y-2">
+            <Label>ਪ੍ਰਸ਼ਨ (PA)</Label>
+            <Textarea
+              name="question_pa"
+              value={formData.question_pa}
+              onChange={handleChange}
+              className="min-h-[100px] bg-zinc-800/50 border-white/5 rounded-xl"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {[1, 2, 3, 4].map(i => (
+              <Input 
+                key={i}
+                name={`option${i}_pa`}
+                value={(formData as any)[`option${i}_pa`]}
+                onChange={handleChange}
+                placeholder={`ਵਿਕਲਪ ${i} (PA)`}
+                className="bg-zinc-800/50 border-white/5 h-10 rounded-lg"
+              />
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Label>ਵਿਆਖਿਆ (PA)</Label>
+            <Textarea
+              name="explanation_pa"
+              value={formData.explanation_pa}
+              onChange={handleChange}
+              placeholder="ਇਹ ਸਹੀ ਕਿਉਂ ਹੈ?"
+              className="min-h-[80px] bg-zinc-800/50 border-white/5 rounded-xl"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-8 border-t border-white/5 grid md:grid-cols-4 gap-6 items-end">
         <div className="space-y-2">
-          <Label className="text-zinc-400">Question Content</Label>
-          <Textarea
-            name="question"
-            value={formData.question}
+          <Label className="text-emerald-500">Correct Answer</Label>
+          <Input
+            name="correctAnswer"
+            value={formData.correctAnswer}
             onChange={handleChange}
-            placeholder="Enter the question here..."
-            className="min-h-[120px] bg-zinc-800/50 border-white/5 rounded-2xl"
+            placeholder="Exact match"
+            className="bg-zinc-800/50 border-emerald-500/20 h-12 rounded-xl"
           />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="space-y-2">
-              <Label className="text-zinc-400">Option {i}</Label>
-              <Input
-                name={`option${i}`}
-                value={(formData as any)[`option${i}`]}
-                onChange={handleChange}
-                placeholder={`Option ${i}`}
-                className="bg-zinc-800/50 border-white/5 rounded-xl h-12"
-              />
-            </div>
-          ))}
+        <div className="space-y-2">
+          <Label>Difficulty</Label>
+          <Select value={formData.difficulty} onValueChange={v => setFormData({...formData, difficulty: v})}>
+            <SelectTrigger className="bg-zinc-800/50 border-white/5 h-12">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="easy">Easy</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="hard">Hard</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
-          <div className="space-y-2">
-            <Label className="text-emerald-500">Correct Answer</Label>
-            <Input
-              name="correctAnswer"
-              value={formData.correctAnswer}
-              onChange={handleChange}
-              placeholder="Exact option match"
-              className="bg-zinc-800/50 border-emerald-500/30 rounded-xl h-12"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-zinc-400">Target Exam</Label>
-            <Input
-              name="exam"
-              value={formData.exam}
-              onChange={handleChange}
-              className="bg-zinc-800/50 border-white/5 rounded-xl h-12"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-zinc-400">Subject</Label>
-            <Input
-              name="subject"
-              value={formData.subject}
-              onChange={handleChange}
-              className="bg-zinc-800/50 border-white/5 rounded-xl h-12"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label>Quality Score</Label>
+          <Input 
+            type="number"
+            name="qualityScore"
+            value={formData.qualityScore}
+            onChange={handleChange}
+            className="bg-zinc-800/50 border-white/5 h-12 rounded-xl"
+          />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-          <div className="flex items-center gap-3 bg-zinc-800/30 p-4 rounded-xl border border-white/5">
-            <Checkbox id="pyq" checked={formData.pyq} onCheckedChange={handleCheckboxChange} />
-            <label htmlFor="pyq" className="text-sm font-bold flex items-center gap-2 cursor-pointer">
-              <History className="w-4 h-4 text-primary" /> PYQ?
-            </label>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-zinc-400">PYQ Year</Label>
-            <Input
-              name="year"
-              type="number"
-              value={formData.year}
-              onChange={handleChange}
-              className="bg-zinc-800/50 border-white/5 rounded-xl h-12"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-zinc-400">Quality Score (0-100)</Label>
-            <div className="relative">
-              <Input
-                name="qualityScore"
-                type="number"
-                value={formData.qualityScore}
-                onChange={handleChange}
-                className="bg-zinc-800/50 border-white/5 rounded-xl h-12 pl-10"
-              />
-              <Star className="absolute left-3 top-3.5 w-4 h-4 text-yellow-500" />
-            </div>
-          </div>
-          <Button 
-            onClick={saveQuestion} 
-            disabled={loading}
-            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-lg font-bold"
-          >
-            {loading ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="mr-2" />}
-            Save to Bank
-          </Button>
-        </div>
+        <Button onClick={saveQuestion} disabled={loading} className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold">
+          {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Publish Question"}
+        </Button>
       </div>
     </div>
   );

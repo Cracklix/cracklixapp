@@ -16,7 +16,8 @@ import {
   History,
   Bell,
   IndianRupee,
-  ShieldCheck
+  ShieldCheck,
+  Briefcase
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -27,6 +28,7 @@ export default function AdminSidebar() {
     { name: "Questions", href: "/admin/questions", icon: FileQuestion },
     { name: "Mocks", href: "/admin/mocks", icon: FileText },
     { name: "PYQ Bank", href: "/admin/pyqs", icon: History },
+    { name: "Job Alerts", href: "/admin/jobs", icon: Briefcase },
     { name: "Exams Hub", href: "/admin/exams", icon: BookOpen },
     { name: "Content", href: "/admin/current-affairs", icon: Newspaper },
     { name: "User Base", href: "/admin/users", icon: Users },
