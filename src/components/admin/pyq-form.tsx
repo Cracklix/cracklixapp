@@ -1,4 +1,3 @@
-
 "use client";
 
 import { addDoc, collection } from "firebase/firestore";
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, PlusCircle, History, Languages } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SUBJECTS } from "@/types";
+import { SUBJECT_LIST } from "@/types";
 
 export default function PYQForm() {
   const { toast } = useToast();
@@ -22,7 +21,7 @@ export default function PYQForm() {
     correctAnswer: "",
     exam: "Punjab Police SI",
     year: 2024,
-    subject: "Punjab GK",
+    subject: "General Knowledge",
     topic: "",
     options_en: ["", "", "", ""],
     options_pa: ["", "", "", ""],
@@ -158,7 +157,7 @@ export default function PYQForm() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-zinc-950 text-white border-white/10">
-              {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {SUBJECT_LIST.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -188,4 +187,3 @@ export default function PYQForm() {
     </div>
   );
 }
-

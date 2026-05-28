@@ -19,7 +19,7 @@ import {
   deleteQuestionFromMock,
   updateQuestionInMock
 } from "@/services/mocks";
-import { MockTest, Question, SUBJECTS } from "@/types";
+import { MockTest, Question, SUBJECT_LIST } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -189,9 +189,9 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                      <Card key={q.id} className="rounded-[40px] bg-zinc-900/30 border-white/5 overflow-hidden group hover:border-primary/30 transition-all shadow-xl">
                         <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
                             <div className="flex gap-4">
-                                <Badge className="bg-zinc-800 text-white border-none font-black px-4 py-1.5 uppercase text-[10px]">ARTIFACT #{i+1}</Badge>
-                                <Badge variant="outline" className="border-white/10 text-zinc-500 font-black px-4 py-1.5 uppercase text-[10px]">{q.subject}</Badge>
-                                <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black px-4 py-1.5 uppercase text-[10px]">KEY: {q.correctAnswer}</Badge>
+                               <Badge className="bg-zinc-800 text-white border-none font-black px-4 py-1.5 uppercase text-[10px]">ARTIFACT #{i+1}</Badge>
+                               <Badge variant="outline" className="border-white/10 text-zinc-500 font-black px-4 py-1.5 uppercase text-[10px]">{q.subject}</Badge>
+                               <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black px-4 py-1.5 uppercase text-[10px]">KEY: {q.correctAnswer}</Badge>
                             </div>
                             <div className="flex gap-2">
                                 <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(q)} className="text-zinc-600 hover:text-primary h-10 w-10 bg-black/20 rounded-xl"><Edit3 size={16} /></Button>
@@ -278,7 +278,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                       <Textarea placeholder="ਪ੍ਰਸ਼ਨ ਇੱਥੇ ਲਿਖੋ..." value={editingQuestion.pa?.question} onChange={e => setEditingQuestion({...editingQuestion, pa: {...editingQuestion.pa!, question: e.target.value}})} className="min-h-[140px] bg-zinc-900 border-white/5 rounded-2xl p-6 font-medium italic" />
                       <div className="grid gap-3">
                          {[0,1,2,3].map(i => (
-                           <Input key={i} placeholder={`ਵਿਕਲਪ ${i+1}`} value={editingQuestion.pa?.options[i]} onChange={e => {
+                           <Input key={i} placeholder={`ਵਿਕਲਪ ${i+1}`} value={editingQuestion.pa?.options?.[i] || ''} onChange={e => {
                              const opts = [...(editingQuestion.pa?.options || ['', '', '', ''])];
                              opts[i] = e.target.value;
                              setEditingQuestion({...editingQuestion, pa: {...editingQuestion.pa!, options: opts}});
@@ -304,7 +304,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                       <Select value={editingQuestion.subject} onValueChange={(val: any) => setEditingQuestion({...editingQuestion, subject: val})}>
                         <SelectTrigger className="h-12 bg-zinc-900 border-white/5 rounded-xl font-black text-xs uppercase"><SelectValue /></SelectTrigger>
                         <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-60">
-                           {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                           {SUBJECT_LIST.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                       </Select>
                    </div>

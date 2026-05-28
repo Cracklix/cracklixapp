@@ -15,7 +15,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { SUBJECTS, Subject } from '@/types';
+import { SUBJECT_LIST, Subject } from '@/types';
 
 export default function QuestionsAdminPage() {
   const { toast } = useToast();

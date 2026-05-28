@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { SUBJECTS, Question } from '@/types';
+import { SUBJECT_LIST, Question } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -202,7 +202,7 @@ function QuestionBankContent() {
               </SelectTrigger>
               <SelectContent className="bg-zinc-950 border-white/10 text-white max-h-[400px]">
                   <SelectItem value="All">Global Overview</SelectItem>
-                  {SUBJECTS.map(s => (
+                  {SUBJECT_LIST.map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
               </SelectContent>
@@ -445,7 +445,7 @@ function QuestionBankContent() {
                              <div key={i} className="space-y-2">
                                 <label className="text-[9px] font-black text-zinc-600 uppercase px-2">ਵਿਕਲਪ {i+1}</label>
                                 <Input 
-                                  value={editingQuestion.pa?.options[i] || ''} 
+                                  value={editingQuestion.pa?.options?.[i] || ''} 
                                   onChange={e => {
                                     const opts = [...(editingQuestion.pa?.options || ['', '', '', ''])];
                                     opts[i] = e.target.value;
@@ -473,7 +473,7 @@ function QuestionBankContent() {
                               <Select value={editingQuestion.subject} onValueChange={(v: any) => setEditingQuestion({...editingQuestion, subject: v})}>
                                  <SelectTrigger className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
                                  <SelectContent className="bg-zinc-950 border-white/10 text-white">
-                                    {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                    {SUBJECT_LIST.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                                  </SelectContent>
                               </Select>
                            </div>

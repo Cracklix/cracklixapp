@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, PlusCircle, Languages } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SUBJECTS, Subject } from "@/types";
+import { SUBJECT_LIST, Subject } from "@/types";
 
 export default function QuestionForm() {
   const { toast } = useToast();
@@ -27,7 +27,7 @@ export default function QuestionForm() {
     option3_pa: "",
     option4_pa: "",
     correctAnswer: "",
-    subject: "Punjab GK" as Subject,
+    subject: "General Knowledge" as Subject,
     topic: "",
     difficulty: "medium" as const,
     marks: 1,
@@ -209,7 +209,7 @@ export default function QuestionForm() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-zinc-950 border-white/10 text-white">
-              {SUBJECTS.map(s => (
+              {SUBJECT_LIST.map(s => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
             </SelectContent>
