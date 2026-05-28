@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -25,7 +24,8 @@ import {
   Languages,
   RotateCcw,
   AlertTriangle,
-  LayoutGrid
+  LayoutGrid,
+  Columns
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -52,6 +52,7 @@ export default function MockPage() {
   const [submitting, setSubmitting] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [hasConfirmedInstructions, setHasConfirmedInstructions] = useState(false);
+  const [sideBySide, setSideBySide] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -118,7 +119,7 @@ export default function MockPage() {
   const toggleReview = () => {
     const newReview = new Set(markedForReview);
     if (newReview.has(current)) newReview.delete(current);
-    else newReview.add(current);
+    else setMarkedForReview(newReview.add(current));
     setMarkedForReview(newReview);
   };
 
@@ -294,16 +295,22 @@ export default function MockPage() {
            
            <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 p-1 rounded-xl">
              <button 
-               onClick={() => setLocale('en')}
-               className={cn("px-2 md:px-3 py-1 rounded-lg text-[9px] font-black transition-all", locale === 'en' ? "bg-primary text-white" : "text-zinc-600")}
+               onClick={() => { setLocale('en'); setSideBySide(false); }}
+               className={cn("px-2 md:px-3 py-1 rounded-lg text-[9px] font-black transition-all", locale === 'en' && !sideBySide ? "bg-primary text-white" : "text-zinc-600")}
              >
                EN
              </button>
              <button 
-               onClick={() => setLocale('pa')}
-               className={cn("px-2 md:px-3 py-1 rounded-lg text-[9px] font-black transition-all", locale === 'pa' ? "bg-primary text-white" : "text-zinc-600")}
+               onClick={() => { setLocale('pa'); setSideBySide(false); }}
+               className={cn("px-2 md:px-3 py-1 rounded-lg text-[9px] font-black transition-all", locale === 'pa' && !sideBySide ? "bg-primary text-white" : "text-zinc-600")}
              >
                ਪੰ
+             </button>
+             <button 
+               onClick={() => setSideBySide(!sideBySide)}
+               className={cn("px-2 md:px-3 py-1 rounded-lg text-[9px] font-black transition-all flex items-center gap-1", sideBySide ? "bg-primary text-white" : "text-zinc-600")}
+             >
+               <Columns size={10} /> SIDE
              </button>
            </div>
 
@@ -352,7 +359,7 @@ export default function MockPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Question Area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-10 lg:p-16 scroll-smooth bg-[#0a0a0c]">
-          <div className="max-w-4xl mx-auto space-y-8 pb-32">
+          <div className="max-w-6xl mx-auto space-y-8 pb-32">
             <div className="flex justify-between items-center border-b border-white/5 pb-4">
                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary tracking-[0.15em]">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -375,6 +382,7 @@ export default function MockPage() {
                   question={questions[current]} 
                   selected={answers[current] || null} 
                   onSelect={selectAnswer} 
+                  sideBySide={sideBySide}
                 />
               </motion.div>
             </AnimatePresence>

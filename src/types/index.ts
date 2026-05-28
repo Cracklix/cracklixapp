@@ -71,6 +71,7 @@ export interface Question {
   usageCount?: number;
   isMath?: boolean;
   source?: string;
+  ocrConfidence?: number;
   createdAt?: number;
 }
 

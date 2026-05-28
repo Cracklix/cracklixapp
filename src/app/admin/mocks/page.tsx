@@ -36,6 +36,14 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const EXAM_PRESETS = {
+  "PSSSB Excise Inspector": [
+    { subject: "Current Affairs", count: 25 },
+    { subject: "Punjab GK", count: 15 },
+    { subject: "Reasoning", count: 15 },
+    { subject: "Quant", count: 20 },
+    { subject: "English", count: 15 },
+    { subject: "Punjabi", count: 10 }
+  ],
   "Punjab Police SI": [
     { subject: "Punjab GK", count: 20 },
     { subject: "Quant", count: 20 },
@@ -66,14 +74,14 @@ const EXAM_PRESETS = {
 export default function MockFactoryPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [exam, setExam] = useState("Punjab Police SI");
+  const [exam, setExam] = useState("PSSSB Excise Inspector");
   const [title, setTitle] = useState("");
-  const [duration, setDuration] = useState(90);
+  const [duration, setDuration] = useState(120);
   const [penalty, setPenalty] = useState(0.25);
   const [isPremium, setIsPremium] = useState(true);
   
   // Smart Generator State
-  const [blueprints, setBlueprints] = useState<{subject: Subject, count: number}[]>(EXAM_PRESETS["Punjab Police SI"]);
+  const [blueprints, setBlueprints] = useState<{subject: Subject, count: number}[]>(EXAM_PRESETS["PSSSB Excise Inspector"]);
 
   // Manual Builder State
   const [bankQuestions, setBankQuestions] = useState<Question[]>([]);
@@ -105,6 +113,7 @@ export default function MockFactoryPage() {
     setBlueprints(EXAM_PRESETS[presetName] as any);
     setExam(presetName);
     setTitle(`${presetName} Full Mock - ${new Date().toLocaleDateString()}`);
+    if (presetName === "PSSSB Excise Inspector") setDuration(120);
   };
 
   async function handleSmartGenerate() {
@@ -256,7 +265,7 @@ export default function MockFactoryPage() {
                <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Simulation Title</p>
                   <Input 
-                    placeholder="e.g. Police SI Mega Mock #1" 
+                    placeholder="e.g. Excise Inspector Mega Mock #1" 
                     value={title} 
                     onChange={e => setTitle(e.target.value)}
                     className="bg-black/40 border-white/5 h-12 rounded-xl font-bold"
@@ -265,7 +274,7 @@ export default function MockFactoryPage() {
                <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-1">Target Cluster</p>
                   <Input 
-                    placeholder="e.g. Punjab Police" 
+                    placeholder="e.g. PSSSB" 
                     value={exam} 
                     onChange={e => setExam(e.target.value)}
                     className="bg-black/40 border-white/5 h-12 rounded-xl font-bold"

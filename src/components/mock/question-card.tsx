@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -16,20 +15,24 @@ interface QuestionCardProps {
   question: any;
   selected: string | null;
   onSelect: (option: string) => void;
+  sideBySide?: boolean;
 }
 
 export default function QuestionCard({
   question,
   selected,
   onSelect,
+  sideBySide = false,
 }: QuestionCardProps) {
   const { locale } = useI18n();
   const { user } = useAuth();
   const [isBookmarked, setIsBookmarked] = useState(false);
   
-  // High-performance bilingual switching
-  const qText = locale === 'pa' ? (question.question_pa || question.question) : (question.question_en || question.question);
-  const options = locale === 'pa' ? (question.options_pa || question.options) : (question.options_en || question.options);
+  // High-performance bilingual logic
+  const enText = question.question_en || question.question;
+  const paText = question.question_pa || "";
+  const enOptions = question.options_en || question.options || [];
+  const paOptions = question.options_pa || [];
 
   const toggleBookmark = async () => {
     if (!user) return;
@@ -39,7 +42,7 @@ export default function QuestionCard({
       await updateDoc(userRef, {
         bookmarks: arrayUnion({
           id: question.id,
-          text: qText,
+          text: enText,
           subject: question.subject,
           type: 'question',
           savedAt: Date.now()
@@ -59,10 +62,24 @@ export default function QuestionCard({
 
       <div className="relative z-10 space-y-8 md:space-y-12">
         <div className="flex items-start justify-between">
-           <div className="space-y-4">
-              <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-white tracking-tight">
-                {qText}
-              </h2>
+           <div className="space-y-4 flex-1">
+              <div className={cn("grid gap-8", sideBySide ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+                <div className="space-y-4">
+                   <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[8px] font-black uppercase px-2 py-0.5 tracking-widest">English</Badge>
+                   <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-white tracking-tight">
+                     {enText}
+                   </h2>
+                </div>
+                {(sideBySide || locale === 'pa') && paText && (
+                  <div className="space-y-4 border-l border-white/5 pl-8 lg:pl-10">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black uppercase px-2 py-0.5 tracking-widest">Punjabi</Badge>
+                    <h2 className="text-xl md:text-2xl font-medium leading-relaxed text-zinc-300 tracking-tight">
+                      {paText}
+                    </h2>
+                  </div>
+                )}
+              </div>
+              
               <div className="flex flex-wrap gap-2 pt-2">
                  <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase px-2 py-0.5 tracking-widest">
                    {question.subject}
@@ -78,16 +95,17 @@ export default function QuestionCard({
              variant="ghost" 
              size="icon" 
              onClick={toggleBookmark} 
-             className={cn("rounded-xl h-10 w-10 shrink-0 transition-colors", isBookmarked ? "text-primary bg-primary/10" : "text-zinc-600 hover:bg-white/5")}
+             className={cn("rounded-xl h-10 w-10 shrink-0 transition-colors ml-4", isBookmarked ? "text-primary bg-primary/10" : "text-zinc-600 hover:bg-white/5")}
            >
               <Bookmark className={cn("w-5 h-5", isBookmarked && "fill-current")} />
            </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {options.map((option: string, idx: number) => {
+          {enOptions.map((option: string, idx: number) => {
             const isSelected = selected === option;
-            const letter = String.fromCharCode(65 + idx); // A, B, C, D
+            const letter = String.fromCharCode(65 + idx);
+            const paOption = paOptions[idx] || "";
             
             return (
               <button
@@ -106,7 +124,12 @@ export default function QuestionCard({
                 )}>
                   {letter}
                 </div>
-                <span className="font-bold text-sm md:text-base">{option}</span>
+                <div className="flex flex-col gap-1">
+                   <span className="font-bold text-sm md:text-base">{option}</span>
+                   {(sideBySide || locale === 'pa') && paOption && (
+                     <span className="text-xs text-zinc-500 font-medium">{paOption}</span>
+                   )}
+                </div>
               </button>
             );
           })}
