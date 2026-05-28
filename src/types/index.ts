@@ -32,8 +32,8 @@ export type Subject =
 export const SUBJECTS: Subject[] = [
   'Punjab GK', 'Quant', 'Reasoning', 'English', 'Punjabi', 'Hindi', 'Sanskrit',
   'Computer', 'Current Affairs', 'General Science', 'History', 
-  | 'Polity', 'Geography', 'Agriculture', 'Static GK', 
-  | 'Law/Constitution', 'Environment', 'Child Development & Pedagogy',
+  'Polity', 'Geography', 'Agriculture', 'Static GK', 
+  'Law/Constitution', 'Environment', 'Child Development & Pedagogy',
   'EVS', 'Social Science', 'Science', 'Teaching Aptitude'
 ];
 
@@ -133,6 +133,7 @@ export interface ExamAttempt {
   accuracy?: number;
   cheatFlags: number;
   deviceInfo: string;
+  language?: string;
 }
 
 export interface AttemptAnswer {

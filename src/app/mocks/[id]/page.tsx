@@ -38,6 +38,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { AttemptAnswer, QuestionStatus } from "@/types";
+import { increment } from "firebase/firestore";
 
 export default function MockPage() {
   const { user, profile } = useAuth();
@@ -54,10 +55,9 @@ export default function MockPage() {
   const [visited, setVisited] = useState<Set<number>>(new Set([0]));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [hasConfirmed, setHasConfirmed] = useState(false);
   const [sideBySide, setSideBySide] = useState(false);
-  const [activeLang, setActiveLang] = useState<'en' | 'hi' | 'pa'>('en');
+  const [activeLang, setActiveLang] = useState<'en' | 'pa' | 'hi'>('en');
   const [attemptId, setAttemptId] = useState<string | null>(null);
 
   const testStartTime = useRef<number>(Date.now());
@@ -83,7 +83,7 @@ export default function MockPage() {
           }
           if (state.answers) setAnswers(state.answers);
           setCurrent(state.currentQuestionIndex || 0);
-          setPhase('test'); // Resume automatically if ongoing
+          setPhase('test');
         }
       } catch (error: any) {
         toast({ title: "Portal Busy", description: error.message, variant: "destructive" });
@@ -95,9 +95,8 @@ export default function MockPage() {
     init();
 
     const handleVisibility = () => {
-      if (document.hidden && phase === 'test') {
-        setTabSwitchCount(prev => prev + 1);
-        updateAttemptActivity(attemptId!, { cheatFlags: increment(1) });
+      if (document.hidden && phase === 'test' && attemptId) {
+        updateAttemptActivity(attemptId, { cheatFlags: increment(1) });
         toast({ title: "Protocol Alert", description: "Tab switching is monitored.", variant: "destructive" });
       }
     };

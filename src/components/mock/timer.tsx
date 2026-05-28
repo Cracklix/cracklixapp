@@ -7,18 +7,27 @@ import { cn } from "@/lib/utils";
 interface TimerProps {
   duration: number; // in minutes
   onFinish: () => void;
+  expiresAt?: number;
 }
 
 export default function Timer({
   duration,
   onFinish,
+  expiresAt,
 }: TimerProps) {
-  // Use a ref to store original end time to handle refreshes
   const [timeLeft, setTimeLeft] = useState(duration * 60);
 
   useEffect(() => {
-    // Check if we have a stored expiry for this mock session
-    // In production, we'd sync this from the attempt record
+    const calculateTime = () => {
+      if (expiresAt) {
+        const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+        return remaining;
+      }
+      return duration * 60;
+    };
+
+    setTimeLeft(calculateTime());
+
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -31,7 +40,7 @@ export default function Timer({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [onFinish]);
+  }, [duration, expiresAt, onFinish]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

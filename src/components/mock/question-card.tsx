@@ -50,7 +50,7 @@ export default function QuestionCard({
     if (!user) return;
     try {
       const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
+      updateDoc(userRef, {
         bookmarks: arrayUnion({
           id: question.id,
           text: question.question_en,
@@ -58,7 +58,7 @@ export default function QuestionCard({
           type: 'question',
           savedAt: Date.now()
         })
-      });
+      }).catch(() => {});
       toast({ title: "Signal Indexed", description: "Artifact saved for revision." });
     } catch (e) {
       console.error(e);
