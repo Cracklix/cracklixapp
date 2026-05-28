@@ -1,0 +1,72 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account and performance metrics.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "xp": { "type": "number" },
+        "streak": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Exam": {
+      "title": "Exam",
+      "description": "Government or entrance exam details.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "totalMocks": { "type": "number" },
+        "activeStudents": { "type": "number" },
+        "language": { "type": "array", "items": { "type": "string" } },
+        "icon": { "type": "string" },
+        "premium": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["email", "google"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Student profiles and statistics."
+    },
+    "/exams/{examId}": {
+      "schema": "Exam",
+      "description": "Available exam categories and metadata."
+    },
+    "/subjects/{subjectId}": {
+      "schema": "object",
+      "description": "Subject categories."
+    },
+    "/topics/{topicId}": {
+      "schema": "object",
+      "description": "Specific study topics."
+    },
+    "/leaderboards/{rankId}": {
+      "schema": "object",
+      "description": "Ranking data."
+    },
+    "/analytics/{statId}": {
+      "schema": "object",
+      "description": "Usage and performance analytics."
+    },
+    "/notifications/{notifId}": {
+      "schema": "object",
+      "description": "User notifications."
+    },
+    "/vacancies/{vacancyId}": {
+      "schema": "object",
+      "description": "Job vacancy updates."
+    }
+  }
+}
