@@ -16,6 +16,15 @@ export interface UserProfile {
   referralCode?: string;
   targetExam?: string;
   createdAt: number;
+  bookmarks?: BookmarkItem[];
+}
+
+export interface BookmarkItem {
+  id: string;
+  text: string;
+  subject: string;
+  type: 'question' | 'article';
+  savedAt: number;
 }
 
 export interface Exam {
@@ -30,6 +39,9 @@ export interface Exam {
   premium: boolean;
   duration?: number;
   totalMarks?: number;
+  eligibility?: string;
+  salary?: string;
+  createdAt?: number;
 }
 
 export interface Question {
@@ -45,6 +57,11 @@ export interface Question {
   marks: number;
   pyq: boolean;
   year?: number;
+  explanation_en?: string;
+  explanation_pa?: string;
+  qualityScore?: number;
+  status?: 'draft' | 'published';
+  createdAt?: number;
 }
 
 export interface MockTest {
@@ -56,6 +73,7 @@ export interface MockTest {
   negativeMarking: number;
   premium: boolean;
   published: boolean;
+  aiGenerated?: boolean;
   createdAt: number;
 }
 
@@ -73,4 +91,17 @@ export interface LiveRank {
   score: number;
   accuracy: number;
   district?: string;
+}
+
+export interface JobAlert {
+  id: string;
+  title: string;
+  department: string;
+  postCount: number;
+  lastDate: number;
+  applyUrl: string;
+  category: string;
+  status: 'active' | 'closed';
+  type: 'vacancy' | 'result' | 'admit_card' | 'notice';
+  createdAt: number;
 }

@@ -1,16 +1,14 @@
-
 "use client";
 
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useState } from "react";
+import { addQuestion } from "@/services/questions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, History, Star, Languages } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, PlusCircle, Languages } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function QuestionForm() {
@@ -30,7 +28,7 @@ export default function QuestionForm() {
     correctAnswer: "",
     subject: "Punjab GK",
     topic: "",
-    difficulty: "medium",
+    difficulty: "medium" as const,
     marks: 1,
     pyq: false,
     year: new Date().getFullYear(),
@@ -38,7 +36,7 @@ export default function QuestionForm() {
     qualityScore: 80,
     explanation_en: "",
     explanation_pa: "",
-    status: "published"
+    status: "published" as const
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -53,11 +51,10 @@ export default function QuestionForm() {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, "questions"), {
+      await addQuestion({
         ...formData,
         options_en: [formData.option1_en, formData.option2_en, formData.option3_en, formData.option4_en],
         options_pa: [formData.option1_pa, formData.option2_pa, formData.option3_pa, formData.option4_pa],
-        createdAt: Date.now(),
       });
 
       toast({ title: "Success", description: "Bilingual question added to bank." });
@@ -187,7 +184,7 @@ export default function QuestionForm() {
         </div>
         <div className="space-y-2">
           <Label>Difficulty</Label>
-          <Select value={formData.difficulty} onValueChange={v => setFormData({...formData, difficulty: v})}>
+          <Select value={formData.difficulty} onValueChange={(v: any) => setFormData({...formData, difficulty: v})}>
             <SelectTrigger className="bg-zinc-800/50 border-white/5 h-12">
               <SelectValue />
             </SelectTrigger>

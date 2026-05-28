@@ -14,9 +14,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'CRACKLIX | Punjab’s AI-Powered Government Exam Platform',
-  description: 'The elite learning ecosystem for PPSC, Punjab Police, and PSSSB exams. Featuring AI Performance Coaching, Bilingual (Punjabi + English) CBT simulations, and real-time District Rankings.',
-  keywords: ['Punjab Exams', 'PPSC PCS', 'PSSSB Clerk', 'Punjab Police SI Prep', 'Mock Tests Punjab', 'AI Coaching', 'Punjab GK', 'Punjabi Language Exam'],
+  title: 'CRACKLIX | Punjab’s #1 AI-Powered Exam Ecosystem',
+  description: 'The elite learning platform for PPSC, Punjab Police, and PSSSB exams. Featuring AI Performance Coaching, Bilingual CBT simulations, and real-time District Rankings.',
+  keywords: ['Punjab Exams', 'PPSC PCS', 'PSSSB Clerk', 'Punjab Police SI Prep', 'Mock Tests Punjab', 'AI Coaching', 'Punjab GK', 'Raavi Typing Test'],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -29,6 +29,14 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     siteName: 'CRACKLIX',
+    images: [
+      {
+        url: 'https://picsum.photos/seed/cracklix/1200/630',
+        width: 1200,
+        height: 630,
+        alt: 'CRACKLIX Banner',
+      }
+    ]
   }
 };
 
