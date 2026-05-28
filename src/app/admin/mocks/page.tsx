@@ -5,10 +5,9 @@ import AdminSidebar from "@/components/admin/sidebar";
 import AdminProtect from "@/components/admin/admin-protect";
 import { 
   Plus, Zap, Loader2, Search, BookOpen, 
-  Trash2, Edit3, PlayCircle, Lock, Unlock, 
-  Database, BarChart3, RefreshCw, AlertCircle,
-  MoreVertical, ShieldCheck, Crown, ExternalLink,
-  ChevronRight, LayoutGrid, CheckCircle2, XCircle, Copy
+  Trash2, Edit3, PlayCircle, Lock, 
+  Database, RefreshCw,
+  LayoutGrid, XCircle, Copy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +39,7 @@ import {
 } from "@/components/ui/table";
 
 /**
- * PRODUCTION MOCK DASHBOARD v30.0
- * Features: Full CRUD, Tier management, Quick Publish, and Mock Cloning.
+ * PRODUCTION MOCK REGISTRY v30.0 (Institutional Standard)
  */
 export default function MockDashboardPage() {
   const { toast } = useToast();
@@ -49,7 +47,6 @@ export default function MockDashboardPage() {
   const [mocks, setMocks] = useState<MockTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMocks();
@@ -68,10 +65,9 @@ export default function MockDashboardPage() {
   }
 
   const handleAction = async (mockId: string, action: 'delete' | 'publish' | 'tier' | 'clone', value?: any) => {
-    setProcessingId(`${mockId}-${action}`);
     try {
       if (action === 'delete') {
-        if (!confirm("Confirm complete purging of this simulation artifact?")) return;
+        if (!confirm("Confirm complete purging of this simulation?")) return;
         await deleteMock(mockId);
         toast({ title: "Mock Purged" });
       } else if (action === 'publish') {
@@ -83,14 +79,12 @@ export default function MockDashboardPage() {
         toast({ title: "Tier Updated" });
       } else if (action === 'clone') {
         const newId = await cloneMock(mockId);
-        toast({ title: "Mock Cloned", description: "Identity duplicated successfully." });
+        toast({ title: "Simulation Cloned" });
         router.push(`/admin/mocks/${newId}`);
       }
       await loadMocks();
     } catch (e: any) {
       toast({ title: "Operation Failed", description: e.message, variant: "destructive" });
-    } finally {
-      setProcessingId(null);
     }
   };
 
@@ -109,14 +103,14 @@ export default function MockDashboardPage() {
             <header className="flex justify-between items-end border-b border-white/5 pb-8">
               <div className="space-y-1">
                 <h1 className="font-headline text-4xl font-black tracking-tighter uppercase leading-none">Simulation Registry</h1>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Enterprise Test Lifecycle Management</p>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Testbook-Style Lifecycle Management</p>
               </div>
               <div className="flex gap-4">
                  <Button variant="outline" onClick={loadMocks} className="h-14 rounded-2xl border-white/10 hover:bg-white/5 px-6">
                     <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                  </Button>
                  <Button onClick={() => router.push('/admin/mock-generator')} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] uppercase tracking-widest blue-glow">
-                    <Plus className="mr-2 w-4 h-4" /> Create Mock Test
+                    <Plus className="mr-2 w-4 h-4" /> Create Mock
                  </Button>
               </div>
             </header>
@@ -125,21 +119,11 @@ export default function MockDashboardPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-5 top-4 w-5 h-5 text-zinc-600" />
                 <Input 
-                  placeholder="Audit by title, exam, or board..." 
+                  placeholder="Scan by title or board..." 
                   className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl pl-14 font-bold text-sm"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-              </div>
-              <div className="hidden lg:flex gap-6 px-8 border-l border-white/5">
-                 <div className="text-right">
-                    <p className="text-[10px] font-black text-zinc-600 uppercase">Live</p>
-                    <p className="text-xl font-black text-emerald-500">{mocks.filter(m => m.status === 'published').length}</p>
-                 </div>
-                 <div className="text-right">
-                    <p className="text-[10px] font-black text-zinc-600 uppercase">Staging</p>
-                    <p className="text-xl font-black text-orange-500">{mocks.filter(m => m.status === 'draft').length}</p>
-                 </div>
               </div>
             </div>
 
@@ -147,9 +131,9 @@ export default function MockDashboardPage() {
                <Table>
                  <TableHeader className="bg-zinc-900/60 border-b border-white/5">
                    <TableRow className="hover:bg-transparent border-none">
-                     <TableHead className="px-10 py-6 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500">Mock Identity</TableHead>
+                     <TableHead className="px-10 py-6 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500">Simulation Signal</TableHead>
                      <TableHead className="px-10 py-6 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500 text-center">Artifacts</TableHead>
-                     <TableHead className="px-10 py-6 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500">Entitlement</TableHead>
+                     <TableHead className="px-10 py-6 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500">Tier</TableHead>
                      <TableHead className="px-10 py-6 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500">Status</TableHead>
                      <TableHead className="px-10 py-6 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-500 text-right">Actions</TableHead>
                    </TableRow>
@@ -170,7 +154,7 @@ export default function MockDashboardPage() {
                        </TableCell>
                        <TableCell className="px-10 py-8 text-center">
                           <p className="text-base font-black text-white">{m.totalQuestions || 0}</p>
-                          <p className="text-[9px] font-bold text-zinc-600 uppercase">{m.attemptCount || 0} Sessions</p>
+                          <p className="text-[9px] font-bold text-zinc-600 uppercase">{m.attemptCount || 0} Attempts</p>
                        </TableCell>
                        <TableCell className="px-10 py-8">
                           <Select defaultValue={m.accessType} onValueChange={(val) => handleAction(m.id, 'tier', val)}>
@@ -196,39 +180,15 @@ export default function MockDashboardPage() {
                        <TableCell className="px-10 py-8 text-right">
                           <div className="flex justify-end gap-3">
                              <Button onClick={() => router.push(`/admin/mocks/${m.id}`)} className="h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 font-black text-[9px] uppercase tracking-widest shadow-lg">
-                                <Edit3 size={14} className="mr-2" /> CALIBRATE
+                                <Edit3 size={14} className="mr-2" /> OPEN
                              </Button>
-                             <Button 
-                               onClick={() => handleAction(m.id, 'clone')} 
-                               variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5"
-                               title="Clone Simulation"
-                             >
-                                <Copy size={18} className="text-zinc-400" />
-                             </Button>
-                             <Button 
-                               onClick={() => handleAction(m.id, 'publish', m.status === 'draft')} 
-                               variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5"
-                             >
-                                {m.status === 'draft' ? <PlayCircle size={18} className="text-emerald-500" /> : <XCircle size={18} className="text-orange-500" />}
-                             </Button>
-                             <Button 
-                               onClick={() => handleAction(m.id, 'delete')} 
-                               variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-red-500/10 text-red-500"
-                             >
-                                <Trash2 size={18} />
-                             </Button>
+                             <Button onClick={() => handleAction(m.id, 'clone')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5" title="Clone Mock"><Copy size={18} className="text-zinc-400" /></Button>
+                             <Button onClick={() => handleAction(m.id, 'publish', m.status === 'draft')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5">{m.status === 'draft' ? <PlayCircle size={18} className="text-emerald-500" /> : <XCircle size={18} className="text-orange-500" />}</Button>
+                             <Button onClick={() => handleAction(m.id, 'delete')} variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-red-500/10 text-red-500"><Trash2 size={18} /></Button>
                           </div>
                        </TableCell>
                      </TableRow>
                    ))}
-                   {filtered.length === 0 && !loading && (
-                     <TableRow>
-                        <TableCell colSpan={5} className="py-40 text-center opacity-30">
-                           <LayoutGrid size={40} className="mx-auto mb-4" />
-                           <p className="text-[10px] font-black uppercase tracking-[0.4em]">Signal Buffer Empty</p>
-                        </TableCell>
-                     </TableRow>
-                   )}
                  </TableBody>
                </Table>
             </div>
@@ -238,3 +198,5 @@ export default function MockDashboardPage() {
     </AdminProtect>
   );
 }
+
+import { PlayCircle } from "lucide-react";

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState, useCallback, use } from "react";
+import { useRouter } from "next/navigation";
 import { 
   getMockDetails, 
   getMockQuestions, 
@@ -13,45 +13,38 @@ import {
 import QuestionCard from "@/components/mock/question-card";
 import PaletteDrawer from "@/components/mock/palette-drawer";
 import Timer from "@/components/mock/timer";
-import { generateAnalytics } from "@/services/analytics-engine";
+import { calculateAttemptMetrics } from "@/services/analytics-engine";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
   ArrowLeft, 
   Menu,
-  ChevronRight,
   ShieldCheck,
   Globe,
-  Clock,
-  Target,
-  AlertTriangle,
   CheckCircle2,
-  XCircle,
-  LayoutGrid
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer, ExamAttempt, LanguageMode } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /**
- * INSTITUTIONAL CBT ENGINE v30.1
- * Rebuilt for extreme robustness and real-time state synchronization.
+ * INSTITUTIONAL CBT ENGINE v30.5 (Production Rebuild)
  */
-export default function CBTEngineV30() {
+export default function CBTEngineV30({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
+  const mockId = unwrappedParams.id;
+  
   const { user, profile } = useAuth();
   const router = useRouter();
-  const params = useParams();
-  const mockId = params?.id as string;
   const { toast } = useToast();
   
-  // States
   const [phase, setPhase] = useState<'booting' | 'gateway' | 'exam' | 'submitting'>('booting');
   const [mock, setMock] = useState<MockTest | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -63,7 +56,6 @@ export default function CBTEngineV30() {
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
 
-  // Sync Logic
   const bootSession = useCallback(async () => {
     if (!user || !mockId) return;
     try {
@@ -95,11 +87,20 @@ export default function CBTEngineV30() {
     bootSession();
   }, [bootSession]);
 
-  // Real-time Autosave (Every 10 seconds)
   useEffect(() => {
     if (phase !== 'exam' || !attempt?.id) return;
-
     const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          handleSubmitFinal();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    const syncInterval = setInterval(() => {
       saveAnswer(attempt.id, 'meta_sync', {
         remainingTime: timeRemaining,
         currentQuestionIndex: current,
@@ -107,7 +108,10 @@ export default function CBTEngineV30() {
       } as any);
     }, 10000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearInterval(syncInterval);
+    };
   }, [phase, attempt?.id, timeRemaining, current]);
 
   const handleStartExam = async () => {
@@ -116,17 +120,7 @@ export default function CBTEngineV30() {
     try {
       if (!attempt) {
         const id = await startAttempt(user.uid, mock);
-        setAttempt({ 
-          id, 
-          userId: user.uid, 
-          mockId: mock.id,
-          mockTitle: mock.title,
-          answers: {}, 
-          currentQuestionIndex: 0, 
-          status: 'ongoing', 
-          startedAt: Date.now(), 
-          remainingTime: mock.duration * 60 
-        } as any);
+        setAttempt({ id } as any);
       }
       setPhase('exam');
     } catch (e) {
@@ -152,7 +146,7 @@ export default function CBTEngineV30() {
     if (!user || !attempt?.id || !mock) return;
     setPhase('submitting');
     try {
-      const analytics = generateAnalytics({ questions, answers, mock });
+      const analytics = calculateAttemptMetrics(questions, answers, mock, timeRemaining);
       await finalizeAttempt(user.uid, attempt.id, analytics);
       router.push(`/mocks/result/${attempt.id}`);
     } catch (e) {
@@ -192,7 +186,6 @@ export default function CBTEngineV30() {
                         <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> Each correct answer gains <strong>1 mark</strong>.</p>
                         <p className="flex gap-4"><AlertTriangle className="text-red-500 shrink-0 mt-1" size={18} /> Penalty of <strong>{mock?.negativeMarking} marks</strong> for incorrect responses.</p>
                         <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> The exam uses real-time auto-save technology.</p>
-                        <p className="flex gap-4"><AlertTriangle className="text-orange-500 shrink-0 mt-1" size={18} /> Tab switching or window minimization will trigger a security warning.</p>
                      </div>
                   </div>
                </div>
@@ -217,24 +210,6 @@ export default function CBTEngineV30() {
                </div>
             </div>
          </main>
-      </div>
-    );
-  }
-
-  // Final exam safety check for empty data
-  if (questions.length === 0 && phase === 'exam') {
-    return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center text-center p-10 gap-6">
-         <div className="w-20 h-20 rounded-[32px] bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm">
-            <AlertTriangle className="text-orange-400 w-10 h-10" />
-         </div>
-         <div className="space-y-2">
-            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Simulation Data Empty</h2>
-            <p className="text-slate-500 max-w-sm">The selected simulation does not contain any valid artifacts. Please contact administration.</p>
-         </div>
-         <Button variant="outline" className="rounded-xl px-10 h-12 font-bold" onClick={() => router.push('/exams')}>
-            Return to Hub
-         </Button>
       </div>
     );
   }
@@ -272,17 +247,6 @@ export default function CBTEngineV30() {
           </div>
        </header>
 
-       <div className="h-12 bg-white border-b border-slate-200 flex items-center px-10 shrink-0 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-10 whitespace-nowrap">
-             <button className="h-full border-b-4 border-blue-600 flex items-center px-2">
-                <span className="text-[11px] font-black uppercase tracking-widest text-blue-600">All Sections</span>
-             </button>
-             <button className="h-full border-b-4 border-transparent flex items-center px-2 hover:border-slate-200">
-                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Review Questions</span>
-             </button>
-          </div>
-       </div>
-
        <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 overflow-y-auto no-scrollbar p-6 md:p-12 bg-white relative">
              <div className="max-w-5xl mx-auto space-y-12 pb-24">
@@ -292,16 +256,6 @@ export default function CBTEngineV30() {
                          {questions[current]?.subject || 'GENERAL STUDIES'}
                       </Badge>
                       <Badge variant="outline" className="border-slate-200 text-slate-400 text-[10px] font-bold">Q {current + 1}</Badge>
-                   </div>
-                   <div className="flex items-center gap-6 hidden sm:flex">
-                      <div className="flex items-center gap-2 text-slate-400">
-                         <Target size={14} />
-                         <span className="text-[10px] font-bold uppercase">{questions[current]?.difficulty}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-emerald-500 font-black">
-                         <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px]">+1.0</Badge>
-                         <Badge variant="outline" className="border-red-100 text-red-500 text-[10px]">-{mock?.negativeMarking}</Badge>
-                      </div>
                    </div>
                 </div>
 
@@ -320,61 +274,11 @@ export default function CBTEngineV30() {
                 </AnimatePresence>
              </div>
           </main>
-
-          <aside className="w-[340px] bg-slate-50 border-l border-slate-200 hidden lg:flex flex-col shrink-0">
-             <div className="p-8 border-b border-white bg-white">
-                <div className="flex items-center gap-4 mb-6">
-                   <Avatar className="h-12 w-12 border-2 border-white shadow-xl">
-                      <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/200`} />
-                      <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
-                   </Avatar>
-                   <div>
-                      <p className="text-sm font-black text-slate-800 uppercase leading-none">{profile?.name || 'Aspirant'}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {user?.uid.substring(0, 8)}</p>
-                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                   <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-100">
-                      <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Answered</p>
-                      <p className="text-xl font-black text-emerald-700">{Object.keys(answers).length}</p>
-                   </div>
-                   <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100">
-                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Marked</p>
-                      <p className="text-xl font-black text-blue-700">0</p>
-                   </div>
-                </div>
-             </div>
-
-             <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
-                <div className="grid grid-cols-5 gap-3">
-                   {questions.map((q, i) => (
-                      <button
-                        key={q.id}
-                        onClick={() => setCurrent(i)}
-                        className={cn(
-                          "h-11 w-full rounded-xl font-black text-xs transition-all border flex items-center justify-center",
-                          answers[q.id] ? "bg-emerald-500 text-white border-emerald-600 shadow-lg" : "bg-white text-slate-400 border-slate-200",
-                          current === i && "ring-4 ring-blue-600/10 border-blue-600 text-blue-600 scale-110 z-10"
-                        )}
-                      >
-                        {i + 1}
-                      </button>
-                   ))}
-                </div>
-             </div>
-             
-             <div className="p-8 border-t border-slate-200 bg-white">
-                <Button onClick={() => setSubmitConfirmOpen(true)} className="w-full h-14 rounded-2xl bg-[#1e293b] hover:bg-black text-white font-black text-xs uppercase tracking-[0.3em] shadow-2xl">
-                   CONFIRM SUBMIT
-                </Button>
-             </div>
-          </aside>
        </div>
 
        <footer className="h-[75px] px-6 md:px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
           <div className="flex gap-4">
              <Button variant="outline" className="rounded-xl h-11 px-4 md:px-8 border-slate-200 font-black text-[11px] uppercase tracking-widest text-slate-600">Review</Button>
-             <Button variant="ghost" onClick={() => handleOptionSelect('')} className="rounded-xl h-11 px-4 md:px-6 font-black text-[11px] uppercase tracking-widest text-red-500 hidden sm:flex">Clear</Button>
           </div>
           <div className="flex gap-4 md:gap-6 items-center">
              <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-slate-600 disabled:opacity-0">Back</button>
@@ -391,16 +295,6 @@ export default function CBTEngineV30() {
                <DialogTitle className="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">End Assessment?</DialogTitle>
                <DialogDescription className="text-slate-500 text-lg font-medium text-center">Verified signals will be transmitted for performance audit.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-8 border-y border-slate-100 my-6">
-               <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Answered</p>
-                  <p className="text-2xl font-black text-emerald-600">{Object.keys(answers).length}</p>
-               </div>
-               <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Remaining</p>
-                  <p className="text-2xl font-black text-slate-300">{questions.length - Object.keys(answers).length}</p>
-               </div>
-            </div>
             <DialogFooter className="gap-4 flex flex-col sm:flex-row mt-6">
                <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-16 rounded-2xl flex-1 font-black">RESUME</Button>
                <Button onClick={handleSubmitFinal} className="h-16 rounded-2xl flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black">FINAL SUBMIT</Button>

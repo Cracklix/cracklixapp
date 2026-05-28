@@ -1,66 +1,62 @@
 /**
- * Analytics Engine v11.0
- * Processes CBT attempt results with negative marking logic and cluster-based percentile estimation.
+ * PRODUCTION ANALYTICS ENGINE v30.0
+ * Processes CBT attempts with institutional scoring logic.
  */
 
-export function generateAnalytics({
-  questions,
-  answers,
-  mock
-}: {
-  questions: any[];
-  answers: Record<string, any>;
-  mock: any;
-}) {
+import { MockTest, Question, AttemptAnswer } from "@/types";
+
+export interface AnalysisResult {
+  correct: number;
+  wrong: number;
+  unattempted: number;
+  score: number;
+  accuracy: number;
+  topicPerformance: Record<string, { total: number; correct: number }>;
+  timeSpentSeconds: number;
+}
+
+export function calculateAttemptMetrics(
+  questions: Question[],
+  answers: Record<string, AttemptAnswer>,
+  mock: MockTest,
+  totalTimeSeconds: number
+): AnalysisResult {
   let correct = 0;
   let wrong = 0;
   let unattempted = 0;
-  const topicMap: Record<string, { total: number; correct: number }> = {};
+  const topicPerformance: Record<string, { total: number; correct: number }> = {};
 
-  questions.forEach((question) => {
-    const userAnswer = answers[question.id]?.selectedOption;
-    const isAttempted = userAnswer !== null && userAnswer !== undefined;
-    const isCorrect = userAnswer === question.correctAnswer;
+  questions.forEach((q) => {
+    const ans = answers[q.id];
+    const sub = q.subject || "Other";
 
-    if (!isAttempted) {
+    if (!topicPerformance[sub]) {
+      topicPerformance[sub] = { total: 0, correct: 0 };
+    }
+    topicPerformance[sub].total++;
+
+    if (!ans || !ans.selectedOption) {
       unattempted++;
     } else {
-      if (isCorrect) {
+      if (ans.selectedOption === q.correctAnswer) {
         correct++;
+        topicPerformance[sub].correct++;
       } else {
         wrong++;
       }
     }
-
-    const sub = question.subject || "General Proficiency";
-    if (!topicMap[sub]) {
-      topicMap[sub] = { total: 0, correct: 0 };
-    }
-    topicMap[sub].total++;
-    if (isCorrect) {
-      topicMap[sub].correct++;
-    }
   });
 
-  const penalty = mock.negativeMarking || 0.25;
-  const marksPerQ = 1.0;
-  const rawScore = (correct * marksPerQ) - (wrong * penalty);
+  const rawScore = (correct * (mock.totalMarks ? mock.totalMarks / questions.length : 1)) - (wrong * mock.negativeMarking);
   const accuracy = (correct + wrong) > 0 ? (correct / (correct + wrong)) * 100 : 0;
-
-  // Real-time percentile is estimated based on historical cluster data for this mock
-  // For production, this would be computed by a Cloud Function across all attempts
-  const estimatedPercentile = Math.min(99.9, Math.max(0, (rawScore / questions.length) * 100 + (Math.random() * 5)));
 
   return {
     correct,
     wrong,
     unattempted,
     score: Number(rawScore.toFixed(2)),
-    totalQuestions: questions.length,
     accuracy: Math.round(accuracy),
-    percentile: Number(estimatedPercentile.toFixed(1)),
-    topicPerformance: topicMap,
-    status: 'completed',
-    timestamp: Date.now()
+    topicPerformance,
+    timeSpentSeconds: (mock.duration * 60) - totalTimeSeconds
   };
 }

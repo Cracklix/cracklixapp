@@ -148,10 +148,25 @@ export async function saveAnswer(attemptId: string, questionId: string, answer: 
 
 export async function finalizeAttempt(userId: string, attemptId: string, analytics: any) {
   const ref = doc(db, 'attempts', attemptId);
+  
+  // Real Rank Calculation
+  const mockId = (await getDoc(ref)).data()?.mockId;
+  const participantsSnap = await getDocs(query(collection(db, 'attempts'), where('mockId', '==', mockId), where('status', '==', 'completed')));
+  const scores = participantsSnap.docs.map(d => d.data().score || 0);
+  scores.push(analytics.score);
+  scores.sort((a, b) => b - a);
+  
+  const rank = scores.indexOf(analytics.score) + 1;
+  const totalParticipants = scores.length;
+  const percentile = ((totalParticipants - rank) / totalParticipants) * 100;
+
   await updateDoc(ref, {
     status: 'completed',
     completedAt: Date.now(),
-    ...analytics
+    ...analytics,
+    rank,
+    totalParticipants,
+    percentile: Number(percentile.toFixed(1))
   });
 
   const xpGain = Math.max(20, Math.round(analytics.score || 0));
@@ -160,12 +175,11 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     streak: increment(1)
   });
 
-  // Real Merit List Update
+  // Global Leaderboard Node
   await setDoc(doc(db, 'leaderboards', userId), {
     userId,
     xp: increment(xpGain),
     lastAttemptAt: Date.now(),
-    accuracy: analytics.accuracy,
     name: (await getDoc(doc(db, 'users', userId))).data()?.name || 'Aspirant'
   }, { merge: true });
 }

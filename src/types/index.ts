@@ -105,5 +105,7 @@ export interface ExamAttempt {
   incorrectCount?: number;
   unattemptedCount?: number;
   percentile?: number;
+  rank?: number;
+  totalParticipants?: number;
   topicPerformance?: Record<string, { total: number; correct: number }>;
 }
