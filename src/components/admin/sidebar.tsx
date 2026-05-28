@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -52,6 +51,7 @@ export default function AdminSidebar() {
         { name: "Atomic Bank", href: "/admin/question-bank", icon: Database },
         { name: "Moderation Queue", href: "/admin/question-bank?view=draft", icon: ListFilter },
         { name: "Simulation Factory", href: "/admin/mocks", icon: Rocket },
+        { name: "Direct Injector", href: "/admin/direct-mock-builder", icon: Zap },
       ]
     },
     {
