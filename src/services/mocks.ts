@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -65,10 +66,6 @@ export async function publishMock(mockId: string, isPublished: boolean) {
     const pErr = new FirestorePermissionError({ path: ref.path, operation: 'update' });
     errorEmitter.emit('permission-error', pErr);
   });
-}
-
-export async function setMockLive(mockId: string, isLive: boolean) {
-  return publishMock(mockId, isLive);
 }
 
 export async function deleteMock(mockId: string) {
@@ -146,6 +143,43 @@ export async function addQuestionToMock(mockId: string, question: Partial<Questi
   batch.set(qRef, payload);
   batch.update(mockRef, { totalQuestions: increment(1), updatedAt: Date.now() });
   return batch.commit();
+}
+
+/**
+ * AUTO-LINKER: Scans global bank and ports relevant artifacts.
+ */
+export async function autoLinkFromBank(mockId: string, exam: string) {
+  const q = query(
+    collection(db, "questions"),
+    where("exam", "==", exam),
+    where("status", "==", "published"),
+    limit(50)
+  );
+  
+  const snap = await getDocs(q);
+  if (snap.empty) return 0;
+
+  const batch = writeBatch(db);
+  const mockRef = doc(db, 'mocks', mockId);
+  
+  snap.docs.forEach((d, idx) => {
+    const qData = d.data();
+    const qRef = doc(collection(db, 'mocks', mockId, 'questions'));
+    batch.set(qRef, { 
+      ...qData, 
+      id: qRef.id, 
+      order: idx, 
+      createdAt: Date.now() 
+    });
+  });
+
+  batch.update(mockRef, { 
+    totalQuestions: increment(snap.size),
+    updatedAt: Date.now() 
+  });
+
+  await batch.commit();
+  return snap.size;
 }
 
 export async function linkGlobalToMock(mockId: string, globalQuestionId: string) {

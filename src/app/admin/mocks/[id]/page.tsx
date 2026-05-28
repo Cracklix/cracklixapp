@@ -7,7 +7,8 @@ import AdminProtect from "@/components/admin/admin-protect";
 import { 
   ArrowLeft, Settings, Database, ShieldCheck, Zap, 
   BarChart3, Loader2, Save, Plus, Search, Trash2, 
-  Eye, MoreVertical, Copy, Lock, Unlock
+  Eye, MoreVertical, Copy, Lock, Unlock, Sparkles,
+  MousePointer2, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   getMockDetails, updateMock, subscribeMockQuestions,
   linkGlobalToMock, deleteMockQuestion, updateMockQuestion,
-  addQuestionToMock
+  addQuestionToMock, autoLinkFromBank
 } from "@/services/mocks";
 import { getRecentQuestions } from "@/services/questions";
 import { MockTest, Question, SUBJECTS } from "@/types";
@@ -47,6 +48,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   const [bankLoading, setBankLoading] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
   const [activeTab, setActiveTab] = useState("questions");
+  const [autoFilling, setAutoFilling] = useState(false);
   
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -102,6 +104,23 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     }
   };
 
+  const handleAutoFill = async () => {
+    if (!mock) return;
+    setAutoFilling(true);
+    try {
+      const count = await autoLinkFromBank(mockId, mock.exam);
+      if (count > 0) {
+        toast({ title: "Simulation Synthesized", description: `${count} relevant artifacts ported from bank.` });
+      } else {
+        toast({ title: "Bank Empty", description: "No artifacts found for this exam board.", variant: "destructive" });
+      }
+    } catch (e: any) {
+      toast({ title: "Synthesis Error", description: e.message, variant: "destructive" });
+    } finally {
+      setAutoFilling(false);
+    }
+  };
+
   const handleEditQuestion = (q: Question) => {
     setEditingQuestion({ ...q });
     setEditorOpen(true);
@@ -139,7 +158,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
           </div>
           <div className="p-2.5 space-y-1 flex-1">
              {[
-               { id: 'questions', label: 'Payload', icon: Database },
+               { id: 'questions', label: 'Artifacts', icon: Database },
                { id: 'metadata', label: 'Calibration', icon: Settings },
                { id: 'analytics', label: 'Metrics', icon: BarChart3 },
                { id: 'settings', label: 'Security', icon: ShieldCheck },
@@ -217,9 +236,22 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                         </div>
                       </Card>
                     )) : (
-                      <div className="py-32 text-center border-2 border-dashed border-white/5 rounded-[32px] bg-zinc-950/20">
-                         <Database className="w-12 h-12 text-zinc-800 mx-auto mb-4 opacity-20" />
-                         <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">Payload Empty</p>
+                      <div className="py-40 text-center border-2 border-dashed border-white/5 rounded-[48px] bg-zinc-950/20 space-y-8">
+                         <div className="w-20 h-20 rounded-[32px] bg-zinc-900 mx-auto flex items-center justify-center shadow-2xl">
+                            <Database className="w-10 h-10 text-zinc-800" />
+                         </div>
+                         <div className="space-y-2">
+                           <h3 className="text-2xl font-black uppercase tracking-tighter">Payload Empty</h3>
+                           <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest max-w-xs mx-auto">Link artifacts from the Atomic Bank or synthesize using AI.</p>
+                         </div>
+                         <Button 
+                           onClick={handleAutoFill} 
+                           disabled={autoFilling}
+                           className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-sm uppercase tracking-widest blue-glow shadow-2xl"
+                         >
+                            {autoFilling ? <Loader2 className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
+                            Synthesize Simulation
+                         </Button>
                       </div>
                     )}
                   </div>
@@ -281,13 +313,23 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                </div>
              ))}
           </div>
-          <div className="p-5 border-t border-white/5 space-y-2.5">
-             <div className="flex justify-between items-center text-[9px] font-black uppercase text-zinc-600 tracking-widest">
-                <span>Load Factor</span>
-                <span className="text-white">{questions.length} / {mock.totalQuestions}</span>
-             </div>
-             <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
-                <div className="h-full bg-primary transition-all duration-500" style={{ width: `${(questions.length / (mock.totalQuestions || 1)) * 100}%` }} />
+          <div className="p-5 border-t border-white/5 space-y-4">
+             <Button 
+               variant="outline" 
+               className="w-full h-10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10 text-[9px] font-black uppercase"
+               onClick={handleAutoFill}
+               disabled={autoFilling}
+             >
+                <Layers size={12} className="mr-2" /> Link Relevant
+             </Button>
+             <div className="space-y-2.5">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+                   <span>Load Factor</span>
+                   <span className="text-white">{questions.length} / {mock.totalQuestions}</span>
+                </div>
+                <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
+                   <div className="h-full bg-primary transition-all duration-500" style={{ width: `${(questions.length / (mock.totalQuestions || 1)) * 100}%` }} />
+                </div>
              </div>
           </div>
         </aside>
