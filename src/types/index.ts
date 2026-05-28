@@ -37,9 +37,10 @@ export interface QuestionContent {
 export interface Question {
   id: string;
   en: QuestionContent;
-  pa?: QuestionContent;
+  pa?: QuestionContent | null;
+  hi?: QuestionContent | null;
   correctAnswer: string; // The exact text match of the correct option in English
-  subject: Subject;
+  subject: string;
   chapter?: string;
   topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -71,11 +72,12 @@ export interface MockTest {
   status: MockStatus;
   createdAt: number;
   updatedAt: number;
-  publishedAt?: number;
+  publishedAt?: number | null;
   attemptCount?: number;
   avgScore?: number;
   questionIds?: string[]; // For quick reference if needed
   instructions?: string[];
+  aiGenerated?: boolean;
 }
 
 export interface ExamAttempt {
