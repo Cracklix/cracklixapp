@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useCallback, use } from "react";
@@ -36,6 +37,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { motion, AnimatePresence } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+/**
+ * PRODUCTION CBT ENGINE v45.0
+ * Optimized for Institutional "0-Scroll" Experience.
+ */
 export default function CBTEngineV45({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const mockId = unwrappedParams.id;
@@ -51,7 +56,6 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
   const [answers, setAnswers] = useState<Record<string, AttemptAnswer>>({});
   const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
   const [activeLang, setActiveLang] = useState<LanguageMode>('bilingual');
-  const [paletteOpen, setPaletteOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -97,6 +101,7 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
       });
     }, 1000);
 
+    // 10s Heartbeat sync
     const syncInterval = setInterval(() => {
       saveAnswer(attempt.id, 'meta_sync', {
         remainingTime: timeRemaining,
@@ -148,7 +153,6 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
   };
 
   const clearResponse = () => handleOptionSelect(null);
-
   const handleNext = () => current < questions.length - 1 && setCurrent(c => c + 1);
   const handlePrev = () => current > 0 && setCurrent(c => c - 1);
 
@@ -168,7 +172,7 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
     return (
       <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">{phase === 'booting' ? 'Initializing Arena' : 'Syncing Final Audit'}</p>
+         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Syncing Simulation Signal...</p>
       </div>
     );
   }
@@ -189,7 +193,7 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
                   <Badge className="bg-primary/20 text-primary border-none px-4 py-1 font-black uppercase text-[10px]">Protocol Baseline</Badge>
                   <h2 className="text-4xl font-black uppercase tracking-tighter">Instructions & Scheme</h2>
                </div>
-               <div className="grid md:grid-cols-2 gap-8 relative z-10">
+               <div className="grid md:grid-cols-2 gap-8 relative z-10 text-sm">
                   <div className="p-6 rounded-3xl bg-white/5 border border-white/5 space-y-2">
                      <p className="text-[9px] font-black text-zinc-500 uppercase">Duration</p>
                      <p className="text-xl font-bold">{mock?.duration} Minutes</p>
@@ -223,14 +227,14 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
 
   return (
     <div className="h-screen bg-white text-slate-900 flex flex-col overflow-hidden">
-       {/* TESTBOOK STYLE TOP BAR */}
+       {/* INSTITUTIONAL TOP BAR */}
        <header className="h-[60px] px-6 bg-[#1e293b] text-white flex items-center justify-between shrink-0 z-50">
           <div className="flex items-center gap-4">
              <Button variant="ghost" size="icon" onClick={() => setIsPaused(!isPaused)} className="rounded-xl h-9 w-9 bg-white/5 hover:bg-white/10">
                 {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
              </Button>
              <div className="h-8 w-px bg-white/10 mx-2 hidden sm:block" />
-             <h1 className="font-black text-xs uppercase tracking-tight truncate max-w-[200px]">{mock?.title}</h1>
+             <h1 className="font-black text-xs uppercase tracking-tight truncate max-w-[300px]">{mock?.title}</h1>
           </div>
           
           <div className="flex items-center gap-6">
@@ -239,7 +243,7 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
                 <SelectContent className="bg-[#1e293b] text-white border-white/10">
                    <SelectItem value="english">English</SelectItem>
                    <SelectItem value="punjabi">Punjabi</SelectItem>
-                   <SelectItem value="bilingual">EN+PA</SelectItem>
+                   <SelectItem value="bilingual">Bilingual (EN+PA)</SelectItem>
                 </SelectContent>
              </Select>
              
@@ -252,8 +256,8 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
        </header>
 
        <div className="flex-1 flex overflow-hidden">
-          {/* Main Area */}
-          <main className="flex-1 overflow-y-auto p-8 bg-slate-50 relative no-scrollbar">
+          {/* Main Area - Fixed Height for 0-Scroll */}
+          <main className="flex-1 overflow-y-auto p-6 bg-slate-50 relative no-scrollbar">
              <div className="max-w-4xl mx-auto space-y-6 pb-20">
                 <AnimatePresence mode="wait">
                    {isPaused ? (
