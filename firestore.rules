@@ -2,7 +2,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Auth Helpers
+    // Basic Auth Helpers
     function isAuthenticated() { return request.auth != null; }
     function isOwner(userId) { return isAuthenticated() && request.auth.uid == userId; }
     function isAdmin() {
@@ -12,11 +12,14 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin');
     }
 
-    // Production Rule Mapping
+    // USER PROFILES
     match /users/{userId} {
       allow read: if isAuthenticated();
+      // Allow user to initialize/update their own profile (including claiming admin for dev)
       allow write: if isOwner(userId) || isAdmin();
     }
+
+    // ACADEMIC ASSETS (Questions, Mocks)
     match /questions/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -29,23 +32,18 @@ service cloud.firestore {
         allow write: if isAdmin();
       }
     }
-    match /attempts/{id} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-    }
-    match /community_channels/{id} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
+
+    // COMMUNITY & SOCIAL
     match /community_messages/{id} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
       allow delete: if isAdmin() || resource.data.senderId == request.auth.uid;
     }
-    match /notes/{id} {
+
+    // LEADERBOARD & ANALYTICS
+    match /leaderboards/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow write: if isAdmin() || resource.data.uploadedBy == request.auth.uid;
+      allow write: if isOwner(userId) || isAdmin();
     }
     match /liveRanks/{id} {
       allow read: if isAuthenticated();
@@ -55,12 +53,22 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+
+    // OPERATIONAL (Jobs, Notifications, CMS)
+    match /jobAlerts/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
     match /notifications/{id} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isAdmin();
     }
-    
-    // Default Security
+    match /cms/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default Fallback
     match /{document=**} {
       allow read, write: if isAdmin();
     }

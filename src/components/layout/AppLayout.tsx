@@ -21,7 +21,8 @@ import {
   Keyboard,
   Bookmark,
   History,
-  Newspaper
+  Newspaper,
+  ShieldAlert
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
+
   return (
     <div className="flex h-screen bg-black overflow-hidden font-body">
       {/* Sidebar */}
@@ -88,7 +91,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         animate={{ width: sidebarOpen ? 280 : 84 }}
         className="hidden md:flex bg-zinc-950 border-r border-white/5 flex-col transition-all duration-300"
       >
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto no-scrollbar flex-1">
           <Link href="/dashboard" className="flex items-center gap-3 mb-10 overflow-hidden">
             <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center shrink-0 blue-glow">
               <Zap className="text-white w-5 h-5 fill-current" />
@@ -97,6 +100,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="space-y-1">
+            {isAdmin && (
+               <Link href="/admin">
+                 <div className={cn(
+                   "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-6",
+                   !sidebarOpen && "justify-center"
+                 )}>
+                   <ShieldAlert className="w-5 h-5" />
+                   {sidebarOpen && <span className="font-bold text-sm">Admin Panel</span>}
+                 </div>
+               </Link>
+            )}
+
             {navItems.map((item) => (
               <SidebarItem 
                 key={item.href} 

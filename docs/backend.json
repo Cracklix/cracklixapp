@@ -16,27 +16,14 @@
         "district": { "type": "string" },
         "targetExam": { "type": "string" },
         "isPro": { "type": "boolean" },
+        "referralCode": { "type": "string" },
         "createdAt": { "type": "number" },
         "bookmarks": { "type": "array" }
       }
     },
-    "CommunityMessage": {
-      "title": "Community Message",
-      "description": "Messages within exam-specific chat channels.",
-      "type": "object",
-      "properties": {
-        "channelId": { "type": "string" },
-        "senderId": { "type": "string" },
-        "senderName": { "type": "string" },
-        "text": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "fileUrl": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
     "MockTest": {
       "title": "Mock Test",
-      "description": "Academic mock test configuration.",
+      "description": "CBT Exam configuration.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
@@ -45,7 +32,21 @@
         "totalQuestions": { "type": "number" },
         "negativeMarking": { "type": "number" },
         "isLive": { "type": "boolean" },
-        "published": { "type": "boolean" }
+        "published": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "CommunityMessage": {
+      "title": "Community Message",
+      "description": "Social learning chat message.",
+      "type": "object",
+      "properties": {
+        "channelId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "number" }
       }
     }
   },
@@ -55,31 +56,27 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "User profiles and performance data."
+      "description": "Student profiles and roles."
     },
     "/questions/{qId}": {
       "schema": "object",
-      "description": "Global question bank."
+      "description": "Bilingual question bank."
     },
     "/mocks/{mockId}": {
       "schema": "MockTest",
-      "description": "Standard mock tests."
-    },
-    "/attempts/{attemptId}": {
-      "schema": "object",
-      "description": "Student exam attempts."
-    },
-    "/community_channels/{channelId}": {
-      "schema": "object",
-      "description": "Exam-wise chat channels."
+      "description": "Standardized mock tests."
     },
     "/community_messages/{msgId}": {
       "schema": "CommunityMessage",
-      "description": "Social learning chat stream."
+      "description": "Real-time discussion streams."
     },
-    "/notes/{noteId}": {
+    "/jobAlerts/{jobId}": {
       "schema": "object",
-      "description": "Crowdsourced study material."
+      "description": "Punjab government vacancy alerts."
+    },
+    "/leaderboards/{userId}": {
+      "schema": "object",
+      "description": "Punjab State Merit Registry."
     }
   }
 }
