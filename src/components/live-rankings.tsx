@@ -7,25 +7,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, TrendingUp, Zap, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 export default function LiveRankings() {
   const [ranks, setRanks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const collectionRef = collection(db, "liveRanks");
     const q = query(
-      collection(db, "liveRanks"),
+      collectionRef,
       orderBy("score", "desc"),
       limit(10)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setRanks(snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })));
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q, 
+      (snapshot) => {
+        setRanks(snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })));
+        setLoading(false);
+      },
+      async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: collectionRef.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, []);

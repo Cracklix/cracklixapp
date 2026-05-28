@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,20 +6,33 @@ import { db } from "@/lib/firebase";
 import { Activity, Zap, Users, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 export default function LiveActivity() {
   const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
+    const collectionRef = collection(db, "liveActivity");
     const q = query(
-      collection(db, "liveActivity"),
+      collectionRef,
       orderBy("createdAt", "desc"),
       limit(8)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setActivities(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    const unsubscribe = onSnapshot(
+      q, 
+      (snapshot) => {
+        setActivities(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: collectionRef.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
