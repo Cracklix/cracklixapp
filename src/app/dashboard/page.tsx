@@ -1,6 +1,6 @@
-
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useI18n } from '@/app/lib/i18n-context';
 import HeroCard from '@/components/dashboard/hero-card';
@@ -15,7 +15,7 @@ import InstallPrompt from '@/components/pwa/install-prompt';
 import SupportTrigger from '@/components/support/support-trigger';
 import ReadinessPredictor from '@/components/dashboard/readiness-predictor';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BrainCircuit, Sparkles, Beaker, Mic, Camera, FileText, Target, BookOpen, TrendingUp, Zap, ChevronRight, Gift, Briefcase, Globe, Trophy } from 'lucide-react';
+import { BrainCircuit, Globe, Briefcase, Trophy, Sparkles, BookOpen, Zap, ChevronRight, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -25,6 +25,11 @@ import { cn } from '@/lib/utils';
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { t } = useI18n();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <AppLayout>
@@ -84,7 +89,7 @@ export default function DashboardPage() {
                   </div>
                   <CardHeader className="p-8 relative">
                     <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-4 px-3 py-1 font-black uppercase tracking-widest text-[10px]">PUNJAB CORE v4</Badge>
-                    <CardTitle className="text-3xl font-black tracking-tight">{t('ai_command_center')}</CardTitle>
+                    <CardTitle className="text-3xl font-black tracking-tight">{isClient ? t('ai_command_center') : 'AI COMMAND CENTER'}</CardTitle>
                     <CardDescription className="text-zinc-500 mt-2 font-medium">Bilingual AI Mentorship</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8 pt-0 relative">
@@ -128,7 +133,7 @@ export default function DashboardPage() {
                 </div>
                 <Link href="/exams">
                   <Button variant="outline" className="w-full rounded-2xl h-14 border-accent/20 text-accent font-black tracking-tight mt-8 hover:bg-accent hover:text-black transition-all">
-                    {t('all_exams')}
+                    {isClient ? t('all_exams') : 'Punjab Govt Exams'}
                   </Button>
                 </Link>
               </Card>

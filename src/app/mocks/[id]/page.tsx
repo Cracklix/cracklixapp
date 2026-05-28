@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from "react";
@@ -15,6 +14,8 @@ import { ChevronLeft, ChevronRight, Send, Loader2, WifiOff } from "lucide-react"
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { saveActiveMockState, getActiveMockState, clearActiveMockState } from "@/services/offline-sync";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
 export default function MockPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, profile } = useAuth();
@@ -34,8 +35,10 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
-    window.addEventListener('online', () => setIsOnline(true));
-    window.addEventListener('offline', () => setIsOnline(false));
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     
     async function load() {
       try {
@@ -46,7 +49,6 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         setMock(mockData);
         setQuestions(questionData);
 
-        // Check for offline saved state
         const saved = getActiveMockState(mockId);
         if (saved) {
           setAnswers(saved.answers || {});
@@ -64,9 +66,13 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
       }
     }
     load();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [mockId, toast]);
 
-  // Persist state whenever it changes
   useEffect(() => {
     if (mock && Object.keys(answers).length > 0) {
       saveActiveMockState(mockId, { answers, current });
@@ -80,11 +86,10 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
     });
   }
 
-  async function submitTest() {
+  function submitTest() {
     if (submitting) return;
     setSubmitting(true);
     
-    // Calculate Score
     let score = 0;
     questions.forEach((question, index) => {
       if (answers[index] === question.correctAnswer) {
@@ -105,46 +110,59 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
       return;
     }
 
-    try {
-      await addDoc(collection(db, "attempts"), {
-        userId: user?.uid,
-        mockId: mock.id,
-        answers,
-        score,
-        createdAt: Date.now(),
-      });
+    const attemptsRef = collection(db, "attempts");
+    addDoc(attemptsRef, {
+      userId: user?.uid,
+      mockId: mock.id,
+      answers,
+      score,
+      createdAt: Date.now(),
+    }).catch(async (serverError) => {
+       const permissionError = new FirestorePermissionError({
+          path: attemptsRef.path,
+          operation: 'create',
+          requestResourceData: { userId: user?.uid, mockId: mock.id },
+       } satisfies SecurityRuleContext);
+       errorEmitter.emit('permission-error', permissionError);
+    });
 
-      await addDoc(collection(db, "analytics"), {
-        userId: user?.uid,
-        mockId: mock.id,
-        ...analytics,
-        createdAt: Date.now(),
-      });
+    const analyticsRef = collection(db, "analytics");
+    addDoc(analyticsRef, {
+      userId: user?.uid,
+      mockId: mock.id,
+      ...analytics,
+      createdAt: Date.now(),
+    }).catch(async (serverError) => {
+       const permissionError = new FirestorePermissionError({
+          path: analyticsRef.path,
+          operation: 'create',
+          requestResourceData: { userId: user?.uid, mockId: mock.id },
+       } satisfies SecurityRuleContext);
+       errorEmitter.emit('permission-error', permissionError);
+    });
 
-      if (user?.uid) {
-        const userRef = doc(db, "users", user.uid);
-        updateDoc(userRef, {
-          xp: increment(50),
-          lastActive: Date.now(),
-        });
-      }
-
-      toast({
-        title: "Test Submitted",
-        description: `Score: ${score} | Accuracy: ${analytics.accuracy}%`,
+    if (user?.uid) {
+      const userRef = doc(db, "users", user.uid);
+      updateDoc(userRef, {
+        xp: increment(50),
+        lastActive: Date.now(),
+      }).catch(async (serverError) => {
+         const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: { xp: 'increment(50)' },
+         } satisfies SecurityRuleContext);
+         errorEmitter.emit('permission-error', permissionError);
       });
-      
-      clearActiveMockState();
-      router.push("/mocks/result");
-    } catch (error: any) {
-      toast({
-        title: "Submission Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setSubmitting(false);
     }
+
+    toast({
+      title: "Test Submitted",
+      description: `Score: ${score} | Accuracy: ${analytics.accuracy}%`,
+    });
+    
+    clearActiveMockState();
+    router.push("/mocks/result");
   }
 
   if (loading) {

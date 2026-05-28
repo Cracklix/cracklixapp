@@ -36,10 +36,11 @@ service cloud.firestore {
     // AI & Tutoring
     match /aiChats/{id} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow write: if isAuthenticated() && (request.resource == null || request.resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
     match /aiUsage/{id} {
-      allow read, write: if isAuthenticated(); // Controlled by document ID structure {userId}_{date}
+      allow read: if isAuthenticated() && id.startsWith(request.auth.uid);
+      allow write: if isAuthenticated() && id.startsWith(request.auth.uid);
     }
 
     // Content: Mocks, Questions, Exams, Daily Quizzes
@@ -155,6 +156,14 @@ service cloud.firestore {
     match /pdfs/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+    }
+    match /aiGeneratedMocks/{id} {
+       allow read: if isAuthenticated();
+       allow write: if isAuthenticated();
+       match /questions/{qId} {
+         allow read: if isAuthenticated();
+         allow write: if isAuthenticated();
+       }
     }
   }
 }
