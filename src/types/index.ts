@@ -81,6 +81,7 @@ export interface MockTest {
   instructions?: string;
   publishedAt?: number;
   aiGenerated?: boolean;
+  source?: string;
 }
 
 export interface AttemptAnswer {
@@ -121,9 +122,10 @@ export interface AIGenerationJob {
   config: {
     title: string;
     exam: string;
-    subject: string;
+    subjects: string[];
     count: number;
     difficulty: string;
+    languageMode: string;
   };
   generatedCount: number;
   totalQuestions: number;
