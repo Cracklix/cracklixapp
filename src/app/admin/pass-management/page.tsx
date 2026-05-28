@@ -25,29 +25,27 @@ import {
   ArrowUpRight,
   TrendingUp,
   CreditCard,
-  Target
+  Target,
+  LayoutGrid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   collection, 
   onSnapshot, 
   doc, 
   updateDoc, 
-  addDoc,
   query,
   limit,
-  serverTimestamp,
-  orderBy,
-  deleteDoc
+  orderBy
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { MockTest, PassTier, UserProfile } from '@/types';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { motion } from 'framer-motion';
 
 /**
  * INSTITUTIONAL PASS MANAGEMENT OS v18.0
@@ -58,7 +56,6 @@ export default function PassManagementOS() {
   const [activeModule, setActiveModule] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [mocks, setMocks] = useState<MockTest[]>([]);
-  const [plans, setPlans] = useState<any[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [syncing, setSyncing] = useState(false);
 
@@ -69,10 +66,6 @@ export default function PassManagementOS() {
       setMocks(snap.docs.map(d => ({ id: d.id, ...d.data() } as MockTest)));
     });
 
-    const unsubPlans = onSnapshot(query(collection(db, "plans"), orderBy("price", "asc")), (snap) => {
-      setPlans(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-
     const unsubUsers = onSnapshot(query(collection(db, "users"), limit(100)), (snap) => {
       setUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() } as any)));
     });
@@ -80,7 +73,6 @@ export default function PassManagementOS() {
     setLoading(false);
     return () => {
       unsubMocks();
-      unsubPlans();
       unsubUsers();
     };
   }, []);
@@ -312,49 +304,6 @@ export default function PassManagementOS() {
                               </table>
                            </div>
                         </Card>
-                     </div>
-                   )}
-
-                   {activeModule === 'plans' && (
-                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="flex justify-between items-end">
-                           <div>
-                              <h3 className="text-3xl font-black uppercase tracking-tighter">Preparation Tiers</h3>
-                              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Configure subscription packages and preparation tokens</p>
-                           </div>
-                           <Button className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl blue-glow">
-                              <Plus className="mr-2 w-4 h-4" /> Initialize Tier
-                           </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                           {plans.map((plan) => (
-                             <Card key={plan.id} className="bg-[#121A2F] border-white/5 rounded-[48px] overflow-hidden shadow-2xl relative border group">
-                                <div className="p-10 space-y-8">
-                                   <div className="flex justify-between items-start">
-                                      <Badge className="bg-blue-600/20 text-blue-400 border-none px-3 py-1 font-black text-[9px] uppercase tracking-widest">{plan.tier}</Badge>
-                                      <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/5"><Edit3 size={16} /></Button>
-                                   </div>
-                                   <div className="space-y-2">
-                                      <h4 className="text-3xl font-black uppercase leading-tight">{plan.name}</h4>
-                                      <div className="flex items-baseline gap-2">
-                                         <span className="text-4xl font-black text-emerald-500 tracking-tighter">₹{plan.price}</span>
-                                         <span className="text-zinc-500 text-xs font-bold">/ {plan.duration} DAYS</span>
-                                      </div>
-                                   </div>
-                                   <div className="space-y-3 pt-6 border-t border-white/5">
-                                      {plan.features?.map((f: string, idx: number) => (
-                                        <div key={idx} className="flex items-center gap-3 text-xs text-zinc-400">
-                                           <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                                           {f}
-                                        </div>
-                                      ))}
-                                   </div>
-                                   <Button className="w-full h-14 rounded-2xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 font-black text-[10px] uppercase tracking-widest transition-all">DEACTIVATE TIER</Button>
-                                </div>
-                             </Card>
-                           ))}
-                        </div>
                      </div>
                    )}
                 </div>
