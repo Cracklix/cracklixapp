@@ -18,7 +18,9 @@ import {
   LifeBuoy,
   Activity,
   BrainCircuit,
-  Sparkles
+  Sparkles,
+  Search,
+  BookOpen
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -26,12 +28,12 @@ export default function AdminSidebar() {
 
   const groups = [
     {
-      label: "Operational",
+      label: "Operational Hub",
       items: [
-        { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-        { name: "Users", href: "/admin/users", icon: Users },
-        { name: "PASS Management", href: "/admin/subscriptions", icon: CreditCard },
-        { name: "Support Desk", href: "/admin/support", icon: LifeBuoy },
+        { name: "Command Center", href: "/admin", icon: LayoutDashboard },
+        { name: "Aspirant Registry", href: "/admin/users", icon: Users },
+        { name: "Pass Management", href: "/admin/subscriptions", icon: CreditCard },
+        { name: "Support Signals", href: "/admin/support", icon: LifeBuoy },
       ]
     },
     {
@@ -57,7 +59,7 @@ export default function AdminSidebar() {
       ]
     },
     {
-      label: "Diagnostics",
+      label: "Infrastructure",
       items: [
         { name: "System Pulse", href: "/admin/system-health", icon: Activity },
         { name: "Gateway Node", href: "/admin/payment-settings", icon: Settings },
