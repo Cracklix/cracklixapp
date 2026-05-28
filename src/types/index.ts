@@ -1,6 +1,6 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v9.0
+ * Production-grade Architecture Layer v10.0
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -9,37 +9,25 @@ export type Subject =
   | 'General Knowledge' 
   | 'Current Affairs' 
   | 'Punjab History' 
-  | 'Punjabi' 
-  | 'English' 
-  | 'Hindi' 
+  | 'Punjab Culture'
+  | 'Punjabi Language'
+  | 'English Language' 
+  | 'Hindi Language' 
   | 'Reasoning' 
-  | 'Quant' 
-  | 'ICT' 
+  | 'Quantitative Aptitude' 
+  | 'Data Interpretation'
+  | 'ICT & Computers' 
   | 'Science' 
-  | 'EVS' 
-  | 'Child Pedagogy' 
+  | 'Environmental Studies' 
+  | 'Child Development & Pedagogy' 
   | 'Civil Engineering' 
   | 'Electrical Engineering' 
-  | 'Mechanical' 
+  | 'Mechanical Engineering'
   | 'Other';
 
 export const SUBJECTS: Subject[] = [
-  'General Knowledge', 'Current Affairs', 'Punjab History', 'Punjabi', 'English', 'Hindi', 'Reasoning', 'Quant', 'ICT', 'Science', 'EVS', 'Child Pedagogy', 'Civil Engineering', 'Electrical Engineering', 'Mechanical', 'Other'
+  'General Knowledge', 'Current Affairs', 'Punjab History', 'Punjab Culture', 'Punjabi Language', 'English Language', 'Hindi Language', 'Reasoning', 'Quantitative Aptitude', 'Data Interpretation', 'ICT & Computers', 'Science', 'Environmental Studies', 'Child Development & Pedagogy', 'Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering', 'Other'
 ];
-
-export interface UserProfile {
-  uid: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  xp: number;
-  streak: number;
-  coins: number;
-  referralCode?: string;
-  targetExam?: string;
-  createdAt: number;
-  bookmarks?: any[];
-}
 
 export type QuestionStatus = 'NOT_VISITED' | 'NOT_ANSWERED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
 
@@ -59,10 +47,12 @@ export interface Question {
   chapter?: string;
   topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
+  bloomLevel?: 'knowledge' | 'understanding' | 'application' | 'analysis';
   exam?: string;
   year?: number;
   marks: number;
   negativeMarks: number;
+  estimatedTimeSeconds?: number;
   status: 'draft' | 'published';
   usageCount: number;
   qualityScore?: number;
@@ -73,7 +63,7 @@ export interface Question {
 
 export type MockStatus = 'draft' | 'published' | 'live' | 'archived';
 export type MockAccessType = 'free' | 'pass_plus' | 'premium';
-export type MockCategory = 'full' | 'sectional' | 'subject' | 'chapter' | 'quiz' | 'live_test';
+export type MockCategory = 'full' | 'sectional' | 'subject' | 'chapter' | 'quiz' | 'live_test' | 'pyq' | 'marathon' | 'revision';
 
 export interface MockTest {
   id: string;
@@ -93,6 +83,8 @@ export interface MockTest {
   questionIds?: string[];
   instructions?: string[];
   aiGenerated?: boolean;
+  syllabusCoverage?: number;
+  languageMode?: string;
 }
 
 export interface ExamAttempt {

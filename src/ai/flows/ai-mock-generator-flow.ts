@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview Advanced AI Mock Generator Flow v8.5 (Pro Layer).
- * Engineered for high-fidelity trilingual (EN, PA, HI) Punjab recruitment simulations.
+ * Advanced AI Mock Generator Flow v10.0 (Enterprise OS Layer).
+ * Engineered for high-fidelity trilingual (EN, PA, HI) simulations with Bloom Taxonomy analysis.
  */
 
 import { ai } from '@/ai/genkit';
@@ -71,10 +71,10 @@ export async function generateAILogic(input: MockGeneratorInput): Promise<MockGe
 }
 
 const prompt = ai.definePrompt({
-  name: 'aiMockGeneratorPromptV8',
+  name: 'aiMockGeneratorPromptV10',
   input: { schema: MockGeneratorInputSchema },
   output: { schema: MockGeneratorOutputSchema },
-  prompt: `You are the CRACKLIX Neural Academic Architect. Your mission is to forge a high-fidelity recruitment simulation.
+  prompt: `You are the CRACKLIX Neural Academic Architect v10. Your mission is to forge a high-fidelity recruitment simulation.
 
 COMMAND: "{{{prompt}}}"
 
@@ -87,21 +87,20 @@ Linguistic Fidelity: {{{language}}}
 PYQ Priority: {{#if pyqOnly}}Strict PYQ Style{{else}}Latest Pattern Mixed{{/if}}
 Smart Mix: {{#if smartMix}}Active (AI + Bank Intelligence){{else}}Pure Synthetic{{/if}}
 
-INSTITUTIONAL SYLLABUS RULES (PUNJAB STATE):
-- PSSSB Group A/B (Excise, Senior Asst): Part A (Punjabi Qualifying, 50Q) + Part B (Scoring, 100Q). Split Part B: GK(25), Reasoning(25), PB History(17), Punjabi(13), English(12), ICT(8).
-- Punjab Police SI/Constable: Focus on Law, Logical Reasoning, Current Affairs, and Digital Literacy.
-- Technical (PSPCL/PSTCL): Technical Cadre Subject (80Q) + Aptitude (40Q).
-- Teaching (PSTET/CTET): Focus on Child Development & Pedagogy (CDP) + Language logic.
+INSTITUTIONAL SYLLABUS RULES:
+- PSSSB (Excise, Clerk, SA): Part A (Punjabi Qualifying, 50Q) + Part B (Scoring, 100Q). 
+- Punjab Police (SI/Constable): Focus on Law, Logical Reasoning, Current Affairs, and Digital Literacy.
+- Technical (PSPCL/PSTCL): Technical Subject (80Q) + Aptitude (40Q).
+- Teaching (PSTET/CTET): Focus on CDP + Subject Pedagogy.
 
 STRICT TECHNICAL REQUIREMENTS:
 1. LINGUISTIC SYNC: 
    - If 'en_pa': You MUST populate BOTH questionEnglish/Punjabi, optionsEnglish/Punjabi, and explanationEnglish/Punjabi.
    - If 'en_hi': You MUST populate BOTH questionEnglish/Hindi, optionsEnglish/Hindi, and explanationEnglish/Hindi.
-   - If 'pa': Populate Punjabi fields; English fields optional.
-   - Use Raavi font style for Punjabi.
-2. QUESTION QUALITY: Every question must have exactly 4 unique options. The correctAnswer must match the English version of the option.
+   - If 'pa': Populate Punjabi fields using Raavi font style.
+2. QUESTION QUALITY: Every question must have exactly 4 unique options. The correctAnswer must match the English version.
 3. EXPLANATIONS: Provide deep, step-by-step logical rationalization in all selected languages.
-4. BALANCING: If mode is 'full', ensure a balanced mix of difficulty and syllabus nodes.
+4. BLOOM TAXONOMY: Tag each question with knowledge/understanding/application level.
 5. NO DUPLICATES: Ensure high entropy between questions.
 
 Format strictly as a JSON object matching the MockGeneratorOutputSchema.`,
@@ -109,7 +108,7 @@ Format strictly as a JSON object matching the MockGeneratorOutputSchema.`,
 
 const aiMockGeneratorFlow = ai.defineFlow(
   {
-    name: 'aiMockGeneratorFlowV8',
+    name: 'aiMockGeneratorFlowV10',
     inputSchema: MockGeneratorInputSchema,
     outputSchema: MockGeneratorOutputSchema,
   },
