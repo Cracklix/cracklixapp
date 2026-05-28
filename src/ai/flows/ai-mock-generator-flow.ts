@@ -1,11 +1,13 @@
+
 'use server';
 /**
  * CRACKLIX NEURAL FORGE v12 Core
  * Advanced instruction-driven synthesis with strict JSON payload enforcement.
+ * Now migrating to OpenAI GPT-4o-mini for superior structural stability.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { openai } from '@/lib/openai';
+import { z } from 'zod';
 
 const QuestionOptionSchema = z.object({
   en: z.string(),
@@ -38,19 +40,9 @@ const GeneratorOutputSchema = z.object({
 });
 
 export async function generateStrictBilingualArtifacts(input: z.infer<typeof GeneratorInputSchema>) {
-  const prompt = ai.definePrompt({
-    name: `neural_forge_v12_engine`,
-    input: { schema: GeneratorInputSchema },
-    output: { schema: GeneratorOutputSchema },
-    prompt: `You are India's most advanced competitive exam mock generator.
-Generate ONLY valid JSON.
-
-INPUT CONTEXT:
-Exam: {{{exam}}}
-Subjects: {{{subjects}}}
-Count: {{{count}}}
-Difficulty: {{{difficulty}}}
-Instruction: {{{instruction}}}
+  const systemPrompt = `
+You are India's most advanced competitive exam mock generator.
+Generate ONLY valid JSON matching the provided schema.
 
 RULES:
 1. Every question MUST have:
@@ -68,15 +60,24 @@ RULES:
 2. NEVER leave Punjabi fields blank. If Punjabi translation is unavailable, copy the English text into those fields.
 3. Solutions MUST be step-by-step and logical. Include "Elite Speed Tricks" if applicable.
 4. Distractors (wrong options) must be realistic.
-5. Match the level of {{{exam}}}.
+5. Match the level of ${input.exam}.
 
-Respond ONLY with a valid JSON object matching the output schema.`,
-  });
+Respond ONLY with a valid JSON object matching the schema.`;
 
   try {
-    const { output } = await prompt(input);
-    if (!output || !output.questions) throw new Error("Synthesis failed.");
-    return output.questions;
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: JSON.stringify(input) }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const response = JSON.parse(completion.choices[0].message.content || "{}");
+    const validated = GeneratorOutputSchema.parse(response);
+    return validated.questions;
+
   } catch (error: any) {
     console.error("Neural Synthesis Error:", error);
     throw error;
