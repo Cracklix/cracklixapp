@@ -93,6 +93,17 @@ export async function addQuestionToMock(mockId: string, question: Question) {
   return docRef.id;
 }
 
+export async function updateMockQuestion(mockId: string, questionId: string, updates: Partial<Question>) {
+  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  return updateDoc(qRef, { ...updates, updatedAt: Date.now() });
+}
+
+export async function deleteMockQuestion(mockId: string, questionId: string) {
+  const qRef = doc(db, 'mocks', mockId, 'questions', questionId);
+  await deleteDoc(qRef);
+  return updateDoc(doc(db, 'mocks', mockId), { totalQuestions: increment(-1) });
+}
+
 export async function linkGlobalToMock(mockId: string, globalQuestionId: string) {
   const globalSnap = await getDoc(doc(db, 'questions', globalQuestionId));
   if (!globalSnap.exists()) throw new Error("Global artifact not found.");
