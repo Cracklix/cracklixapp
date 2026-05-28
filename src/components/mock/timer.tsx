@@ -44,16 +44,21 @@ export default function Timer({
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
-  const isCritical = timeLeft < 300; 
+  
+  // High-visibility state detection
+  const isWarning = timeLeft <= 600 && timeLeft > 60; // Last 10 mins
+  const isCritical = timeLeft <= 60; // Last 1 min
 
   return (
     <div className={cn(
       "flex items-center gap-3 px-5 py-2 rounded-2xl font-mono border transition-all duration-500",
       isCritical 
-        ? "bg-red-50 border-red-200 text-red-600 animate-pulse scale-105" 
-        : "bg-slate-50 border-slate-200 text-slate-700"
+        ? "bg-red-600 border-red-400 text-white animate-pulse scale-110 shadow-lg shadow-red-900/40" 
+        : isWarning
+        ? "bg-orange-500/20 border-orange-500 text-orange-500"
+        : "bg-white/10 border-white/10 text-white"
     )}>
-      {isCritical ? <AlertCircle size={16} /> : <Clock size={16} className="text-primary" />}
+      {isCritical || isWarning ? <AlertCircle size={16} /> : <Clock size={16} className="text-primary" />}
       <span className="text-xl font-black tracking-tighter tabular-nums">
         {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
       </span>
