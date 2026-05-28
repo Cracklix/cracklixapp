@@ -71,9 +71,9 @@ export interface Exam {
 export interface Question {
   id: string;
   question_en: string;
-  question_pa: string;
+  question_pa?: string;
   options_en: string[];
-  options_pa: string[];
+  options_pa?: string[];
   correctAnswer: string;
   subject: Subject;
   topic?: string;
@@ -86,7 +86,19 @@ export interface Question {
   qualityScore?: number;
   status?: 'draft' | 'published';
   usageCount?: number;
+  isMath?: boolean;
   createdAt?: number;
+}
+
+export interface DISet {
+  id: string;
+  passage: string;
+  tableData?: string;
+  chartUrl?: string;
+  questions: Question[];
+  subject: Subject;
+  difficulty: 'easy' | 'medium' | 'hard';
+  createdAt: number;
 }
 
 export interface MockTest {
@@ -100,34 +112,6 @@ export interface MockTest {
   published: boolean;
   aiGenerated?: boolean;
   questionIds?: string[];
-  createdAt: number;
-}
-
-export interface LiveActivityItem {
-  id: string;
-  userId: string;
-  message: string;
-  type: 'score' | 'level' | 'badge';
-  createdAt: number;
-}
-
-export interface LiveRank {
-  userId: string;
-  name: string;
-  score: number;
-  accuracy: number;
-  district?: string;
-}
-
-export interface JobAlert {
-  id: string;
-  title: string;
-  department: string;
-  postCount: number;
-  lastDate: number;
-  applyUrl: string;
-  category: string;
-  status: 'active' | 'closed';
-  type: 'vacancy' | 'result' | 'admit_card' | 'notice';
+  diSetIds?: string[];
   createdAt: number;
 }

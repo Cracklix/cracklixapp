@@ -1,35 +1,43 @@
 'use server';
 /**
- * @fileOverview Enterprise AI Question Parser Flow.
- * Optimized for messy, bilingual Punjab exam PDFs with layout awareness.
- * 
- * - parseQuestionsAi - Extracts structured atomic MCQs from raw OCR text.
+ * @fileOverview Universal AI Question Parser Flow.
+ * Optimized for English, Punjabi, Math, and Data Interpretation (DI) layouts.
+ * Supports Multimodal Vision input for diagrams and tables.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
+const QuestionSchema = z.object({
+  question_en: z.string(),
+  question_pa: z.string().optional(),
+  options_en: z.array(z.string()).length(4),
+  options_pa: z.array(z.string()).length(4).optional(),
+  correctAnswer: z.string().describe("The exact text of the correct option in English."),
+  explanation_en: z.string().optional(),
+  explanation_pa: z.string().optional(),
+  subject: z.string(),
+  topic: z.string(),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  isMath: z.boolean().default(false),
+});
+
 const QuestionParserInputSchema = z.object({
-  rawText: z.string().describe("The raw text extracted from a PDF or image."),
-  preferredSubject: z.string().optional().describe("Hint for the subject context."),
-  sourceMetadata: z.string().optional().describe("Context like exam name or year."),
+  rawText: z.string().optional().describe("Raw text from OCR if available."),
+  photoDataUri: z.string().optional().describe("Image of the page for Vision-based parsing."),
+  preferredSubject: z.string().optional(),
 });
 export type QuestionParserInput = z.infer<typeof QuestionParserInputSchema>;
 
 const QuestionParserOutputSchema = z.object({
-  questions: z.array(z.object({
-    question_en: z.string(),
-    question_pa: z.string(),
-    options_en: z.array(z.string()).length(4),
-    options_pa: z.array(z.string()).length(4),
-    correctAnswer: z.string().describe("The exact text of the correct option in English."),
-    explanation_en: z.string(),
-    explanation_pa: z.string(),
-    subject: z.string(),
-    topic: z.string(),
-    difficulty: z.enum(['easy', 'medium', 'hard']),
-    confidenceScore: z.number().describe("AI confidence in the extraction (0-1)"),
-  })),
+  questions: z.array(QuestionSchema),
+  diSets: z.array(z.object({
+    passage: z.string().describe("The common passage or context for the DI set."),
+    tableData: z.string().optional().describe("Markdown or JSON string representing table data."),
+    questions: z.array(QuestionSchema),
+  })).optional(),
+  detectedLanguage: z.enum(['en', 'pa', 'mixed']).default('en'),
+  confidenceScore: z.number().describe("0-1 score of parsing accuracy."),
 });
 export type QuestionParserOutput = z.infer<typeof QuestionParserOutputSchema>;
 
@@ -38,29 +46,27 @@ export async function parseQuestionsAi(input: QuestionParserInput): Promise<Ques
 }
 
 const prompt = ai.definePrompt({
-  name: 'aiQuestionParserPrompt',
+  name: 'universalQuestionParserPrompt',
   input: { schema: QuestionParserInputSchema },
   output: { schema: QuestionParserOutputSchema },
-  prompt: `You are the CRACKLIX Core Ingestion Engine. 
+  prompt: `You are the CRACKLIX Universal Ingestion Engine. 
 
-Analyze the following raw OCR text which originates from a Punjab Government Exam paper (PPSC/PSSSB).
-Text is often messy, contains watermarks, headers, and footer noise.
+Analyze the provided input (Text or Image) from a competitive exam paper (PPSC, PSSSB, or National level).
 
-INPUT DATA:
-{{{rawText}}}
-
-{{#if preferredSubject}}SUBJECT HINT: {{{preferredSubject}}}{{/if}}
-{{#if sourceMetadata}}METADATA: {{{sourceMetadata}}}{{/if}}
+{{#if photoDataUri}}IMAGE CONTENT: {{media url=photoDataUri}}{{/if}}
+{{#if rawText}}RAW OCR TEXT: {{{rawText}}}{{/if}}
 
 INSTRUCTIONS:
-1. LAYOUT DETECTION: Ignore headers, page numbers, and instructions. Focus on MCQ blocks.
-2. BILINGUAL PAIRING: Detect English questions and their corresponding Punjabi (Gurmukhi) translations. 
-   - If only one language is present, you MUST generate the translation yourself in Raavi font style.
-3. OPTION DETECTION: Detect options in patterns like (A, B, C, D), (1, 2, 3, 4), or (a, b, c, d).
-4. CLEANUP: Fix common OCR artifacts (e.g. 'PunJab' -> 'Punjab', '0' -> 'O').
-5. QUALITY: Assign a confidence score based on how clear the question-answer mapping was.
+1. DETECT MODE: 
+   - If the content is English-only, provide English question fields and clear the Punjabi fields.
+   - If Bilingual (English + Punjabi), pair them correctly.
+   - If Math/Quant, ensure fractions and symbols are represented clearly in text/markdown.
+2. DI SUPPORT: Detect Data Interpretation sets (Passages/Tables followed by multiple questions). Group them into 'diSets'.
+3. ACCURACY: Detect 'Correct Answer' precisely. If it's not explicitly marked, infer it or set a low confidence score.
+4. CLEANUP: Fix artifacts like "PunJab" -> "Punjab" or "0" -> "O".
+5. RAAVI COMPLIANCE: Any Punjabi text must be formal Gurmukhi (Raavi style).
 
-Structure your response as a strict JSON object matching the output schema.`,
+Return a strict JSON object matching the output schema.`,
 });
 
 const aiQuestionParserFlow = ai.defineFlow(
