@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,7 +18,7 @@ import {
   deleteMock, 
   updateMockAccess
 } from "@/services/mocks";
-import { MockTest, MockAccessType } from "@/types";
+import { MockTest, PassTier } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -42,8 +41,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 /**
- * PRODUCTION SIMULATION MANAGER v12.5
- * Features: High-density CRUD action matrix, real-time sync, access tier calibration.
+ * PRODUCTION SIMULATION MANAGER v15.0
+ * Features: Real-time CRUD action matrix, access tier calibration, deep-linking.
  */
 export default function SimulationFactoryPage() {
   const { toast } = useToast();
@@ -130,7 +129,7 @@ export default function SimulationFactoryPage() {
             <header className="flex justify-between items-end border-b border-white/5 pb-8">
               <div className="space-y-1">
                 <h1 className="font-headline text-4xl font-black tracking-tighter uppercase leading-none">Simulation Manager</h1>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Enterprise Mock Lifecycle OS v12.5</p>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] ml-1">Enterprise Mock Lifecycle OS v15.0</p>
               </div>
               <Button onClick={() => router.push('/admin/ai-mock-studio')} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[11px] uppercase tracking-widest blue-glow">
                  <Plus className="mr-2 w-4 h-4" /> Forge New Mock

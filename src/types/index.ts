@@ -1,4 +1,3 @@
-
 /**
  * CRACKLIX Global Type Definitions
  * Production-grade Architecture Layer v25.0 (Institutional Standard)
@@ -45,6 +44,7 @@ export interface UserProfile {
   languageMode: LanguageMode;
   createdAt: number;
   updatedAt: number;
+  bookmarks?: any[];
 }
 
 export interface QuestionContent {
@@ -87,6 +87,8 @@ export interface MockTest {
   attemptCount?: number;
   aiGenerated?: boolean;
   questionIds?: string[];
+  expiresAt?: number;
+  publishedAt?: number;
 }
 
 export interface AttemptAnswer {
@@ -111,4 +113,6 @@ export interface ExamAttempt {
   score?: number;
   accuracy?: number;
   topicPerformance?: Record<string, { total: number; correct: number }>;
+  deviceInfo?: string;
+  suspiciousActivityCount?: number;
 }
