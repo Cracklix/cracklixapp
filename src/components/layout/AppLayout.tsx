@@ -15,20 +15,18 @@ import {
   LogOut, 
   Zap,
   Menu,
-  Bell,
-  Search,
   MessageSquare,
   ShoppingBag,
-  Sparkles,
   Briefcase,
   Keyboard,
   Bookmark,
-  Languages
+  History,
+  Newspaper
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/language-switcher';
 
@@ -64,20 +62,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [user, loading, router]);
 
   const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: t('home') },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { href: '/community', icon: MessageSquare, label: 'Community' },
-    { href: '/exams', icon: BookOpen, label: t('mocks') },
+    { href: '/exams', icon: BookOpen, label: 'Mock Tests' },
+    { href: '/pyqs', icon: History, label: 'PYQ Archive' },
+    { href: '/current-affairs', icon: Newspaper, label: 'Daily Pulse' },
     { href: '/typing', icon: Keyboard, label: 'Typing' },
     { href: '/bookmarks', icon: Bookmark, label: 'Saved' },
-    { href: '/jobs', icon: Briefcase, label: t('jobs') },
-    { href: '/marketplace', icon: ShoppingBag, label: t('market') },
-    { href: '/leaderboard', icon: Trophy, label: t('leaderboard') },
-    { href: '/ai', icon: BrainCircuit, label: t('ai_coach') },
+    { href: '/marketplace', icon: ShoppingBag, label: 'Store' },
+    { href: '/leaderboard', icon: Trophy, label: 'Rankings' },
+    { href: '/ai', icon: BrainCircuit, label: 'AI Mentor' },
   ];
 
   if (loading) return (
     <div className="h-screen bg-black flex items-center justify-center">
-       <Loader2 className="w-10 h-10 text-primary animate-spin" />
+       <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
     </div>
   );
 
@@ -158,23 +157,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
-}
-
-function Loader2(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
-  )
 }

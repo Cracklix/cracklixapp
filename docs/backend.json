@@ -16,7 +16,8 @@
         "district": { "type": "string" },
         "targetExam": { "type": "string" },
         "isPro": { "type": "boolean" },
-        "createdAt": { "type": "number" }
+        "createdAt": { "type": "number" },
+        "bookmarks": { "type": "array" }
       }
     },
     "CommunityMessage": {
