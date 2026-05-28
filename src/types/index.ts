@@ -1,6 +1,6 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer
+ * Production-grade Architecture Layer v4.2
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -38,26 +38,26 @@ export interface Question {
   id: string;
   en: QuestionContent;
   pa?: QuestionContent;
-  correctAnswer: string; // The exact text match or index reference
+  correctAnswer: string; // The exact text match of the correct option in English
   subject: Subject;
   chapter?: string;
   topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
   exam?: string;
   year?: number;
-  tags?: string[];
+  marks: number;
+  negativeMarks: number;
   status: 'draft' | 'published';
   usageCount: number;
   qualityScore?: number;
-  correctPercentage?: number;
-  avgTimeSeconds?: number;
   createdAt: number;
   updatedAt: number;
+  order?: number;
 }
 
 export type MockStatus = 'draft' | 'published' | 'live' | 'archived';
 export type MockAccessType = 'free' | 'pass_plus' | 'premium';
-export type MockCategory = 'full' | 'sectional' | 'chapter' | 'quiz' | 'live_test' | 'pyq';
+export type MockCategory = 'full' | 'sectional' | 'subject' | 'chapter' | 'quiz' | 'live_test';
 
 export interface MockTest {
   id: string;
@@ -74,6 +74,8 @@ export interface MockTest {
   publishedAt?: number;
   attemptCount?: number;
   avgScore?: number;
+  questionIds?: string[]; // For quick reference if needed
+  instructions?: string[];
 }
 
 export interface ExamAttempt {
