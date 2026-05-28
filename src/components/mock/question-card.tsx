@@ -1,4 +1,3 @@
-
 'use client';
 
 import { cn } from "@/lib/utils";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Question } from "@/types";
 
@@ -30,23 +29,38 @@ export default function QuestionCard({
   activeLanguage = 'bilingual',
   index
 }: QuestionCardProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   
+  const isBookmarked = profile?.bookmarks?.some((b: any) => b.id === question.id);
+
   const toggleBookmark = async () => {
     if (!user) return;
     try {
       const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        bookmarks: arrayUnion({
-          id: question.id,
-          text: question.en.question,
-          subject: question.subject,
-          type: 'question',
-          savedAt: Date.now()
-        })
-      });
-      toast({ title: "Artifact Bookmarked", description: "Signal cached to your revision desk." });
+      const bookmarkData = {
+        id: question.id,
+        text: question.en.question,
+        subject: question.subject,
+        type: 'question',
+        savedAt: Date.now()
+      };
+
+      if (isBookmarked) {
+        // Find exact bookmark object to remove
+        const bookmarkToRemove = profile?.bookmarks?.find((b: any) => b.id === question.id);
+        if (bookmarkToRemove) {
+          await updateDoc(userRef, {
+            bookmarks: arrayRemove(bookmarkToRemove)
+          });
+        }
+        toast({ title: "Bookmark Removed" });
+      } else {
+        await updateDoc(userRef, {
+          bookmarks: arrayUnion(bookmarkData)
+        });
+        toast({ title: "Artifact Bookmarked", description: "Signal cached to your revision desk." });
+      }
     } catch (e) {
       console.error(e);
     }
@@ -83,7 +97,7 @@ export default function QuestionCard({
       <div className="grid grid-cols-1 gap-5 pt-12 border-t border-slate-100">
          {question.en.options.map((option, idx) => {
            const letter = String.fromCharCode(65 + idx);
-           const isSelected = selected === letter;
+           const isOptionSelected = selected === letter;
            const paOption = question.pa?.options?.[idx];
 
            return (
@@ -92,16 +106,16 @@ export default function QuestionCard({
                onClick={() => onSelect(letter)}
                className={cn(
                  "w-full text-left p-6 md:p-8 rounded-[32px] border transition-all duration-300 flex items-start gap-8 group relative overflow-hidden",
-                 isSelected 
+                 isOptionSelected 
                    ? "bg-blue-600 text-white border-blue-700 shadow-2xl ring-8 ring-blue-600/10 scale-[1.02]" 
                    : "bg-[#F8FAFC] border-slate-200 text-slate-700 hover:bg-white hover:border-blue-600/30"
                )}
              >
-                {isSelected && <div className="absolute top-0 left-0 w-2 h-full bg-white/20" />}
+                {isOptionSelected && <div className="absolute top-0 left-0 w-2 h-full bg-white/20" />}
                 
                 <div className={cn(
                   "w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shrink-0 border transition-all shadow-sm",
-                  isSelected ? "bg-white text-blue-600 border-white" : "bg-white text-slate-400 border-slate-100 group-hover:text-blue-600"
+                  isOptionSelected ? "bg-white text-blue-600 border-white" : "bg-white text-slate-400 border-slate-100 group-hover:text-blue-600"
                 )}>
                    {letter}
                 </div>
@@ -110,11 +124,11 @@ export default function QuestionCard({
                    {(isBilingual || activeLanguage === 'pa') && paOption && (
                      <p className={cn(
                        "text-[20px] md:text-[24px] font-medium leading-tight font-body",
-                       isSelected ? "text-white/70" : "text-slate-400"
+                       isOptionSelected ? "text-white/70" : "text-slate-400"
                      )}>{paOption}</p>
                    )}
                 </div>
-                {isSelected && (
+                {isOptionSelected && (
                    <div className="absolute top-8 right-8">
                       <ShieldCheck size={28} className="text-white drop-shadow-xl" />
                    </div>
@@ -127,7 +141,7 @@ export default function QuestionCard({
       <div className="flex items-center justify-between pt-12 opacity-60 group-hover:opacity-100 transition-opacity">
          <div className="flex items-center gap-10">
             <Button variant="ghost" className="h-10 gap-2 text-slate-400 hover:text-blue-600 rounded-xl" onClick={toggleBookmark}>
-               <Bookmark size={20} className={cn(isSelected ? "fill-current" : "")} />
+               <Bookmark size={20} className={cn(isBookmarked ? "fill-current text-primary" : "")} />
                <span className="text-[10px] font-black uppercase tracking-widest">Bookmark Artifact</span>
             </Button>
             <Button variant="ghost" className="h-10 gap-2 text-slate-400 hover:text-red-500 rounded-xl">
