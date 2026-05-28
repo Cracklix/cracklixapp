@@ -48,6 +48,19 @@
         "imageUrl": { "type": "string" },
         "createdAt": { "type": "number" }
       }
+    },
+    "JobAlert": {
+      "title": "Job Alert",
+      "description": "Punjab recruitment notification.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "department": { "type": "string" },
+        "postCount": { "type": "number" },
+        "lastDate": { "type": "number" },
+        "applyUrl": { "type": "string" },
+        "status": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -66,17 +79,37 @@
       "schema": "MockTest",
       "description": "Standardized mock tests."
     },
+    "/attempts/{attemptId}": {
+      "schema": "object",
+      "description": "User test attempts and analytics."
+    },
     "/community_messages/{msgId}": {
       "schema": "CommunityMessage",
       "description": "Real-time discussion streams."
     },
     "/jobAlerts/{jobId}": {
-      "schema": "object",
+      "schema": "JobAlert",
       "description": "Punjab government vacancy alerts."
     },
     "/leaderboards/{userId}": {
       "schema": "object",
       "description": "Punjab State Merit Registry."
+    },
+    "/subscriptions/{subId}": {
+      "schema": "object",
+      "description": "Premium PASS records."
+    },
+    "/ai_logs/{logId}": {
+      "schema": "object",
+      "description": "Gemini token usage tracking."
+    },
+    "/typing_tests/{id}": {
+      "schema": "object",
+      "description": "Student typing speed logs."
+    },
+    "/reports/{reportId}": {
+      "schema": "object",
+      "description": "Community moderation reports."
     }
   }
 }
