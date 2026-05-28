@@ -1,3 +1,4 @@
+
 "use client";
 
 /**
@@ -8,7 +9,8 @@
 export const OFFLINE_KEYS = {
   PENDING_ATTEMPTS: 'cracklix_pending_attempts',
   CACHED_MOCKS: 'cracklix_cached_mocks',
-  USER_STATS: 'cracklix_user_stats'
+  USER_STATS: 'cracklix_user_stats',
+  ACTIVE_MOCK_STATE: 'cracklix_active_mock_state'
 };
 
 export function saveForSync(type: string, data: any) {
@@ -35,4 +37,20 @@ export function getCachedData(key: string): any | null {
   if (typeof window === 'undefined') return null;
   const raw = localStorage.getItem(key);
   return raw ? JSON.parse(raw) : null;
+}
+
+// Logic for saving/restoring active mock session
+export function saveActiveMockState(mockId: string, state: any) {
+  localStorage.setItem(OFFLINE_KEYS.ACTIVE_MOCK_STATE, JSON.stringify({ mockId, state, updatedAt: Date.now() }));
+}
+
+export function getActiveMockState(mockId: string) {
+  const raw = localStorage.getItem(OFFLINE_KEYS.ACTIVE_MOCK_STATE);
+  if (!raw) return null;
+  const data = JSON.parse(raw);
+  return data.mockId === mockId ? data.state : null;
+}
+
+export function clearActiveMockState() {
+  localStorage.removeItem(OFFLINE_KEYS.ACTIVE_MOCK_STATE);
 }

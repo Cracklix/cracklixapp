@@ -11,9 +11,10 @@ import { addDoc, collection, doc, updateDoc, increment } from "firebase/firestor
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Send, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Loader2, WifiOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { saveActiveMockState, getActiveMockState, clearActiveMockState } from "@/services/offline-sync";
 
 export default function MockPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, profile } = useAuth();
@@ -29,8 +30,13 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', () => setIsOnline(true));
+    window.addEventListener('offline', () => setIsOnline(false));
+    
     async function load() {
       try {
         const [mockData, questionData] = await Promise.all([
@@ -39,6 +45,14 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         ]);
         setMock(mockData);
         setQuestions(questionData);
+
+        // Check for offline saved state
+        const saved = getActiveMockState(mockId);
+        if (saved) {
+          setAnswers(saved.answers || {});
+          setCurrent(saved.current || 0);
+          toast({ title: "Session Restored", description: "Your previous progress was loaded from local cache." });
+        }
       } catch (error: any) {
         toast({
           title: "Error",
@@ -51,6 +65,13 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
     }
     load();
   }, [mockId, toast]);
+
+  // Persist state whenever it changes
+  useEffect(() => {
+    if (mock && Object.keys(answers).length > 0) {
+      saveActiveMockState(mockId, { answers, current });
+    }
+  }, [answers, current, mockId, mock]);
 
   function selectAnswer(option: string) {
     setAnswers({
@@ -73,14 +94,18 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
       }
     });
 
-    // Generate Advanced Analytics
     const analytics = generateAnalytics({
       questions,
       answers,
     });
 
+    if (!navigator.onLine) {
+      toast({ title: "Offline Submission", description: "You are currently offline. Progress is saved locally but cannot be synced to leaderboard.", variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      // 1. Save Attempt
       await addDoc(collection(db, "attempts"), {
         userId: user?.uid,
         mockId: mock.id,
@@ -89,7 +114,6 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         createdAt: Date.now(),
       });
 
-      // 2. Save Performance Analytics
       await addDoc(collection(db, "analytics"), {
         userId: user?.uid,
         mockId: mock.id,
@@ -97,11 +121,10 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         createdAt: Date.now(),
       });
 
-      // 3. Update User Profile (XP and potentially Level)
       if (user?.uid) {
         const userRef = doc(db, "users", user.uid);
         updateDoc(userRef, {
-          xp: increment(50), // Standard XP for mock attempt
+          xp: increment(50),
           lastActive: Date.now(),
         });
       }
@@ -111,6 +134,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         description: `Score: ${score} | Accuracy: ${analytics.accuracy}%`,
       });
       
+      clearActiveMockState();
       router.push("/mocks/result");
     } catch (error: any) {
       toast({
@@ -140,6 +164,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         <div>
           <h1 className="text-3xl font-bold font-headline">{mock.title}</h1>
           <p className="text-muted-foreground mt-1 flex items-center gap-2">
+            {!isOnline && <WifiOff className="w-4 h-4 text-destructive animate-pulse" />}
             <span className="w-2 h-2 rounded-full bg-primary" />
             {mock.exam} • {questions.length} Questions
           </p>
