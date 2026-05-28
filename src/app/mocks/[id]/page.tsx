@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -37,6 +36,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer, LanguageMode, ExamAttempt } from "@/types";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
@@ -335,7 +335,7 @@ export default function CBTEngineV25() {
                          <span className="text-[10px] font-bold uppercase">{questions[current]?.difficulty}</span>
                       </div>
                       <div className="flex items-center gap-2 text-emerald-500 font-black">
-                         <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px]">+1.0</Badge>
+                         <Badge className="bg-emerald text-emerald-600 border-emerald-100 text-[10px]">+1.0</Badge>
                          <Badge variant="outline" className="border-red-100 text-red-500 text-[10px]">-{mock?.negativeMarking}</Badge>
                       </div>
                    </div>
