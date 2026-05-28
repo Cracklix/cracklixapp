@@ -1,25 +1,30 @@
-
 /**
  * Analytics Engine
- * Processes quiz results to extract performance metrics and identified gaps.
+ * Processes CBT attempt results with negative marking logic.
  */
 
 export function generateAnalytics({
   questions,
   answers,
+  mock
 }: {
   questions: any[];
-  answers: Record<number, string>;
+  answers: Record<number, any>;
+  mock: any;
 }) {
   let correct = 0;
   let wrong = 0;
+  let unattempted = 0;
   const topicMap: Record<string, { total: number; correct: number }> = {};
 
   questions.forEach((question, index) => {
-    const isCorrect = answers[index] === question.correctAnswer;
-    const isAttempted = answers[index] !== undefined;
+    const userAnswer = answers[index]?.selectedOption;
+    const isCorrect = userAnswer === question.correctAnswer;
+    const isAttempted = userAnswer !== null && userAnswer !== undefined;
 
-    if (isAttempted) {
+    if (!isAttempted) {
+      unattempted++;
+    } else {
       if (isCorrect) {
         correct++;
       } else {
@@ -37,17 +42,20 @@ export function generateAnalytics({
     }
   });
 
-  const weakTopics = Object.entries(topicMap)
-    .filter(([_, value]) => value.correct / value.total < 0.5)
-    .map(([topic]) => topic);
-
-  const accuracy = questions.length > 0 ? (correct / questions.length) * 100 : 0;
+  const penalty = mock.negativeMarking || 0;
+  const marksPerQ = mock.marksPerQuestion || 1;
+  const rawScore = (correct * marksPerQ) - (wrong * penalty);
+  const totalMarks = questions.length * marksPerQ;
+  const accuracy = correct + wrong > 0 ? (correct / (correct + wrong)) * 100 : 0;
 
   return {
     correct,
     wrong,
+    unattempted,
+    score: Number(rawScore.toFixed(2)),
+    totalMarks,
     accuracy: Math.round(accuracy),
-    weakTopics,
     readiness: accuracy > 80 ? "High" : accuracy > 60 ? "Medium" : "Low",
+    topicPerformance: topicMap
   };
 }

@@ -32,8 +32,8 @@ export type Subject =
 export const SUBJECTS: Subject[] = [
   'Punjab GK', 'Quant', 'Reasoning', 'English', 'Punjabi', 'Hindi', 'Sanskrit',
   'Computer', 'Current Affairs', 'General Science', 'History', 
-  'Polity', 'Geography', 'Agriculture', 'Static GK', 
-  'Law/Constitution', 'Environment', 'Child Development & Pedagogy',
+  | 'Polity', 'Geography', 'Agriculture', 'Static GK', 
+  | 'Law/Constitution', 'Environment', 'Child Development & Pedagogy',
   'EVS', 'Social Science', 'Science', 'Teaching Aptitude'
 ];
 
@@ -62,6 +62,8 @@ export interface BookmarkItem {
   type: 'question' | 'article';
   savedAt: number;
 }
+
+export type QuestionStatus = 'NOT_VISITED' | 'NOT_ANSWERED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
 
 export interface Question {
   id: string;
@@ -115,4 +117,28 @@ export interface MockTest {
   marksPerQuestion?: number;
   instructions?: string;
   difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
+}
+
+export interface ExamAttempt {
+  id: string;
+  userId: string;
+  mockId: string;
+  mockTitle: string;
+  status: 'ongoing' | 'completed';
+  startedAt: number;
+  expiresAt: number;
+  lastActiveAt: number;
+  currentQuestionIndex: number;
+  score?: number;
+  accuracy?: number;
+  cheatFlags: number;
+  deviceInfo: string;
+}
+
+export interface AttemptAnswer {
+  questionId: string;
+  selectedOption: string | null;
+  status: QuestionStatus;
+  timeSpent: number;
+  lastSavedAt: number;
 }

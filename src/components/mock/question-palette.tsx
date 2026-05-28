@@ -1,14 +1,12 @@
-
 'use client';
 
 import { cn } from "@/lib/utils";
+import { AttemptAnswer } from "@/types";
 
 interface QuestionPaletteProps {
   questions: any[];
   current: number;
-  answers: Record<number, string>;
-  markedForReview: Set<number>;
-  visited: Set<number>;
+  answers: Record<number, AttemptAnswer>;
   setCurrent: (index: number) => void;
 }
 
@@ -16,28 +14,23 @@ export default function QuestionPalette({
   questions,
   current,
   answers,
-  markedForReview,
-  visited,
   setCurrent,
 }: QuestionPaletteProps) {
   return (
-    <div className="grid grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
+    <div className="grid grid-cols-5 gap-3">
       {questions.map((_, index) => {
         const isCurrent = current === index;
-        const isAnswered = answers[index] !== undefined && answers[index] !== "";
-        const isMarked = markedForReview.has(index);
-        const hasVisited = visited.has(index);
+        const answerState = answers[index];
+        const status = answerState?.status || 'NOT_VISITED';
 
-        let statusColor = "bg-zinc-900 text-zinc-600 border-white/5 hover:border-white/20";
+        let statusColor = "bg-slate-100 text-slate-400 border-slate-200 hover:border-slate-400";
         
-        if (isMarked) {
-          statusColor = "bg-purple-600 text-white border-none shadow-inner ring-1 ring-purple-400/50";
-        } else if (isAnswered) {
-          statusColor = "bg-emerald-600 text-white border-none shadow-inner ring-1 ring-emerald-400/50";
-        } else if (hasVisited) {
-          statusColor = "bg-destructive text-white border-none shadow-inner ring-1 ring-destructive/50";
-        } else {
-          statusColor = "bg-zinc-800 text-zinc-500 border-white/5";
+        if (status === 'ANSWERED') {
+          statusColor = "bg-emerald-500 text-white border-none shadow-md";
+        } else if (status === 'MARKED_FOR_REVIEW' || status === 'ANSWERED_AND_MARKED') {
+          statusColor = "bg-purple-600 text-white border-none shadow-md";
+        } else if (status === 'NOT_ANSWERED') {
+          statusColor = "bg-red-500 text-white border-none shadow-md";
         }
 
         return (
@@ -45,14 +38,14 @@ export default function QuestionPalette({
             key={index}
             onClick={() => setCurrent(index)}
             className={cn(
-              "h-10 w-full md:h-12 rounded-lg md:rounded-xl font-black text-[10px] md:text-xs transition-all duration-150 border flex items-center justify-center relative",
+              "h-10 w-full rounded-xl font-black text-xs transition-all duration-150 border flex items-center justify-center relative",
               statusColor,
-              isCurrent && "ring-2 ring-primary ring-offset-2 ring-offset-black scale-105 z-10 shadow-xl"
+              isCurrent && "ring-2 ring-primary ring-offset-2 scale-110 z-10"
             )}
           >
             {index + 1}
-            {isCurrent && (
-               <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-ping" />
+            {status === 'ANSWERED_AND_MARKED' && (
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white shadow-sm" />
             )}
           </button>
         );

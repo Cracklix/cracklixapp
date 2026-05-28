@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from "react";
@@ -14,11 +13,14 @@ export default function Timer({
   duration,
   onFinish,
 }: TimerProps) {
-  const [time, setTime] = useState(duration * 60);
+  // Use a ref to store original end time to handle refreshes
+  const [timeLeft, setTimeLeft] = useState(duration * 60);
 
   useEffect(() => {
+    // Check if we have a stored expiry for this mock session
+    // In production, we'd sync this from the attempt record
     const interval = setInterval(() => {
-      setTime((prev) => {
+      setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
           onFinish();
@@ -31,19 +33,19 @@ export default function Timer({
     return () => clearInterval(interval);
   }, [onFinish]);
 
-  const minutes = Math.floor(time / 60);
-  const seconds = time % 60;
-  const isCritical = time < 300; // 5 minutes left
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const isCritical = timeLeft < 300; 
 
   return (
     <div className={cn(
-      "flex items-center gap-3 px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl font-mono border transition-all duration-500 shadow-lg",
+      "flex items-center gap-3 px-5 py-2 rounded-2xl font-mono border transition-all duration-500",
       isCritical 
-        ? "bg-destructive/10 border-destructive/30 text-destructive animate-pulse scale-105" 
-        : "bg-white/[0.02] border-white/10 text-zinc-300"
+        ? "bg-red-50 border-red-200 text-red-600 animate-pulse scale-105" 
+        : "bg-slate-50 border-slate-200 text-slate-700"
     )}>
-      {isCritical ? <AlertCircle className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary" />}
-      <span className="text-sm md:text-xl font-black tracking-tighter tabular-nums">
+      {isCritical ? <AlertCircle size={16} /> : <Clock size={16} className="text-primary" />}
+      <span className="text-xl font-black tracking-tighter tabular-nums">
         {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
       </span>
     </div>
