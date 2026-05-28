@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Trophy, BookOpen, User, FileText } from 'lucide-react';
+import { Home, Trophy, BookOpen, User, FileText, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Navbar() {
@@ -14,6 +14,7 @@ export default function Navbar() {
     { href: '/mocks', icon: FileText, label: 'Mocks' },
     { href: '/leaderboard', icon: Trophy, label: 'Ranks' },
     { href: '/exams', icon: BookOpen, label: 'Exams' },
+    { href: '/pass', icon: Zap, label: 'Pass' },
     { href: '/profile', icon: User, label: 'Profile' },
   ];
 

@@ -20,33 +20,45 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "LeaderboardEntry": {
-      "title": "Leaderboard Entry",
-      "description": "Snapshots for rankings.",
+    "Subscription": {
+      "title": "Subscription",
+      "description": "User subscription details.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "name": { "type": "string" },
-        "exam": { "type": "string" },
-        "district": { "type": "string" },
-        "xp": { "type": "number" },
-        "accuracy": { "type": "number" },
-        "streak": { "type": "number" },
-        "updatedAt": { "type": "number" }
+        "plan": { "type": "string", "enum": ["Monthly", "Quarterly", "Yearly"] },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "expired", "cancelled"] },
+        "startDate": { "type": "number" },
+        "endDate": { "type": "number" },
+        "paymentId": { "type": "string" },
+        "createdAt": { "type": "number" }
       }
     },
-    "MockAnalytics": {
-      "title": "Mock Analytics",
-      "description": "Detailed breakdown of a mock test attempt.",
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment transaction record.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "mockId": { "type": "string" },
-        "correct": { "type": "number" },
-        "wrong": { "type": "number" },
-        "accuracy": { "type": "number" },
-        "weakTopics": { "type": "array", "items": { "type": "string" } },
-        "readiness": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "paymentId": { "type": "string" },
+        "orderId": { "type": "string" },
+        "plan": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Billing invoice for subscriptions.",
+      "type": "object",
+      "properties": {
+        "invoiceId": { "type": "string" },
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "gst": { "type": "number" },
+        "status": { "type": "string" },
         "createdAt": { "type": "number" }
       }
     }
@@ -59,17 +71,21 @@
       "schema": "UserProfile",
       "description": "Student profiles and statistics."
     },
-    "/leaderboards/{entryId}": {
-      "schema": "LeaderboardEntry",
-      "description": "Aggregated ranking data."
+    "/subscriptions/{subId}": {
+      "schema": "Subscription",
+      "description": "Active and past user subscriptions."
     },
-    "/analytics/{analyticsId}": {
-      "schema": "MockAnalytics",
-      "description": "Historical performance data per attempt."
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Transaction logs."
     },
-    "/streaks/{userId}": {
+    "/premiumAccess/{userId}": {
       "schema": "object",
-      "description": "User login and activity streaks."
+      "description": "Quick lookup for premium status."
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "User billing records."
     }
   }
 }
