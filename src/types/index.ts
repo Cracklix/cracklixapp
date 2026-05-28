@@ -1,7 +1,7 @@
 
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v18.0 (Enterprise Standard)
+ * Production-grade Architecture Layer v20.0 (Enterprise Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -63,6 +63,7 @@ export interface Question {
   hi?: QuestionContent | null;
   correctAnswer: string; 
   subject: string;
+  topic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   marks: number;
   negativeMarks: number;
@@ -120,20 +121,4 @@ export interface ExamAttempt {
   answers: Record<string, AttemptAnswer>; 
   deviceInfo: string;
   suspiciousActivityCount: number;
-}
-
-export interface TestSeries {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  thumbnail: string;
-  totalTests: number;
-  freeTests: number;
-  price: number;
-  passRequired: PassTier;
-  isActive: boolean;
-  sections: string[]; 
-  createdAt: number;
-  languages: string[];
 }

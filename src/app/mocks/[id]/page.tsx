@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   getMockDetails, 
@@ -23,24 +23,17 @@ import {
   Loader2, 
   ArrowLeft, 
   Menu,
-  AlertTriangle,
-  Monitor,
-  Zap,
-  Globe,
-  Settings,
+  Pause,
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
   LayoutGrid,
-  Pause,
-  Play,
-  LogOut,
-  Maximize,
+  Info,
   CheckCircle2,
-  X
+  Globe
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { MockTest, Question, AttemptAnswer, LanguageMode, ExamAttempt, ExamSection } from "@/types";
+import { MockTest, Question, AttemptAnswer, LanguageMode, ExamAttempt } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -48,17 +41,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 /**
- * PRODUCTION CBT ENGINE v18.0 (CRACKLIX ENTERPRISE)
- * Testbook-Style Full Implementation: Mobile-First, Realtime Autosave, Sectional Tabs.
+ * PRODUCTION CBT ENGINE v20.0 (TESTBOOK STYLE REBUILD)
+ * - Professional Start Gateway (Instructions)
+ * - Realtime Firestore Sync
+ * - Stacked Bilingual Optimized (Raavi Font)
+ * - Sectional Jump Navigation
  */
-export default function ProfessionalCBTEngine() {
+export default function CBTEngine() {
   const { user, profile } = useAuth();
   const router = useRouter();
   const params = useParams();
   const mockId = params?.id as string;
   const { toast } = useToast();
   
-  const [phase, setPhase] = useState<'booting' | 'engine' | 'paused'>('booting');
+  // States
+  const [phase, setPhase] = useState<'booting' | 'gateway' | 'exam' | 'paused' | 'submitting'>('booting');
   const [mock, setMock] = useState<MockTest | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
@@ -67,10 +64,6 @@ export default function ProfessionalCBTEngine() {
   const [activeLang, setActiveLang] = useState<LanguageMode>('bilingual');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState<string>("");
-
-  const autoSaveInterval = useRef<NodeJS.Timeout | null>(null);
 
   const bootSession = useCallback(async () => {
     if (!user || !mockId) return;
@@ -86,39 +79,23 @@ export default function ProfessionalCBTEngine() {
       }
 
       const qData = await getMockQuestions(mockId);
-      if (qData.length === 0) {
-        toast({ title: "Registry Error", description: "No questions detected in this mock." });
-        router.push('/dashboard');
-        return;
-      }
-
       setMock(mockData);
       setQuestions(qData);
       
-      let session = await getOngoingAttempt(user.uid, mockId);
-      if (!session) {
-        const id = await startAttempt(user.uid, mockData);
-        session = { 
-          id, ...mockData, 
-          userId: user.uid, 
-          answers: {}, 
-          currentQuestionIndex: 0, 
-          status: 'ongoing', 
-          startedAt: Date.now(), 
-          remainingTime: mockData.duration * 60 
-        } as any;
+      const existingSession = await getOngoingAttempt(user.uid, mockId);
+      if (existingSession) {
+        setAttempt(existingSession);
+        setAnswers(existingSession.answers || {});
+        setCurrent(existingSession.currentQuestionIndex || 0);
+        setPhase('gateway'); // Show instructions even on resume
+      } else {
+        setPhase('gateway');
       }
-      
-      setAttempt(session as any);
-      setAnswers(session?.answers || {});
-      setCurrent(session?.currentQuestionIndex || 0);
-      setActiveSectionId(session?.currentSectionId || mockData.sections?.[0]?.id || "core");
-      setPhase('engine');
       
       if (profile?.languageMode) setActiveLang(profile.languageMode as any);
       
     } catch (e: any) {
-      toast({ title: "Boot Error", description: e.message, variant: "destructive" });
+      toast({ title: "Signal Error", description: e.message, variant: "destructive" });
       router.push('/dashboard');
     }
   }, [mockId, user, profile, router, toast]);
@@ -126,6 +103,21 @@ export default function ProfessionalCBTEngine() {
   useEffect(() => {
     bootSession();
   }, [bootSession]);
+
+  const handleStartExam = async () => {
+    if (!user || !mock) return;
+    setPhase('booting');
+    try {
+      if (!attempt) {
+        const id = await startAttempt(user.uid, mock);
+        setAttempt({ id, ...mock, userId: user.uid, answers: {}, currentQuestionIndex: 0, status: 'ongoing', startedAt: Date.now(), remainingTime: mock.duration * 60 } as any);
+      }
+      setPhase('exam');
+    } catch (e) {
+      toast({ title: "Initialization Failed", variant: "destructive" });
+      setPhase('gateway');
+    }
+  };
 
   const handleOptionSelect = (option: string) => {
     if (!attempt?.id || !questions[current]) return;
@@ -141,7 +133,18 @@ export default function ProfessionalCBTEngine() {
     saveAnswer(attempt.id, qId, payload);
   };
 
-  const handleMarkForReview = () => {
+  const handleClear = () => {
+    if (!attempt?.id || !questions[current]) return;
+    const qId = questions[current].id;
+    setAnswers(prev => {
+      const n = {...prev};
+      delete n[qId];
+      return n;
+    });
+    saveAnswer(attempt.id, qId, { questionId: qId, selectedOption: null, status: 'NOT_ANSWERED', timeSpent: 0, lastUpdated: Date.now() });
+  };
+
+  const handleMarkReview = () => {
     if (!attempt?.id || !questions[current]) return;
     const qId = questions[current].id;
     const currentAns = answers[qId];
@@ -157,20 +160,9 @@ export default function ProfessionalCBTEngine() {
     if (current < questions.length - 1) setCurrent(c => c + 1);
   };
 
-  const handleClear = () => {
-    if (!attempt?.id || !questions[current]) return;
-    const qId = questions[current].id;
-    setAnswers(prev => {
-      const n = {...prev};
-      delete n[qId];
-      return n;
-    });
-    saveAnswer(attempt.id, qId, { questionId: qId, selectedOption: null, status: 'NOT_ANSWERED', timeSpent: 0, lastUpdated: Date.now() });
-  };
-
-  const handleSubmitTest = async () => {
+  const handleSubmitFinal = async () => {
     if (!user || !attempt?.id || !mock) return;
-    setIsSubmitting(true);
+    setPhase('submitting');
     try {
       const answersMap: Record<number, any> = {};
       questions.forEach((q, idx) => {
@@ -181,51 +173,100 @@ export default function ProfessionalCBTEngine() {
       await finalizeAttempt(user.uid, attempt.id, analytics);
       router.push(`/mocks/result/${attempt.id}`);
     } catch (e) {
-      toast({ title: "Submission Failed", variant: "destructive" });
-      setIsSubmitting(false);
+      toast({ title: "Transmission Failed", variant: "destructive" });
+      setPhase('exam');
     }
   };
 
-  const togglePause = async () => {
-    if (phase === 'engine') {
-       setPhase('paused');
-       if (attempt?.id) await pauseAttempt(attempt.id, 0); 
-    } else {
-       setPhase('engine');
-    }
-  };
+  if (phase === 'booting' || phase === 'submitting') {
+    return (
+      <div className="h-screen bg-[#05070a] flex flex-col items-center justify-center text-center space-y-6">
+         <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} className="w-16 h-16 rounded-[24px] border-4 border-primary/20 border-t-primary" />
+         <div className="space-y-1">
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter">
+               {phase === 'booting' ? 'Syncing Simulation Nodes' : 'Analyzing Performance Vectors'}
+            </h2>
+            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.4em]">Infrastructure by Arsh Grewal</p>
+         </div>
+      </div>
+    );
+  }
 
-  if (phase === 'booting') return (
-    <div className="h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-       <div className="relative mb-8">
-          <div className="w-16 h-16 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin" />
-       </div>
-       <h2 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Loading Exam Engine...</h2>
-       <p className="text-slate-400 text-xs mt-2 uppercase font-black tracking-widest">Establishing Secure Connection</p>
-    </div>
-  );
+  if (phase === 'gateway') {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-body">
+         <header className="h-[70px] bg-white border-b border-slate-200 flex items-center px-8 justify-between sticky top-0 z-50">
+            <div className="flex items-center gap-4">
+               <Button variant="ghost" size="icon" onClick={() => router.push('/exams')} className="rounded-xl"><ArrowLeft size={20} /></Button>
+               <h1 className="font-bold text-xl tracking-tight">{mock?.title}</h1>
+            </div>
+         </header>
+
+         <main className="max-w-4xl mx-auto py-12 px-6 space-y-10 pb-40">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">Questions</p>
+                  <h4 className="text-2xl font-black text-slate-800">{mock?.totalQuestions} Artifacts</h4>
+               </div>
+               <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">Duration</p>
+                  <h4 className="text-2xl font-black text-slate-800">{mock?.duration} Minutes</h4>
+               </div>
+               <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">Marks</p>
+                  <h4 className="text-2xl font-black text-slate-800">{mock?.totalQuestions} Marks</h4>
+               </div>
+            </div>
+
+            <section className="bg-white rounded-[40px] border border-slate-200 p-10 space-y-8 shadow-sm">
+               <h3 className="text-xl font-bold flex items-center gap-3">
+                  <Info className="text-blue-600" /> General Instructions
+               </h3>
+               <div className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-600 space-y-4">
+                  <p>1. The clock will be set at the server. The countdown timer in the top right corner of screen will display the remaining time available.</p>
+                  <p>2. Every correct signal grants <strong className="text-emerald-600">+1.0</strong> mark.</p>
+                  <p>3. Incorrect signals will attract a penalty of <strong className="text-red-500">-{mock?.negativeMarking}</strong> marks.</p>
+                  <p>4. You can switch between English and Punjabi languages during the exam.</p>
+                  <p>5. Tab switching or minimizing the browser will be logged as suspicious activity.</p>
+               </div>
+            </section>
+         </main>
+
+         <footer className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-6 z-50">
+            <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+               <div className="flex items-center gap-4">
+                  <ShieldCheck className="text-emerald-500" />
+                  <p className="text-xs font-medium text-slate-500">I have read and understood all instructions.</p>
+               </div>
+               <Button onClick={handleStartExam} className="h-14 px-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-xl blue-glow">
+                  AGREE & CONTINUE
+               </Button>
+            </div>
+         </footer>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-screen bg-[#f1f5f9] flex flex-col overflow-hidden font-body select-none">
-       {/* COMPACT TOP HEADER */}
-       <header className="h-[60px] px-4 md:px-6 bg-[#1e293b] text-white flex items-center justify-between shrink-0 z-50 shadow-lg">
-          <div className="flex items-center gap-4">
+    <div className="h-screen bg-[#f1f5f9] flex flex-col overflow-hidden select-none">
+       {/* CBT TOP HEADER */}
+       <header className="h-[60px] px-6 bg-[#1e293b] text-white flex items-center justify-between shrink-0 z-50 shadow-xl">
+          <div className="flex items-center gap-6">
              <div className="flex flex-col">
-                <span className="font-bold text-sm tracking-tight truncate max-w-[150px] md:max-w-none">{mock?.title}</span>
-                <div className="flex items-center gap-2 mt-0.5">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Cloud Synced</span>
-                </div>
+                <span className="font-bold text-sm tracking-tight">{mock?.title}</span>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cloud Sync: Active
+                </span>
              </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
-             <div className="hidden sm:flex items-center gap-2 bg-black/20 px-3 py-1 rounded-lg border border-white/5">
-                <Globe size={12} className="text-blue-400" />
+          <div className="flex items-center gap-4">
+             <div className="hidden md:flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-xl border border-white/5">
+                <Globe size={14} className="text-blue-400" />
                 <select 
                   value={activeLang} 
                   onChange={(e) => setActiveLang(e.target.value as any)}
-                  className="bg-transparent text-[10px] font-bold uppercase outline-none cursor-pointer text-white"
+                  className="bg-transparent text-[10px] font-bold uppercase outline-none cursor-pointer"
                 >
                    <option value="en" className="bg-slate-900">English</option>
                    <option value="pa" className="bg-slate-900">Punjabi</option>
@@ -235,148 +276,131 @@ export default function ProfessionalCBTEngine() {
 
              <Timer 
                duration={attempt?.remainingTime ? attempt.remainingTime / 60 : (mock?.duration || 60)} 
-               onFinish={handleSubmitTest} 
+               onFinish={handleSubmitFinal} 
                paused={phase === 'paused'}
              />
 
              <Button 
-               variant="ghost" 
-               size="icon" 
-               onClick={togglePause} 
-               className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10"
+               onClick={() => setPhase(p => p === 'exam' ? 'paused' : 'exam')} 
+               variant="ghost" size="icon" className="bg-white/5 hover:bg-white/10"
              >
-                {phase === 'paused' ? <Pause size={14} /> : <Pause size={14} />}
+                {phase === 'paused' ? <Play size={16} /> : <Pause size={16} />}
              </Button>
 
              <Button 
               onClick={() => setSubmitConfirmOpen(true)} 
-              className="bg-emerald-600 hover:bg-emerald-700 h-8 px-4 rounded-lg font-bold text-[10px] uppercase shadow-lg"
+              className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-xl font-bold text-[10px] uppercase shadow-lg"
              >
-                SUBMIT
+                SUBMIT TEST
              </Button>
 
              <Button 
-              variant="ghost" 
-              size="icon" 
+              variant="ghost" size="icon" 
               onClick={() => setPaletteOpen(true)} 
-              className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 lg:hidden"
+              className="bg-white/5 lg:hidden"
              >
-                <Menu size={16} />
+                <Menu size={20} />
              </Button>
           </div>
        </header>
 
-       {/* SECTION TABS */}
-       <div className="h-10 bg-white border-b border-slate-200 flex items-center px-4 md:px-6 shrink-0 overflow-x-auto no-scrollbar">
-          {mock?.sections?.map(s => (
-             <button 
-              key={s.id}
-              onClick={() => setActiveSectionId(s.id)}
-              className={cn(
-                "h-full px-6 text-[11px] font-bold uppercase tracking-tight transition-all border-b-2",
-                activeSectionId === s.id ? "border-blue-600 text-blue-600 bg-blue-50/30" : "border-transparent text-slate-400 hover:text-slate-600"
-              )}
-             >
-               {s.name}
-             </button>
-          ))}
+       {/* SUBJECT SECTION BAR */}
+       <div className="h-12 bg-white border-b border-slate-200 flex items-center px-8 shrink-0 gap-8 overflow-x-auto no-scrollbar">
+          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 px-4 py-1 font-black text-[10px] uppercase tracking-widest shrink-0">
+             {questions[current]?.subject || 'CORE SECTION'}
+          </Badge>
+          <div className="h-4 w-px bg-slate-200" />
+          <div className="flex gap-2 shrink-0">
+             {['SECTION A', 'SECTION B'].map(s => (
+               <button key={s} className="px-4 h-8 rounded-lg text-[9px] font-black uppercase text-slate-400 hover:bg-slate-50">
+                  {s}
+               </button>
+             ))}
+          </div>
        </div>
 
        <div className="flex-1 flex overflow-hidden">
-          {/* MAIN QUESTION AREA */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-white relative">
+          {/* MAIN EXAM STAGE */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-white relative">
              <div className="max-w-5xl mx-auto">
                 <AnimatePresence mode="wait">
-                   {questions[current] && phase === 'engine' ? (
+                   {questions[current] && phase === 'exam' ? (
                      <motion.div
                        key={questions[current].id}
-                       initial={{ opacity: 0 }}
-                       animate={{ opacity: 1 }}
-                       exit={{ opacity: 0 }}
-                       className="space-y-6"
+                       initial={{ opacity: 0, x: 10 }}
+                       animate={{ opacity: 1, x: 0 }}
+                       exit={{ opacity: 0, x: -10 }}
+                       className="space-y-8"
                      >
-                        <div className="flex items-center justify-between mb-6 text-slate-400">
-                           <div className="flex items-center gap-3">
-                              <span className="text-sm font-black text-slate-800">Q.{current + 1}</span>
-                              <div className="h-4 w-px bg-slate-200" />
-                              <Badge variant="outline" className="text-[9px] font-bold uppercase border-slate-200">{questions[current].subject}</Badge>
-                           </div>
-                           <div className="flex items-center gap-4 text-[10px] font-bold uppercase">
-                              <span className="text-emerald-600">+{questions[current].marks}.0</span>
-                              <span className="text-red-500">-{questions[current].negativeMarks}.0</span>
-                           </div>
-                        </div>
-
                         <QuestionCard 
                           question={questions[current]} 
                           selected={answers[questions[current].id]?.selectedOption as any || null} 
                           onSelect={handleOptionSelect}
                           activeLanguage={activeLang}
-                          examMode={mock?.examMode || 'PSSSB'}
+                          index={current}
                         />
                      </motion.div>
                    ) : phase === 'paused' ? (
                      <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6">
-                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center animate-pulse">
-                           <Pause className="text-blue-600 w-6 h-6" />
+                        <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center animate-pulse shadow-inner">
+                           <Pause className="text-blue-600 w-8 h-8" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800">TEST PAUSED</h3>
-                        <Button onClick={togglePause} size="lg" className="h-14 px-10 rounded-xl bg-blue-600 text-white font-bold shadow-xl">RESUME TEST</Button>
+                        <h3 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">Exam Session Paused</h3>
+                        <p className="text-slate-500 max-w-xs text-sm">Your answers are secure. The clock is frozen.</p>
+                        <Button onClick={() => setPhase('exam')} size="lg" className="h-16 px-12 rounded-2xl bg-blue-600 text-white font-bold text-lg shadow-2xl">RESUME SESSION</Button>
                      </div>
                    ) : null}
                 </AnimatePresence>
              </div>
           </main>
 
-          {/* RIGHT PALETTE (DESKTOP) */}
-          <aside className="w-[300px] bg-slate-50 border-l border-slate-200 hidden lg:flex flex-col shrink-0">
-             <div className="p-6 border-b border-slate-200 bg-white flex items-center gap-4">
-                <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+          {/* DESKTOP QUESTION PALETTE */}
+          <aside className="w-[320px] bg-slate-50 border-l border-slate-200 hidden lg:flex flex-col shrink-0">
+             <div className="p-8 border-b border-slate-200 bg-white flex items-center gap-4">
+                <Avatar className="h-12 w-12 border-2 border-white shadow-xl">
                    <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100`} />
                    <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
                    <p className="text-[11px] font-black uppercase text-slate-800 leading-none">{profile?.name}</p>
-                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Reg: {user?.uid.substring(0,8)}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">ID: {user?.uid.substring(0,8)}</p>
                 </div>
              </div>
 
-             <div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-6">
-                <div className="grid grid-cols-2 gap-2">
-                   <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+             <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col justify-between h-20">
                       <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Answered</p>
-                      <h4 className="text-lg font-black text-emerald-700">{Object.values(answers).filter(a => a.status === 'ANSWERED').length}</h4>
+                      <h4 className="text-2xl font-black text-emerald-700">{Object.values(answers).filter(a => a.status === 'ANSWERED' || a.status === 'ANSWERED_AND_MARKED').length}</h4>
                    </div>
-                   <div className="bg-slate-100 border border-slate-200 p-3 rounded-xl">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Unvisited</p>
-                      <h4 className="text-lg font-black text-slate-600">{questions.length - Object.keys(answers).length}</h4>
+                   <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between h-20">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Marked</p>
+                      <h4 className="text-2xl font-black text-blue-700">{Object.values(answers).filter(a => a.status === 'MARKED_FOR_REVIEW' || a.status === 'ANSWERED_AND_MARKED').length}</h4>
                    </div>
                 </div>
 
                 <div className="space-y-4">
-                   <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Question Palette</span>
-                      <LayoutGrid size={12} className="text-slate-300" />
+                   <div className="flex items-center justify-between px-2">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Select Artifact</span>
+                      <LayoutGrid size={14} className="text-slate-300" />
                    </div>
                    <div className="grid grid-cols-5 gap-2">
                       {questions.map((q, i) => {
                         const ans = answers[q.id];
-                        const isCurrent = current === i;
                         const status = ans?.status || 'NOT_VISITED';
-
-                        let bg = "bg-white text-slate-400 border-slate-200";
-                        if (status === 'ANSWERED') bg = "bg-emerald-500 text-white border-emerald-600";
-                        if (status === 'MARKED_FOR_REVIEW') bg = "bg-blue-600 text-white border-blue-700";
-                        if (status === 'ANSWERED_AND_MARKED') bg = "bg-purple-600 text-white border-purple-700";
+                        const isCurrent = current === i;
 
                         return (
                           <button
                             key={q.id}
                             onClick={() => setCurrent(i)}
                             className={cn(
-                              "h-9 w-full rounded-lg font-bold text-[10px] transition-all border flex items-center justify-center relative",
-                              bg,
-                              isCurrent && "ring-2 ring-blue-600 ring-offset-1 scale-105 z-10"
+                              "h-10 w-full rounded-xl font-bold text-[10px] transition-all border flex items-center justify-center relative",
+                              status === 'ANSWERED' ? "bg-emerald-500 text-white border-emerald-600" :
+                              status === 'MARKED_FOR_REVIEW' ? "bg-blue-600 text-white border-blue-700" :
+                              status === 'ANSWERED_AND_MARKED' ? "bg-purple-600 text-white border-purple-700" :
+                              "bg-white text-slate-400 border-slate-200 hover:border-slate-300",
+                              isCurrent && "ring-2 ring-primary ring-offset-2 scale-110 z-10"
                             )}
                           >
                             {i + 1}
@@ -387,26 +411,26 @@ export default function ProfessionalCBTEngine() {
                 </div>
              </div>
 
-             <div className="p-5 bg-white border-t border-slate-200">
-                <Button onClick={() => setSubmitConfirmOpen(true)} className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-tight shadow-lg">
-                   FINISH TEST
+             <div className="p-6 bg-white border-t border-slate-200">
+                <Button onClick={() => setSubmitConfirmOpen(true)} className="w-full h-14 rounded-2xl bg-[#1e293b] hover:bg-black text-white font-bold text-xs uppercase tracking-widest shadow-xl">
+                   SUBMIT SIMULATION
                 </Button>
              </div>
           </aside>
        </div>
 
-       {/* STICKY BOTTOM BAR */}
-       <footer className="h-[70px] px-4 md:px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
-          <div className="flex gap-2">
-             <Button variant="outline" onClick={handleMarkForReview} className="h-10 px-4 md:px-6 rounded-xl font-bold text-[10px] uppercase tracking-tight border-slate-200 text-slate-600">MARK FOR REVIEW</Button>
-             <Button variant="ghost" onClick={handleClear} className="h-10 px-4 rounded-xl text-slate-400 font-bold text-[10px] uppercase hidden md:flex">CLEAR</Button>
+       {/* STICKY BOTTOM ACTION BAR */}
+       <footer className="h-[75px] px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
+          <div className="flex gap-3">
+             <Button variant="outline" onClick={handleMarkReview} className="h-12 px-8 rounded-2xl font-bold text-[10px] uppercase tracking-tight border-slate-200 text-slate-600">MARK FOR REVIEW</Button>
+             <Button variant="ghost" onClick={handleClear} className="h-12 px-6 rounded-2xl text-slate-400 font-bold text-[10px] uppercase hidden sm:flex">CLEAR RESPONSE</Button>
           </div>
           
-          <div className="flex gap-3 items-center">
-             <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="flex items-center gap-1 px-4 h-10 rounded-xl text-slate-500 font-bold text-[10px] uppercase hover:bg-slate-50 disabled:opacity-30">
-                <ChevronLeft size={14} /> PREV
+          <div className="flex gap-4">
+             <button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} className="flex items-center gap-1 px-4 h-12 rounded-2xl text-slate-500 font-bold text-[10px] uppercase hover:bg-slate-50 disabled:opacity-30">
+                <ChevronLeft size={16} /> PREV
              </button>
-             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-11 px-8 md:px-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-widest shadow-md">
+             <Button onClick={() => { if(current < questions.length - 1) setCurrent(c => c + 1); }} className="h-12 px-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                 SAVE & NEXT
              </Button>
           </div>
@@ -419,36 +443,34 @@ export default function ProfessionalCBTEngine() {
          current={current} 
          answers={answers} 
          setCurrent={setCurrent} 
-         mockTitle={mock?.title || "Exam"}
+         mockTitle={mock?.title || "Simulation"}
        />
 
-       {/* PROFESSIONAL SUBMIT DIALOG */}
+       {/* SUBMIT CONFIRMATION */}
        <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
-         <DialogContent className="bg-white text-slate-900 max-w-md rounded-3xl p-8 shadow-2xl">
-            <DialogHeader className="text-center space-y-4">
-               <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-                  <ShieldCheck className="text-emerald-500 w-8 h-8" />
+         <DialogContent className="bg-white text-slate-900 rounded-[32px] p-10 shadow-2xl max-w-md border-none">
+            <DialogHeader className="text-center space-y-6">
+               <div className="w-20 h-20 rounded-[28px] bg-emerald-500 flex items-center justify-center mx-auto shadow-xl">
+                  <ShieldCheck className="text-white w-10 h-10" />
                </div>
-               <DialogTitle className="text-2xl font-bold uppercase tracking-tight">Final Submission</DialogTitle>
-               <DialogDescription className="text-slate-500 text-sm font-medium">Are you sure you want to end your session?</DialogDescription>
+               <DialogTitle className="text-3xl font-black uppercase tracking-tighter">Confirm Submit</DialogTitle>
+               <DialogDescription className="text-slate-500 text-sm font-medium">Finalizing your attempt will generate your AIR rank and cognitive analysis report.</DialogDescription>
             </DialogHeader>
 
-            <div className="grid grid-cols-2 gap-3 my-8">
-               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                  <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Attempted</p>
-                  <p className="text-xl font-black text-blue-600">{Object.values(answers).filter(a => a.status === 'ANSWERED').length}</p>
+            <div className="grid grid-cols-2 gap-4 my-8">
+               <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 text-center space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">Answered</p>
+                  <p className="text-3xl font-black text-blue-600">{Object.keys(answers).length}</p>
                </div>
-               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                  <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Skipped</p>
-                  <p className="text-xl font-black text-slate-400">{questions.length - Object.values(answers).length}</p>
+               <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 text-center space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase">Unvisited</p>
+                  <p className="text-3xl font-black text-slate-300">{questions.length - Object.keys(answers).length}</p>
                </div>
             </div>
 
-            <DialogFooter className="gap-3 flex flex-col sm:flex-row">
-               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-12 rounded-xl flex-1 font-bold uppercase text-[10px] tracking-widest">RESUME</Button>
-               <Button onClick={handleSubmitTest} disabled={isSubmitting} className="h-12 rounded-xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[10px] tracking-widest shadow-lg">
-                  {isSubmitting ? <Loader2 className="animate-spin" /> : "SUBMIT TEST"}
-               </Button>
+            <DialogFooter className="gap-4 flex flex-col sm:flex-row">
+               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-14 rounded-2xl flex-1 font-bold text-xs uppercase">RESUME</Button>
+               <Button onClick={handleSubmitFinal} className="h-14 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase shadow-xl">SUBMIT NOW</Button>
             </DialogFooter>
          </DialogContent>
        </Dialog>

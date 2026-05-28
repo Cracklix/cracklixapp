@@ -71,19 +71,6 @@
         "startedAt": { "type": "number" },
         "completedAt": { "type": "number" }
       }
-    },
-    "PassPlan": {
-      "title": "Pass Plan",
-      "description": "Subscription tier details.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "price": { "type": "number" },
-        "duration": { "type": "number" },
-        "tier": { "type": "string" },
-        "features": { "type": "array" },
-        "active": { "type": "boolean" }
-      }
     }
   },
   "auth": {
@@ -105,10 +92,6 @@
     "/attempts/{attemptId}": {
       "schema": "ExamAttempt",
       "description": "CBT session state logs."
-    },
-    "/plans/{planId}": {
-      "schema": "PassPlan",
-      "description": "Subscription tier artifacts."
     }
   }
 }
