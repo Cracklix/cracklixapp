@@ -53,24 +53,33 @@ export async function getMockDetails(mockId: string): Promise<MockTest | null> {
 
 export async function updateMock(id: string, data: Partial<MockTest>) {
   const ref = doc(db, 'mocks', id);
-  return updateDoc(ref, { ...data, updatedAt: Date.now() });
+  // Ensure we don't try to update with undefined values
+  const payload = { ...data, updatedAt: Date.now() };
+  if ('id' in payload) delete (payload as any).id;
+  
+  return updateDoc(ref, payload);
 }
 
 export async function duplicateMock(id: string) {
   const mock = await getMockDetails(id);
   if (!mock) throw new Error("Source artifact missing.");
+  
   const { id: _, ...data } = mock;
-  return await addDoc(collection(db, "mocks"), {
+  const payload = {
     ...data,
     title: `${data.title} (Clone)`,
     status: "draft",
     createdAt: Date.now(),
+    updatedAt: Date.now(),
     publishedAt: null,
     liveAt: null
-  });
+  };
+
+  return await addDoc(collection(db, "mocks"), payload);
 }
 
 export async function deleteMock(mockId: string) {
+  if (!mockId) return;
   const ref = doc(db, 'mocks', mockId);
   await deleteDoc(ref);
 }
@@ -80,7 +89,8 @@ export async function linkQuestionToMock(mockId: string, questionId: string) {
   const ref = doc(db, 'mocks', mockId);
   return updateDoc(ref, {
     questionIds: arrayUnion(questionId),
-    totalQuestions: increment(1)
+    totalQuestions: increment(1),
+    updatedAt: Date.now()
   });
 }
 
@@ -88,7 +98,8 @@ export async function unlinkQuestionFromMock(mockId: string, questionId: string)
   const ref = doc(db, 'mocks', mockId);
   return updateDoc(ref, {
     questionIds: arrayRemove(questionId),
-    totalQuestions: increment(-1)
+    totalQuestions: increment(-1),
+    updatedAt: Date.now()
   });
 }
 
@@ -96,15 +107,20 @@ export async function unlinkQuestionFromMock(mockId: string, questionId: string)
 export async function publishMock(mockId: string) {
   const mockRef = doc(db, 'mocks', mockId);
   const mockSnap = await getDoc(mockRef);
+  if (!mockSnap.exists()) return;
+  
   const questionIds = mockSnap.data()?.questionIds || [];
   const batch = writeBatch(db);
   
   batch.update(mockRef, { 
     status: 'published', 
-    publishedAt: Date.now()
+    publishedAt: Date.now(),
+    updatedAt: Date.now()
   });
 
   // Quarantine linked questions to prevent duplicate series delivery
+  // In a batch, if we don't know for sure if docs exist, this is safer
+  // but for production questions they should exist.
   questionIds.forEach((qId: string) => {
     const qRef = doc(db, 'questions', qId);
     batch.update(qRef, {
@@ -121,7 +137,8 @@ export async function setMockLive(mockId: string, isLive: boolean) {
   const ref = doc(db, 'mocks', mockId);
   return updateDoc(ref, { 
     status: isLive ? 'live' : 'published',
-    liveAt: isLive ? Date.now() : null
+    liveAt: isLive ? Date.now() : null,
+    updatedAt: Date.now()
   });
 }
 
@@ -176,7 +193,7 @@ export async function checkMockAccess(userId: string, mock: MockTest): Promise<{
   const userSnap = await getDoc(doc(db, 'users', userId));
   const userData = userSnap.data();
   // Admin universal key
-  if (userData?.role === 'admin' || userData?.role === 'superadmin' || userData?.email === 'arshdeepgrewal1122@gmail.com') {
+  if (userData?.role === 'admin' || userData?.role === 'superadmin' || userData?.email === 'arshdeepgrewal1122@gmail.com' || userData?.email === 'deepgrewal2600@gmail.com') {
     return { allowed: true };
   }
   
