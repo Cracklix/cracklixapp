@@ -1,13 +1,7 @@
 import type {NextConfig} from 'next';
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-});
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false, // EMERGENCY RECOVERY: Disable strict mode to prevent double-mount loops
+  reactStrictMode: false,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -44,4 +38,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;

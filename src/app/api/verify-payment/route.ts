@@ -1,6 +1,5 @@
-
 import { NextResponse } from "next/server";
-import { getFirestore } from "firebase-admin/firestore";
+import { db } from "@/lib/firebase-admin";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
@@ -8,9 +7,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { response, plan, amount, userId, planId, duration } = body;
 
-    // 1. Fetch Dynamic Webhook Secret for Verification
-    const firestore = getFirestore();
-    const settingsSnap = await firestore.collection('settings').doc('payment').get();
+    // 1. Fetch Dynamic Credentials
+    const settingsSnap = await db.collection('settings').doc('payment').get();
     const settings = settingsSnap.data() as any;
 
     // 2. Signature Verification
@@ -24,7 +22,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Record Payment
-    await firestore.collection("payments").add({
+    await db.collection("payments").add({
       userId,
       paymentId: response.razorpay_payment_id,
       orderId: response.razorpay_order_id,
@@ -39,16 +37,16 @@ export async function POST(req: Request) {
     const startDate = Date.now();
     const endDate = startDate + (duration * 24 * 60 * 60 * 1000);
 
-    await firestore.collection("premiumAccess").doc(userId).set({
+    await db.collection("premiumAccess").doc(userId).set({
       status: "active",
       plan,
       planId,
-      endDate,
+      expiresAt: endDate,
       updatedAt: startDate,
-    });
+    }, { merge: true });
 
     // 5. Create Subscription Ledger Record
-    await firestore.collection("subscriptions").add({
+    await db.collection("subscriptions").add({
       userId,
       plan,
       planId,

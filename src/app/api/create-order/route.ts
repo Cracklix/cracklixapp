@@ -1,21 +1,17 @@
-
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
-import { db } from "@/lib/firebase-admin"; // Assuming standard server-side firebase setup
-import { getFirestore } from "firebase-admin/firestore";
+import { db } from "@/lib/firebase-admin";
 
 /**
  * Dynamic Order Creation Logic
- * Fetches keys from Firestore Settings instead of ENV vars.
+ * Fetches keys from Firestore Settings instead of ENV vars for better flexibility.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // 1. Fetch Dynamic Credentials from Firestore
-    // Note: This assumes you have a standard firebase-admin initialization in @/lib/firebase-admin
-    const firestore = getFirestore();
-    const settingsSnap = await firestore.collection('settings').doc('payment').get();
+    // 1. Fetch Dynamic Credentials from Firestore Settings
+    const settingsSnap = await db.collection('settings').doc('payment').get();
     
     if (!settingsSnap.exists) {
       throw new Error("Payment gateway not configured in Admin Settings.");
