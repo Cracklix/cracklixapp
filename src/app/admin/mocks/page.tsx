@@ -1,4 +1,4 @@
-["use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import AdminSidebar from "@/components/admin/sidebar";
@@ -479,7 +479,7 @@ export default function MockFactoryPage() {
                              </table>
                           </div>
 
-                          {/* Fixed overlap staging area */}
+                          {/* Staging Area - Responsive Fix */}
                           <div className="flex flex-wrap items-center justify-between bg-primary/5 p-5 rounded-[28px] border border-primary/10 gap-4">
                              <div className="flex items-center gap-3 shrink-0">
                                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
@@ -846,4 +846,3 @@ function Crown(props: any) {
     </svg>
   )
 }
-"]
