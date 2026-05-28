@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -18,64 +19,42 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "ExamMaster": {
-      "title": "Master Exam Definition",
-      "description": "Comprehensive details for a specific Punjab government exam.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "slug": { "type": "string" },
-        "department": { "type": "string" },
-        "languages": { "type": "array", "items": { "type": "string" } },
-        "negativeMarking": { "type": "number" },
-        "duration": { "type": "number" },
-        "totalMarks": { "type": "number" },
-        "subjects": { "type": "array", "items": { "type": "string" } },
-        "eligibility": { "type": "string" },
-        "salary": { "type": "string" },
-        "icon": { "type": "string" }
-      }
-    },
-    "Syllabus": {
-      "title": "Exam Syllabus",
-      "description": "Mapping of topics to subjects for a specific exam.",
-      "type": "object",
-      "properties": {
-        "examId": { "type": "string" },
-        "subject": { "type": "string" },
-        "topics": { "type": "array", "items": { "type": "string" } },
-        "weightage": { "type": "number" }
-      }
-    },
-    "PYQ": {
-      "title": "Previous Year Question",
-      "description": "Authentic questions from previous Punjab govt exams.",
-      "type": "object",
-      "properties": {
-        "exam": { "type": "string" },
-        "year": { "type": "number" },
-        "question_en": { "type": "string" },
-        "question_pa": { "type": "string" },
-        "options_en": { "type": "array", "items": { "type": "string" } },
-        "options_pa": { "type": "array", "items": { "type": "string" } },
-        "correctAnswer": { "type": "number" },
-        "subject": { "type": "string" },
-        "topic": { "type": "string" },
-        "explanation": { "type": "string" }
-      }
-    },
-    "DailyTarget": {
-      "title": "Daily Target",
-      "description": "Student daily goals tracking.",
+    "MockAttempt": {
+      "title": "Mock Attempt",
+      "description": "Record of a student's performance in a mock test.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "questionsGoal": { "type": "number" },
-        "questionsCompleted": { "type": "number" },
-        "mockGoal": { "type": "number" },
-        "mockCompleted": { "type": "number" },
-        "studyMinutesGoal": { "type": "number" },
-        "studyMinutesCompleted": { "type": "number" }
+        "mockId": { "type": "string" },
+        "score": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "timeTaken": { "type": "number" },
+        "answers": { "type": "object" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "LeaderboardEntry": {
+      "title": "Leaderboard Entry",
+      "description": "Real-time rank record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "xp": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "streak": { "type": "number" },
+        "district": { "type": "string" }
+      }
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "PASS premium access record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "plan": { "type": "string" },
+        "status": { "type": "string" },
+        "endDate": { "type": "number" }
       }
     }
   },
@@ -87,33 +66,25 @@
       "schema": "UserProfile",
       "description": "User profiles and settings."
     },
-    "/exams/{examId}": {
-      "schema": "ExamMaster",
-      "description": "Master list of Punjab Government exams."
+    "/attempts/{attemptId}": {
+      "schema": "MockAttempt",
+      "description": "History of mock test attempts."
     },
-    "/syllabus/{syllabusId}": {
-      "schema": "Syllabus",
-      "description": "Subject-wise syllabus breakdown."
+    "/leaderboards/{userId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Global and district rankings."
     },
-    "/pyqs/{pyqId}": {
-      "schema": "PYQ",
-      "description": "Previous year questions bank."
+    "/subscriptions/{userId}": {
+      "schema": "Subscription",
+      "description": "User premium access status."
     },
-    "/dailyTargets/{userId}": {
-      "schema": "DailyTarget",
-      "description": "Goal tracking per user."
-    },
-    "/jobAlerts/{jobId}": {
+    "/mocks/{mockId}": {
       "schema": "object",
-      "description": "Punjab government vacancy updates."
+      "description": "Master list of available mocks."
     },
-    "/currentAffairs/{articleId}": {
+    "/questions/{qId}": {
       "schema": "object",
-      "description": "Daily news and study notes."
-    },
-    "/liveRanks/{userId}": {
-      "schema": "object",
-      "description": "Real-time arena leaderboard."
+      "description": "Academic question bank."
     }
   }
 }

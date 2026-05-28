@@ -2,21 +2,18 @@
 'use client';
 
 import React, { useEffect, useState } from "react";
-import { getMock, getQuestions } from "@/services/mock";
+import { getMockDetails, getMockQuestions, saveAttempt } from "@/services/mocks";
+import { updateUserRank } from "@/services/leaderboard";
 import QuestionCard from "@/components/mock/question-card";
 import QuestionPalette from "@/components/mock/question-palette";
 import Timer from "@/components/mock/timer";
 import { generateAnalytics } from "@/services/analytics-engine";
-import { addDoc, collection, doc, updateDoc, increment } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Send, Loader2, WifiOff, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { saveActiveMockState, getActiveMockState, clearActiveMockState } from "@/services/offline-sync";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function MockPage({ params }: { params: Promise<{ id: string }> }) {
@@ -44,7 +41,6 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Anti-Cheat: Detect Tab Switching
     const handleVisibilityChange = () => {
       if (document.hidden) {
         setTabSwitchCount(prev => prev + 1);
@@ -57,11 +53,11 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
     async function load() {
       try {
         const [mockData, questionData] = await Promise.all([
-          getMock(mockId),
-          getQuestions(mockId)
+          getMockDetails(mockId),
+          getMockQuestions(mockId)
         ]);
         
-        // Anti-Cheat: Randomize Option Order for each question
+        // Randomize Option Order for production authenticity
         const randomizedQuestions = questionData.map(q => ({
           ...q,
           options_en: q.options_en ? [...q.options_en].sort(() => Math.random() - 0.5) : q.options_en,
@@ -78,11 +74,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
           toast({ title: "Session Restored", description: "Your previous progress was loaded from local cache." });
         }
       } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive"
-        });
+        toast({ title: "Initialization Error", description: error.message, variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -103,14 +95,11 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
   }, [answers, current, mockId, mock]);
 
   function selectAnswer(option: string) {
-    setAnswers({
-      ...answers,
-      [current]: option,
-    });
+    setAnswers({ ...answers, [current]: option });
   }
 
   function submitTest() {
-    if (submitting) return;
+    if (submitting || !user) return;
     setSubmitting(true);
     
     let score = 0;
@@ -122,78 +111,37 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
       }
     });
 
-    const analytics = generateAnalytics({
-      questions,
-      answers,
-    });
+    const analytics = generateAnalytics({ questions, answers });
 
     if (!navigator.onLine) {
-      toast({ title: "Offline Submission", description: "You are currently offline. Progress is saved locally but cannot be synced to leaderboard.", variant: "destructive" });
+      toast({ title: "Offline Submission", description: "Progress saved locally. Syncing will occur once reconnected.", variant: "destructive" });
       setSubmitting(false);
       return;
     }
 
-    const attemptsRef = collection(db, "attempts");
-    addDoc(attemptsRef, {
-      userId: user?.uid,
+    // Save Attempt via Service
+    saveAttempt(user.uid, {
       mockId: mock.id,
-      answers,
       score,
-      cheatFlags: tabSwitchCount, // Record anti-cheat data
-      createdAt: Date.now(),
-    }).catch(async (serverError) => {
-       const permissionError = new FirestorePermissionError({
-          path: attemptsRef.path,
-          operation: 'create',
-          requestResourceData: { userId: user?.uid, mockId: mock.id },
-       } satisfies SecurityRuleContext);
-       errorEmitter.emit('permission-error', permissionError);
+      accuracy: analytics.accuracy,
+      cheatFlags: tabSwitchCount,
+      answers
     });
 
-    const analyticsRef = collection(db, "analytics");
-    addDoc(analyticsRef, {
-      userId: user?.uid,
-      mockId: mock.id,
-      ...analytics,
-      createdAt: Date.now(),
-    }).catch(async (serverError) => {
-       const permissionError = new FirestorePermissionError({
-          path: analyticsRef.path,
-          operation: 'create',
-          requestResourceData: { userId: user?.uid, mockId: mock.id },
-       } satisfies SecurityRuleContext);
-       errorEmitter.emit('permission-error', permissionError);
-    });
+    // Update Global Leaderboard
+    updateUserRank(user.uid, profile?.name || "Aspirant", 50, analytics.accuracy);
 
-    if (user?.uid) {
-      const userRef = doc(db, "users", user.uid);
-      updateDoc(userRef, {
-        xp: increment(50),
-        lastActive: Date.now(),
-      }).catch(async (serverError) => {
-         const permissionError = new FirestorePermissionError({
-            path: userRef.path,
-            operation: 'update',
-            requestResourceData: { xp: 'increment(50)' },
-         } satisfies SecurityRuleContext);
-         errorEmitter.emit('permission-error', permissionError);
-      });
-    }
-
-    toast({
-      title: "Test Submitted",
-      description: `Score: ${score} | Accuracy: ${analytics.accuracy}%`,
-    });
+    toast({ title: "Submission Captured", description: `Computed Score: ${score} | Finalizing Analysis...` });
     
     clearActiveMockState();
-    router.push("/mocks/result");
+    setTimeout(() => router.push("/mocks/result"), 1500);
   }
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-white gap-4">
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-black text-white gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Initializing CBT Engine...</p>
+        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs animate-pulse">Initializing CBT Engine</p>
       </div>
     );
   }
@@ -201,7 +149,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
   if (!mock) return null;
 
   return (
-    <div className="min-h-screen bg-background text-white p-4 md:p-8 flex flex-col">
+    <div className="min-h-screen bg-black text-white p-4 md:p-8 flex flex-col">
       <AnimatePresence>
         {cheatAlert && (
           <motion.div 
@@ -213,8 +161,8 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
             <div className="bg-destructive text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20">
                <ShieldAlert className="w-6 h-6 animate-pulse" />
                <div>
-                 <p className="font-bold">Anti-Cheat Warning</p>
-                 <p className="text-xs opacity-90">Tab switching detected. This incident will be logged in your final report.</p>
+                 <p className="font-bold">Anti-Cheat Triggered</p>
+                 <p className="text-xs opacity-90">Tab switching detected. This event has been logged to your audit profile.</p>
                </div>
             </div>
           </motion.div>
@@ -223,8 +171,8 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
 
       <div className="max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pb-6 border-b border-white/5">
         <div>
-          <h1 className="text-3xl font-bold font-headline">{mock.title}</h1>
-          <p className="text-muted-foreground mt-1 flex items-center gap-2">
+          <h1 className="text-3xl font-black font-headline tracking-tighter uppercase">{mock.title}</h1>
+          <p className="text-zinc-500 mt-1 flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
             {!isOnline && <WifiOff className="w-4 h-4 text-destructive animate-pulse" />}
             <span className="w-2 h-2 rounded-full bg-primary" />
             {mock.exam} • {questions.length} Questions
@@ -244,7 +192,7 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
             />
           )}
 
-          <div className="flex justify-between items-center bg-card/40 p-6 rounded-[32px] border border-white/5">
+          <div className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-[32px] border border-white/5">
             <Button
               variant="outline"
               size="lg"
@@ -256,8 +204,8 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
               Previous
             </Button>
 
-            <span className="font-mono text-sm text-muted-foreground">
-              Question {current + 1} of {questions.length}
+            <span className="font-black text-[10px] text-zinc-500 uppercase tracking-widest">
+              Question {current + 1} / {questions.length}
             </span>
 
             <Button
@@ -273,10 +221,10 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
         </div>
 
         <div className="space-y-6">
-          <div className="bg-card/60 backdrop-blur-md p-6 rounded-[32px] border border-white/5 h-fit sticky top-8">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-primary rounded-full" />
-              Question Palette
+          <div className="bg-zinc-900/50 backdrop-blur-md p-6 rounded-[32px] border border-white/5 h-fit sticky top-8">
+            <h2 className="text-lg font-black mb-6 flex items-center gap-2 uppercase tracking-widest text-zinc-400">
+              <span className="w-1.5 h-4 bg-primary rounded-full" />
+              Palette
             </h2>
 
             <QuestionPalette
@@ -287,26 +235,22 @@ export default function MockPage({ params }: { params: Promise<{ id: string }> }
             />
 
             <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
-              <div className="flex justify-between text-xs text-muted-foreground px-1">
+              <div className="flex justify-between text-[10px] font-black uppercase text-zinc-600 px-1">
                 <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" /> Answered
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" /> Done
                 </span>
                 <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-zinc-700" /> Unanswered
+                  <div className="w-2 h-2 rounded-full bg-zinc-700" /> Pending
                 </span>
               </div>
 
               <Button
                 onClick={submitTest}
                 disabled={submitting}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14 font-bold text-lg shadow-lg shadow-emerald-900/20"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14 font-black text-lg shadow-xl shadow-emerald-900/20"
               >
-                {submitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                ) : (
-                  <Send className="w-5 h-5 mr-2" />
-                )}
-                Submit Test
+                {submitting ? <Loader2 className="animate-spin" /> : <Send className="w-5 h-5 mr-2" />}
+                Final Submit
               </Button>
             </div>
           </div>

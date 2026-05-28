@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -9,10 +10,14 @@ import {
   where, 
   orderBy, 
   addDoc, 
-  updateDoc 
+  updateDoc,
+  increment,
+  Firestore
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { MockTest, Question } from '@/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /**
  * Service for the Mock Test CBT Engine.
@@ -36,21 +41,39 @@ export async function getMockDetails(mockId: string): Promise<MockTest> {
   return { id: snap.id, ...snap.data() } as MockTest;
 }
 
-export async function createMockDraft(data: Omit<MockTest, 'id' | 'createdAt'>) {
-  return await addDoc(collection(db, "mocks"), {
-    ...data,
-    published: false,
-    createdAt: Date.now()
-  });
-}
-
-export async function publishMock(id: string) {
-  const ref = doc(db, "mocks", id);
-  return await updateDoc(ref, { published: true });
-}
-
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const q = query(collection(db, 'mocks', mockId, 'questions'));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+}
+
+export function saveAttempt(userId: string, data: any) {
+  const attemptsRef = collection(db, 'attempts');
+  
+  addDoc(attemptsRef, {
+    ...data,
+    userId,
+    createdAt: Date.now()
+  }).catch(async (serverError) => {
+    const permissionError = new FirestorePermissionError({
+      path: attemptsRef.path,
+      operation: 'create',
+      requestResourceData: data,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
+
+  // Update user XP
+  const userRef = doc(db, 'users', userId);
+  updateDoc(userRef, {
+    xp: increment(50),
+    lastActive: Date.now()
+  }).catch(async (serverError) => {
+     const permissionError = new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'update',
+        requestResourceData: { xp: 'increment(50)' },
+     } satisfies SecurityRuleContext);
+     errorEmitter.emit('permission-error', permissionError);
+  });
 }
