@@ -16,15 +16,21 @@ import {
   LayoutGrid,
   ListFilter,
   ArrowUpDown,
-  Sparkles
+  Sparkles,
+  Lock,
+  CheckCircle2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePremium } from '@/hooks/usePremium';
+import { useAuth } from '@/lib/auth-context';
 
 export default function ExamsPage() {
+  const { user } = useAuth();
+  const { isPremium } = usePremium(user?.uid);
   const [mocks, setMocks] = useState<MockTest[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -32,10 +38,11 @@ export default function ExamsPage() {
   const [search, setSearch] = useState("");
   const [examFilter, setExamFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
-  const [difficultyFilter, setDifficultyFilter] = useState("All");
+  const [accessFilter, setAccessFilter] = useState("All");
   const [sortBy, setSortBy] = useState("latest");
 
   useEffect(() => {
+    // Only fetch mocks with status 'published' - standard visibility rule
     const q = query(
       collection(db, "mocks"),
       where("status", "==", "published")
@@ -43,7 +50,8 @@ export default function ExamsPage() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest));
-      setMocks(data);
+      // Clientside filtering for live/expiry
+      setMocks(data.filter(m => !m.expiresAt || m.expiresAt > Date.now()));
       setLoading(false);
     }, (error) => {
       console.error("Mocks Fetch Error:", error);
@@ -58,11 +66,13 @@ export default function ExamsPage() {
       const matchesSearch = m.title.toLowerCase().includes(search.toLowerCase());
       const matchesExam = examFilter === "All" || m.exam === examFilter;
       const matchesType = typeFilter === "All" || m.type === typeFilter;
-      const matchesDifficulty = difficultyFilter === "All" || (m as any).difficulty === difficultyFilter;
-      return matchesSearch && matchesExam && matchesType && matchesDifficulty;
+      const matchesAccess = accessFilter === "All" || 
+                            (accessFilter === "Free" && m.accessType === 'free') ||
+                            (accessFilter === "PASS+" && m.accessType === 'pass_plus');
+      return matchesSearch && matchesExam && matchesType && matchesAccess;
     })
     .sort((a, b) => {
-      if (sortBy === "latest") return (b.createdAt || 0) - (a.createdAt || 0);
+      if (sortBy === "latest") return (b.publishedAt || b.createdAt || 0) - (a.publishedAt || a.createdAt || 0);
       if (sortBy === "duration") return b.duration - a.duration;
       return 0;
     });
@@ -85,12 +95,14 @@ export default function ExamsPage() {
             
             <div className="flex items-center gap-4 bg-zinc-900/50 p-2 rounded-2xl border border-white/5">
                <div className="px-4 py-2 text-right border-r border-white/10">
-                  <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Active Tests</p>
+                  <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Live Simulations</p>
                   <p className="text-xl font-black text-white">{mocks.length}</p>
                </div>
                <div className="px-4 py-2">
-                  <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Global Rank</p>
-                  <p className="text-xl font-black text-primary">#42.5k</p>
+                  <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-0.5">Pass Access</p>
+                  <p className={cn("text-xl font-black", isPremium ? "text-emerald-500" : "text-zinc-500")}>
+                    {isPremium ? "ACTIVE" : "FREE TIER"}
+                  </p>
                </div>
             </div>
           </div>
@@ -121,6 +133,17 @@ export default function ExamsPage() {
 
                 <div className="h-8 w-px bg-white/5 hidden lg:block mx-2" />
 
+                <Select value={accessFilter} onValueChange={setAccessFilter}>
+                   <SelectTrigger className="w-[120px] h-12 bg-zinc-900 border-white/5 rounded-2xl font-bold text-[10px] uppercase tracking-widest">
+                      <SelectValue placeholder="Access" />
+                   </SelectTrigger>
+                   <SelectContent className="bg-zinc-950 text-white border-white/10">
+                      <SelectItem value="All">All Access</SelectItem>
+                      <SelectItem value="Free">Free Only</SelectItem>
+                      <SelectItem value="PASS+">PASS+ Only</SelectItem>
+                   </SelectContent>
+                </Select>
+
                 <Select value={examFilter} onValueChange={setExamFilter}>
                   <SelectTrigger className="w-[160px] h-12 bg-zinc-900 border-white/5 rounded-2xl font-bold text-[10px] uppercase tracking-widest">
                      <SelectValue placeholder="Exam Board" />
@@ -134,36 +157,12 @@ export default function ExamsPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[150px] h-12 bg-zinc-900 border-white/5 rounded-2xl font-bold text-[10px] uppercase tracking-widest">
-                     <SelectValue placeholder="Test Type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 text-white border-white/10">
-                     <SelectItem value="All">All Types</SelectItem>
-                     <SelectItem value="full">Full Mock</SelectItem>
-                     <SelectItem value="sectional">Sectional</SelectItem>
-                     <SelectItem value="chapter">Chapter Test</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-                  <SelectTrigger className="w-[140px] h-12 bg-zinc-900 border-white/5 rounded-2xl font-bold text-[10px] uppercase tracking-widest">
-                     <SelectValue placeholder="Difficulty" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 text-white border-white/10">
-                     <SelectItem value="All">All Difficulty</SelectItem>
-                     <SelectItem value="easy">Easy</SelectItem>
-                     <SelectItem value="medium">Medium</SelectItem>
-                     <SelectItem value="hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                { (examFilter !== "All" || typeFilter !== "All" || difficultyFilter !== "All" || search !== "") && (
+                { (examFilter !== "All" || typeFilter !== "All" || search !== "" || accessFilter !== "All") && (
                   <Button 
                     variant="ghost" 
                     size="icon"
                     className="h-12 w-12 rounded-2xl text-zinc-500 hover:text-white hover:bg-white/5"
-                    onClick={() => { setExamFilter("All"); setTypeFilter("All"); setDifficultyFilter("All"); setSearch(""); }}
+                    onClick={() => { setExamFilter("All"); setTypeFilter("All"); setAccessFilter("All"); setSearch(""); }}
                   >
                      <ListFilter className="w-5 h-5" />
                   </Button>

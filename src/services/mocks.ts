@@ -18,7 +18,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { MockTest, Question, Subject, MockStatus, ExamAttempt, AttemptAnswer, QuestionStatus } from '@/types';
+import { MockTest, Question, Subject, MockStatus, ExamAttempt, AttemptAnswer, QuestionStatus, MockAccessType } from '@/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -37,6 +37,7 @@ export async function generateAutoMock(params: {
   duration: number;
   negativeMarking: number;
   isPremium: boolean;
+  accessType?: MockAccessType;
 }) {
   const bankRef = collection(db, "questions");
   
@@ -77,10 +78,12 @@ export async function generateAutoMock(params: {
     duration: params.duration,
     negativeMarking: params.negativeMarking,
     premium: params.isPremium,
+    accessType: params.accessType || (params.isPremium ? 'pass_plus' : 'free'),
     status: "draft", 
     createdAt: Date.now(),
     totalQuestions: selectedIds.length,
-    difficulty: params.difficulty
+    difficulty: params.difficulty,
+    maxAttempts: params.type === 'full' ? 1 : 5
   };
 
   return await addDoc(collection(db, "mocks"), mockData);
@@ -90,6 +93,20 @@ export async function getAllMocks(): Promise<MockTest[]> {
   const q = query(collection(db, 'mocks'));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+/**
+ * PRODUCTION FEED: Returns mocks visible to students.
+ */
+export async function getStudentMocks(): Promise<MockTest[]> {
+  const q = query(
+    collection(db, 'mocks'), 
+    where('status', '==', 'published')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MockTest))
+    .filter(m => !m.expiresAt || m.expiresAt > Date.now())
+    .sort((a, b) => (b.publishedAt || b.createdAt) - (a.publishedAt || a.createdAt));
 }
 
 export async function getMockDetails(mockId: string): Promise<MockTest> {
@@ -123,7 +140,11 @@ export async function publishMock(mockId: string) {
   const questionIds = mockSnap.data()?.questionIds || [];
   const batch = writeBatch(db);
   
-  batch.update(mockRef, { status: 'published', publishedAt: Date.now() });
+  batch.update(mockRef, { 
+    status: 'published', 
+    publishedAt: Date.now(),
+    visibility: 'student'
+  });
 
   questionIds.forEach((qId: string) => {
     const qRef = doc(db, 'questions', qId);
@@ -138,8 +159,35 @@ export async function publishMock(mockId: string) {
 }
 
 /**
- * CBT ENGINE PERSISTENCE
+ * CBT ENGINE PERSISTENCE & ACCESS CONTROL
  */
+
+export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
+  // 1. Admin Override
+  const userSnap = await getDoc(doc(db, 'users', userId));
+  const role = userSnap.data()?.role;
+  if (role === 'admin' || role === 'superadmin') return { allowed: true };
+
+  // 2. Access Type Check
+  if (mock.accessType === 'free') return { allowed: true };
+
+  // 3. Premium/Pass Check
+  const subSnap = await getDoc(doc(db, 'premiumAccess', userId));
+  if (!subSnap.exists() || subSnap.data().status !== 'active' || subSnap.data().endDate < Date.now()) {
+    return { allowed: false, reason: `Requires ${mock.accessType.replace('_', ' ').toUpperCase()}` };
+  }
+
+  // 4. Attempt Limit Check
+  const attemptsQ = query(collection(db, 'attempts'), where('userId', '==', userId), where('mockId', '==', mock.id), where('status', '==', 'completed'));
+  const attemptsSnap = await getDocs(attemptsQ);
+  const maxAttempts = mock.maxAttempts || (mock.type === 'full' ? 1 : 5);
+  
+  if (attemptsSnap.size >= maxAttempts) {
+    return { allowed: false, reason: 'Attempt limit reached for this session.' };
+  }
+
+  return { allowed: true };
+}
 
 export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
   const attemptId = `${userId}_${mock.id}`;
@@ -147,6 +195,8 @@ export async function startAttempt(userId: string, mock: MockTest): Promise<stri
   
   const existing = await getDoc(attemptRef);
   if (existing.exists() && existing.data().status === 'completed') {
+    // If it's a re-take (and allowed), we'd usually create a new unique ID
+    // For MVP, we stick to unique user_mock ID for session consistency
     throw new Error('Simulation already finalized.');
   }
 

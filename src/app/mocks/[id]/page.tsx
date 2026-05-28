@@ -9,7 +9,8 @@ import {
   getAttemptState, 
   saveQuestionState, 
   updateAttemptActivity,
-  finalizeAttempt 
+  finalizeAttempt,
+  checkMockAccess
 } from "@/services/mocks";
 import { updateUserRank } from "@/services/leaderboard";
 import { trackProgress } from "@/services/daily-target";
@@ -31,7 +32,8 @@ import {
   RotateCcw,
   AlertTriangle,
   Columns,
-  Maximize2
+  Maximize2,
+  Lock
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,12 +64,25 @@ export default function MockPage() {
 
   const testStartTime = useRef<number>(Date.now());
 
-  // 1. Initial Load & Attempt Initialization
+  // 1. Initial Load & Access Validation
   useEffect(() => {
     async function init() {
       if (!user) return;
       try {
         const mockData = await getMockDetails(mockId);
+        
+        // SECURITY PRE-FLIGHT: Check Access & Limits
+        const access = await checkMockAccess(user.uid, mockData);
+        if (!access.allowed) {
+          toast({ 
+            title: "Access Denied", 
+            description: access.reason || "This simulation is restricted.", 
+            variant: "destructive" 
+          });
+          router.push('/exams');
+          return;
+        }
+
         const questionData = await getMockQuestions(mockId);
         setMock(mockData);
         setQuestions(questionData);
@@ -83,7 +98,11 @@ export default function MockPage() {
           }
           if (state.answers) setAnswers(state.answers);
           setCurrent(state.currentQuestionIndex || 0);
-          setPhase('test');
+          
+          // Auto-resume if session is ongoing
+          if (state.status === 'ongoing') {
+            setPhase('test');
+          }
         }
       } catch (error: any) {
         toast({ title: "Portal Busy", description: error.message, variant: "destructive" });
@@ -173,7 +192,7 @@ export default function MockPage() {
   if (loading) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-6">
       <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Establishing Secure CBT Signal...</p>
+      <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Synchronizing CBT Access...</p>
     </div>
   );
 
@@ -184,24 +203,24 @@ export default function MockPage() {
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-200 pb-8">
             <div className="space-y-2">
               <h1 className="text-3xl font-black tracking-tight text-slate-800">{mock.title}</h1>
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">{mock.exam} • Production Environment</p>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">{mock.exam} • Production Board</p>
             </div>
           </header>
 
           <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 space-y-8 shadow-sm">
              <div className="space-y-6">
                 <h3 className="text-xl font-bold flex items-center gap-3 text-slate-700">
-                  <ShieldAlert className="text-primary" /> Candidates Briefing
+                  <ShieldAlert className="text-primary" /> Candidate Instructions
                 </h3>
                 <div className="grid md:grid-cols-2 gap-10 text-sm text-slate-600 leading-relaxed">
                    <div className="space-y-4">
-                      <p>1. Total duration: <strong>{mock.duration} minutes</strong>.</p>
-                      <p>2. Negative marking of <strong>{mock.negativeMarking}</strong> per wrong answer.</p>
-                      <p>3. Do not switch tabs or minimize the browser. Doing so will flag the attempt.</p>
+                      <p>1. Total duration: <strong>{mock.duration} minutes</strong>. Exam will auto-submit on completion.</p>
+                      <p>2. Negative marking: <strong>{mock.negativeMarking}</strong> per incorrect response.</p>
+                      <p>3. Do not switch tabs. <strong>Anti-Cheat Shield</strong> is monitoring your device focal point.</p>
                    </div>
                    <div className="space-y-4">
-                      <p>4. Use the <strong>Save & Next</strong> button to persist your responses.</p>
-                      <p>5. Review mode allows you to mark questions for later scrutiny.</p>
+                      <p>4. Status colors: <span className="text-emerald-600 font-bold">Answered</span>, <span className="text-red-600 font-bold">Unanswered</span>, <span className="text-purple-600 font-bold">Marked</span>.</p>
+                      <p>5. Ensure a stable internet signal for real-time attempt persistence.</p>
                    </div>
                 </div>
              </div>
@@ -209,7 +228,7 @@ export default function MockPage() {
              <div className="pt-8 border-t border-slate-100 flex items-start gap-4">
                 <Checkbox id="confirm" checked={hasConfirmed} onCheckedChange={(v) => setHasConfirmed(!!v)} className="mt-1" />
                 <label htmlFor="confirm" className="text-sm font-medium text-slate-500 leading-relaxed cursor-pointer">
-                  I have read and understood the instructions. I agree to abide by the official rules of the examination board.
+                  I have read and understood the instructions. I confirm that I am using a single authorized device for this attempt.
                 </label>
              </div>
 
@@ -218,7 +237,7 @@ export default function MockPage() {
                disabled={!hasConfirmed} 
                className="w-full h-16 rounded-2xl bg-primary text-lg font-black text-white shadow-xl shadow-primary/20 hover:scale-[1.01] transition-transform"
              >
-                I AM READY TO BEGIN
+                AGREE & BEGIN SIMULATION
              </Button>
           </div>
         </div>
@@ -295,7 +314,7 @@ export default function MockPage() {
                 </div>
                 <div>
                    <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">CBT Palette</h3>
-                   <p className="text-sm font-bold text-slate-700">Section: General Hub</p>
+                   <p className="text-sm font-bold text-slate-700">Section: Main Board</p>
                 </div>
              </div>
              
@@ -329,13 +348,13 @@ export default function MockPage() {
           <div className="p-8 bg-slate-50 border-t border-slate-200">
              <div className="p-5 rounded-2xl bg-white border border-slate-200 flex justify-between items-center">
                 <div className="text-center">
-                   <p className="text-[10px] font-black text-slate-400">XP</p>
+                   <p className="text-[10px] font-black text-slate-400">XP REWARD</p>
                    <p className="font-black text-primary text-xl">50</p>
                 </div>
                 <div className="h-8 w-px bg-slate-100" />
                 <div className="text-center">
-                   <p className="text-[10px] font-black text-slate-400">ACC</p>
-                   <p className="font-black text-emerald-500 text-xl">--</p>
+                   <p className="text-[10px] font-black text-slate-400">SIGNAL</p>
+                   <p className="font-black text-emerald-500 text-sm uppercase">ACTIVE</p>
                 </div>
              </div>
           </div>
@@ -350,7 +369,7 @@ export default function MockPage() {
              onClick={() => setCurrent(Math.max(0, current - 1))} 
              disabled={current === 0}
            >
-              BACK
+              PREVIOUS
            </Button>
            <Button 
              variant="outline" 

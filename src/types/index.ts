@@ -96,6 +96,7 @@ export interface Question {
 }
 
 export type MockStatus = 'draft' | 'published' | 'scheduled' | 'live' | 'expired' | 'archived';
+export type MockAccessType = 'free' | 'pass_plus' | 'premium' | 'batch';
 
 export interface MockTest {
   id: string;
@@ -105,18 +106,21 @@ export interface MockTest {
   duration: number;
   totalQuestions: number;
   negativeMarking: number;
-  premium: boolean;
+  premium: boolean; // Legacy: kept for compatibility
+  accessType: MockAccessType;
   status: MockStatus;
   questionIds: string[];
   createdAt: number;
   publishedAt?: number;
   scheduledAt?: number;
+  expiresAt?: number;
   liveAt?: number;
   updatedAt?: number;
   createdBy?: string;
   marksPerQuestion?: number;
   instructions?: string;
   difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
+  maxAttempts?: number;
 }
 
 export interface ExamAttempt {

@@ -14,18 +14,26 @@ import {
   Target,
   Languages,
   Users,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { usePremium } from '@/hooks/usePremium';
+import { useAuth } from '@/lib/auth-context';
 
 interface MockCardProps {
   mock: MockTest;
 }
 
 export default function MockCard({ mock }: MockCardProps) {
-  const isPremium = mock.premium;
+  const { user } = useAuth();
+  const { isPremium, hasAccess } = usePremium(user?.uid);
+  
+  // Access Control Logic
+  const isLocked = mock.accessType !== 'free' && !isPremium;
   const totalMarks = mock.totalQuestions * (mock.marksPerQuestion || 1);
   
   return (
@@ -39,7 +47,7 @@ export default function MockCard({ mock }: MockCardProps) {
       <Card className={cn(
         "rounded-[32px] bg-zinc-900/40 border-white/5 overflow-hidden relative h-full flex flex-col transition-all duration-300",
         "hover:bg-zinc-900 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5",
-        isPremium && "border-primary/10 bg-primary/[0.01]"
+        isLocked && "grayscale-[0.5] opacity-90"
       )}>
         {/* Top Section: Exam Branding & Badges */}
         <div className="p-6 pb-4 border-b border-white/5 bg-white/[0.01]">
@@ -47,9 +55,9 @@ export default function MockCard({ mock }: MockCardProps) {
              <div className="flex items-center gap-3">
                 <div className={cn(
                   "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg",
-                  isPremium ? "bg-primary/20 text-primary" : "bg-zinc-800 text-zinc-500"
+                  !isLocked ? "bg-primary/20 text-primary" : "bg-zinc-800 text-zinc-500"
                 )}>
-                   <Target size={20} />
+                   {isLocked ? <Lock size={18} /> : <Target size={20} />}
                 </div>
                 <div>
                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{mock.exam}</p>
@@ -59,8 +67,10 @@ export default function MockCard({ mock }: MockCardProps) {
                 </div>
              </div>
              <div className="flex flex-col items-end gap-1.5">
-                {isPremium ? (
+                {mock.accessType === 'pass_plus' ? (
                   <Badge className="bg-primary text-white border-none font-black text-[8px] px-2 py-0.5 uppercase tracking-widest">PASS+</Badge>
+                ) : mock.accessType === 'premium' ? (
+                  <Badge className="bg-amber-500 text-black border-none font-black text-[8px] px-2 py-0.5 uppercase tracking-widest">PREMIUM</Badge>
                 ) : (
                   <Badge variant="outline" className="border-emerald-500/20 text-emerald-500 font-black text-[8px] px-2 py-0.5 uppercase">FREE</Badge>
                 )}
@@ -70,13 +80,15 @@ export default function MockCard({ mock }: MockCardProps) {
           
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Live Now</span>
+                <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isLocked ? "bg-zinc-700" : "bg-emerald-500")} />
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                  {isLocked ? 'Access Locked' : 'Available Now'}
+                </span>
              </div>
              <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">•</span>
              <div className="flex items-center gap-1.5">
                 <Users size={10} className="text-zinc-600" />
-                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">1.2k Attempted</span>
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Active Stream</span>
              </div>
           </div>
         </div>
@@ -88,28 +100,28 @@ export default function MockCard({ mock }: MockCardProps) {
                 <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Questions</p>
                 <div className="flex items-center gap-2">
                    <FileText size={14} className="text-zinc-400" />
-                   <span className="text-sm font-bold text-zinc-200">{mock.totalQuestions} Artifacts</span>
+                   <span className="text-sm font-bold text-zinc-200">{mock.totalQuestions} Qs</span>
                 </div>
              </div>
              <div className="space-y-1">
                 <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Total Marks</p>
                 <div className="flex items-center gap-2">
                    <Trophy size={14} className="text-zinc-400" />
-                   <span className="text-sm font-bold text-zinc-200">{totalMarks} Marks</span>
+                   <span className="text-sm font-bold text-zinc-200">{totalMarks} M</span>
                 </div>
              </div>
              <div className="space-y-1">
                 <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Duration</p>
                 <div className="flex items-center gap-2">
                    <Clock size={14} className="text-zinc-400" />
-                   <span className="text-sm font-bold text-zinc-200">{mock.duration} Mins</span>
+                   <span className="text-sm font-bold text-zinc-200">{mock.duration}m</span>
                 </div>
              </div>
              <div className="space-y-1">
                 <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Language</p>
                 <div className="flex items-center gap-2">
                    <Languages size={14} className="text-zinc-400" />
-                   <span className="text-sm font-bold text-zinc-200">EN + PA + HI</span>
+                   <span className="text-sm font-bold text-zinc-200">Bilingual</span>
                 </div>
              </div>
           </div>
@@ -117,7 +129,7 @@ export default function MockCard({ mock }: MockCardProps) {
           <div className="p-3.5 rounded-2xl bg-zinc-950/50 border border-white/5 flex items-center justify-between">
              <div className="flex items-center gap-2">
                 <AlertCircle size={12} className="text-red-500/70" />
-                <span className="text-[10px] font-bold text-zinc-500 uppercase">Penalty: -{mock.negativeMarking} / wrong</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Penalty: -{mock.negativeMarking}</span>
              </div>
              <Badge variant="outline" className="border-white/5 text-[9px] font-black text-zinc-600 px-2">{mock.difficulty?.toUpperCase()}</Badge>
           </div>
@@ -125,21 +137,29 @@ export default function MockCard({ mock }: MockCardProps) {
 
         {/* Bottom Section: Strategic CTAs */}
         <div className="p-6 pt-0 space-y-3">
-           <Link href={`/mocks/${mock.id}`} className="block">
+           <Link href={isLocked ? '/pass' : `/mocks/${mock.id}`} className="block">
               <Button className={cn(
                 "w-full h-14 rounded-2xl text-base font-black transition-all group/btn shadow-xl",
-                isPremium ? "bg-primary hover:bg-primary/90 blue-glow" : "bg-white text-black hover:bg-zinc-200"
+                !isLocked ? "bg-primary hover:bg-primary/90 blue-glow" : "bg-zinc-800 text-zinc-400 border border-white/5"
               )}>
-                 BEGIN SESSION
-                 <ChevronRight className="ml-1 w-5 h-5 transition-transform group-hover/btn:translate-x-1" />
+                 {isLocked ? (
+                   <>
+                     <Lock className="mr-2 w-4 h-4" /> UNLOCK WITH PASS+
+                   </>
+                 ) : (
+                   <>
+                     BEGIN SESSION
+                     <ChevronRight className="ml-1 w-5 h-5 transition-transform group-hover/btn:translate-x-1" />
+                   </>
+                 )}
               </Button>
            </Link>
            
            <div className="grid grid-cols-2 gap-2">
-              <Button variant="ghost" className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10">
+              <Button variant="ghost" className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-white/5">
                  Syllabus
               </Button>
-              <Button variant="ghost" className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10">
+              <Button variant="ghost" className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white hover:bg-white/5">
                  Instructions
               </Button>
            </div>
