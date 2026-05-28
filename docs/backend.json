@@ -3,13 +3,15 @@
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "User account and performance metrics.",
+      "description": "User account, pass status, and performance metrics.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string" },
         "role": { "type": "string", "enum": ["student", "admin", "superadmin", "creator"] },
+        "activePass": { "type": "string", "enum": ["free", "silver", "gold", "elite"] },
+        "passExpiry": { "type": "number" },
         "xp": { "type": "number" },
         "streak": { "type": "number" },
         "coins": { "type": "number" },
@@ -20,36 +22,34 @@
         "bookmarks": { "type": "array" }
       }
     },
-    "IngestionJob": {
-      "title": "Ingestion Job",
-      "description": "Tracking for a multi-page PDF ingestion session.",
+    "TestSeries": {
+      "title": "Test Series",
+      "description": "A collection of mocks and materials for a specific exam.",
       "type": "object",
       "properties": {
-        "fileName": { "type": "string" },
-        "status": { "type": "string", "enum": ["processing", "review", "completed", "failed"] },
-        "totalPages": { "type": "number" },
-        "processedPages": { "type": "number" },
-        "totalQuestions": { "type": "number" },
-        "createdAt": { "type": "number" },
-        "updatedAt": { "type": "number" }
+        "title": { "type": "string" },
+        "exam": { "type": "string" },
+        "category": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "totalTests": { "type": "number" },
+        "freeTests": { "type": "number" },
+        "passRequired": { "type": "string" },
+        "price": { "type": "number" },
+        "isActive": { "type": "boolean" }
       }
     },
-    "SupportTicket": {
-      "title": "Support Ticket",
-      "description": "User reported issues and requests.",
+    "Transaction": {
+      "title": "Transaction Record",
+      "description": "Logs for prepare pass purchases.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "subject": { "type": "string" },
-        "message": { "type": "string" },
-        "status": { "type": "string", "enum": ["open", "in-progress", "resolved", "closed"] },
-        "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
-        "category": { "type": "string", "enum": ["payment", "mock", "login", "bug", "other"] },
-        "screenshotUrl": { "type": "string" },
-        "createdAt": { "type": "number" },
-        "updatedAt": { "type": "number" }
+        "amount": { "type": "number" },
+        "passType": { "type": "string" },
+        "status": { "type": "string" },
+        "orderId": { "type": "string" },
+        "paymentId": { "type": "string" },
+        "createdAt": { "type": "number" }
       }
     }
   },
@@ -61,13 +61,13 @@
       "schema": "UserProfile",
       "description": "Student profiles and roles."
     },
-    "/ingestion_jobs/{jobId}": {
-      "schema": "IngestionJob",
-      "description": "Metadata for high-volume ingestion jobs."
+    "/testSeries/{seriesId}": {
+      "schema": "TestSeries",
+      "description": "Official preparation test series."
     },
-    "/support_tickets/{ticketId}": {
-      "schema": "SupportTicket",
-      "description": "Global support ticket repository."
+    "/transactions/{txnId}": {
+      "schema": "Transaction",
+      "description": "Payment records for preparer passes."
     }
   }
 }

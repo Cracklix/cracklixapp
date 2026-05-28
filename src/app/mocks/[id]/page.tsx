@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -37,10 +38,12 @@ import { MockTest, Question, AttemptAnswer } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * ELITE EXAM ENGINE v15.0 (Testbook Standard)
+ * ELITE EXAM ENGINE v15.5 (Production Standard)
  * Features side-by-side bilingual support, palette drawer, and atomic auto-save.
+ * Now integrated with real Pass/Entitlement logic.
  */
 export default function AdvancedCBTPlayer() {
   const { user, profile } = useAuth();
@@ -67,14 +70,25 @@ export default function AdvancedCBTPlayer() {
       const mockData = await getMockDetails(mockId);
       if (!mockData) throw new Error("Simulation not found");
 
+      // REAL WORKFLOW: Entitlement Check
       const access = await checkMockAccess(user.uid, mockData);
       if (!access.allowed) {
-        toast({ title: "Access Restricted", description: access.reason, variant: "destructive" });
+        toast({ 
+          title: "Access Restricted", 
+          description: access.reason || "Upgrade to PASS+ for full access.", 
+          variant: "destructive" 
+        });
         router.push('/pass');
         return;
       }
 
       const qData = await getMockQuestions(mockId);
+      if (qData.length === 0) {
+        toast({ title: "Registry Empty", description: "This simulation has no artifacts linked." });
+        router.push('/dashboard');
+        return;
+      }
+
       setMock(mockData);
       setQuestions(qData);
       
@@ -159,7 +173,7 @@ export default function AdvancedCBTPlayer() {
              </Button>
              <span className="font-black text-xl tracking-tighter uppercase">Instructions Registry</span>
           </div>
-          <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-200 px-3 py-1 font-bold">CBT CORE v15.0</Badge>
+          <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-200 px-3 py-1 font-bold">CBT CORE v15.5</Badge>
        </header>
        
        <main className="flex-1 overflow-y-auto p-6 md:p-12 flex justify-center no-scrollbar">
@@ -227,7 +241,7 @@ export default function AdvancedCBTPlayer() {
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden font-body text-slate-900 select-none">
-       {/* CBT Header v15.0 */}
+       {/* CBT Header v15.5 */}
        <header className="h-[70px] px-8 bg-slate-900 text-white flex items-center justify-between shrink-0 z-50 shadow-2xl">
           <div className="flex items-center gap-6">
              <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="h-10 w-10 rounded-xl bg-white/5 border border-white/5">
@@ -369,7 +383,7 @@ export default function AdvancedCBTPlayer() {
           </aside>
        </div>
 
-       {/* CBT Footer v15.0 */}
+       {/* CBT Footer v15.5 */}
        <footer className="h-[85px] px-10 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50 shadow-2xl">
           <div className="flex gap-4">
              <Button variant="outline" onClick={markForReview} className="h-14 px-8 rounded-2xl border-slate-200 text-purple-600 hover:bg-purple-50 font-black text-[11px] uppercase tracking-widest transition-all active:scale-95">MARK FOR REVIEW & NEXT</Button>
