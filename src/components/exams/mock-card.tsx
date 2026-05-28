@@ -9,14 +9,12 @@ import {
   FileText, 
   Trophy, 
   ChevronRight, 
-  ShieldAlert, 
   Zap,
   Target,
   Languages,
   Users,
   AlertCircle,
-  Lock,
-  Unlock
+  Lock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -29,11 +27,16 @@ interface MockCardProps {
 }
 
 export default function MockCard({ mock }: MockCardProps) {
-  const { user } = useAuth();
-  const { isPremium, hasAccess } = usePremium(user?.uid);
+  const { user, profile } = useAuth();
+  const { isPremium } = usePremium(user?.uid);
   
-  // Access Control Logic
-  const isLocked = mock.accessType !== 'free' && !isPremium;
+  // CENTRALIZED ACCESS LOGIC
+  // Admin bypass
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin' || user?.email === 'arshdeepgrewal1122@gmail.com';
+  
+  // Lock logic: Lock if it's NOT free AND user is NOT premium AND user is NOT admin
+  const isLocked = !isAdmin && mock.accessType !== 'free' && !isPremium;
+  
   const totalMarks = mock.totalQuestions * (mock.marksPerQuestion || 1);
   
   return (
@@ -47,7 +50,7 @@ export default function MockCard({ mock }: MockCardProps) {
       <Card className={cn(
         "rounded-[32px] bg-zinc-900/40 border-white/5 overflow-hidden relative h-full flex flex-col transition-all duration-300",
         "hover:bg-zinc-900 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5",
-        isLocked && "grayscale-[0.5] opacity-90"
+        isLocked && "grayscale-[0.2] opacity-95"
       )}>
         {/* Top Section: Exam Branding & Badges */}
         <div className="p-6 pb-4 border-b border-white/5 bg-white/[0.01]">
@@ -68,9 +71,9 @@ export default function MockCard({ mock }: MockCardProps) {
              </div>
              <div className="flex flex-col items-end gap-1.5">
                 {mock.accessType === 'pass_plus' ? (
-                  <Badge className="bg-primary text-white border-none font-black text-[8px] px-2 py-0.5 uppercase tracking-widest">PASS+</Badge>
+                  <Badge className="bg-primary text-white border-none font-black text-[8px] px-2 py-0.5 uppercase tracking-widest shadow-lg shadow-primary/20">PASS+</Badge>
                 ) : mock.accessType === 'premium' ? (
-                  <Badge className="bg-amber-500 text-black border-none font-black text-[8px] px-2 py-0.5 uppercase tracking-widest">PREMIUM</Badge>
+                  <Badge className="bg-amber-500 text-black border-none font-black text-[8px] px-2 py-0.5 uppercase tracking-widest shadow-lg shadow-amber-500/20">PREMIUM</Badge>
                 ) : (
                   <Badge variant="outline" className="border-emerald-500/20 text-emerald-500 font-black text-[8px] px-2 py-0.5 uppercase">FREE</Badge>
                 )}
@@ -131,7 +134,7 @@ export default function MockCard({ mock }: MockCardProps) {
                 <AlertCircle size={12} className="text-red-500/70" />
                 <span className="text-[10px] font-bold text-zinc-500 uppercase">Penalty: -{mock.negativeMarking}</span>
              </div>
-             <Badge variant="outline" className="border-white/5 text-[9px] font-black text-zinc-600 px-2">{mock.difficulty?.toUpperCase()}</Badge>
+             <Badge variant="outline" className="border-white/5 text-[9px] font-black text-zinc-600 px-2 uppercase">{mock.difficulty || 'mixed'}</Badge>
           </div>
         </div>
 
