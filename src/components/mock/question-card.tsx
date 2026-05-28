@@ -7,7 +7,7 @@ import { Bookmark, MessageSquare, AlertCircle, CheckCircle2, Languages } from "l
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, arrayUnion, addDoc, collection } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,6 +16,7 @@ interface QuestionCardProps {
   selected: string | null;
   onSelect: (option: string) => void;
   sideBySide?: boolean;
+  activeLanguage?: 'en' | 'pa' | 'hi';
 }
 
 export default function QuestionCard({
@@ -23,16 +24,42 @@ export default function QuestionCard({
   selected,
   onSelect,
   sideBySide = false,
+  activeLanguage = 'en'
 }: QuestionCardProps) {
-  const { locale } = useI18n();
   const { user } = useAuth();
   const [isBookmarked, setIsBookmarked] = useState(false);
   
-  // High-performance bilingual logic
-  const enText = question.question_en || question.question;
-  const paText = question.question_pa || "";
-  const enOptions = question.options_en || question.options || [];
+  // Multi-language extraction logic
+  const enText = question.question_en;
+  const paText = question.question_pa;
+  const hiText = question.question_hi;
+
+  const enOptions = question.options_en || [];
   const paOptions = question.options_pa || [];
+  const hiOptions = question.options_hi || [];
+
+  // Determine what to show in "Primary" vs "Secondary" slots
+  const getPrimaryText = () => {
+    if (activeLanguage === 'pa' && paText) return paText;
+    if (activeLanguage === 'hi' && hiText) return hiText;
+    return enText;
+  };
+
+  const getPrimaryOptions = () => {
+    if (activeLanguage === 'pa' && paOptions.length) return paOptions;
+    if (activeLanguage === 'hi' && hiOptions.length) return hiOptions;
+    return enOptions;
+  };
+
+  const getSecondaryText = () => {
+    if (activeLanguage === 'en') return paText || hiText || "";
+    return enText;
+  };
+
+  const getSecondaryOptions = () => {
+    if (activeLanguage === 'en') return paOptions.length ? paOptions : hiOptions;
+    return enOptions;
+  };
 
   const toggleBookmark = async () => {
     if (!user) return;
@@ -48,7 +75,7 @@ export default function QuestionCard({
           savedAt: Date.now()
         })
       });
-      toast({ title: "Saved to Revision", description: "Bilingual asset indexed." });
+      toast({ title: "Saved to Revision", description: "Multi-language asset indexed." });
     } catch (e) {
       console.error(e);
     }
@@ -65,23 +92,25 @@ export default function QuestionCard({
            <div className="space-y-4 flex-1">
               <div className={cn("grid gap-8", sideBySide ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
                 <div className="space-y-4">
-                   <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[8px] font-black uppercase px-2 py-0.5 tracking-widest">English</Badge>
+                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black uppercase px-2 py-0.5 tracking-widest">
+                     {activeLanguage.toUpperCase()} MODE
+                   </Badge>
                    <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-white tracking-tight">
-                     {enText}
+                     {getPrimaryText()}
                    </h2>
                 </div>
-                {(sideBySide || locale === 'pa') && paText && (
+                {sideBySide && getSecondaryText() && (
                   <div className="space-y-4 border-l border-white/5 pl-8 lg:pl-10">
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black uppercase px-2 py-0.5 tracking-widest">Punjabi</Badge>
+                    <Badge variant="outline" className="bg-white/5 text-zinc-500 border-white/10 text-[8px] font-black uppercase px-2 py-0.5 tracking-widest">TRANSLATION</Badge>
                     <h2 className="text-xl md:text-2xl font-medium leading-relaxed text-zinc-300 tracking-tight">
-                      {paText}
+                      {getSecondaryText()}
                     </h2>
                   </div>
                 )}
               </div>
               
               <div className="flex flex-wrap gap-2 pt-2">
-                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase px-2 py-0.5 tracking-widest">
+                 <Badge className="bg-primary text-white border-none text-[9px] font-black uppercase px-3 py-1 tracking-widest">
                    {question.subject}
                  </Badge>
                  {question.pyq && (
@@ -102,15 +131,17 @@ export default function QuestionCard({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {enOptions.map((option: string, idx: number) => {
-            const isSelected = selected === option;
+          {getPrimaryOptions().map((option: string, idx: number) => {
+            // We always map back to English option for submission consistency
+            const submissionValue = enOptions[idx];
+            const isSelected = selected === submissionValue;
             const letter = String.fromCharCode(65 + idx);
-            const paOption = paOptions[idx] || "";
+            const secondaryOption = getSecondaryOptions()[idx] || "";
             
             return (
               <button
                 key={idx}
-                onClick={() => onSelect(option)}
+                onClick={() => onSelect(submissionValue)}
                 className={cn(
                   "w-full text-left p-6 md:p-8 rounded-3xl border transition-all duration-200 flex items-center gap-5 group/opt",
                   isSelected
@@ -126,8 +157,8 @@ export default function QuestionCard({
                 </div>
                 <div className="flex flex-col gap-1">
                    <span className="font-bold text-sm md:text-base">{option}</span>
-                   {(sideBySide || locale === 'pa') && paOption && (
-                     <span className="text-xs text-zinc-500 font-medium">{paOption}</span>
+                   {sideBySide && secondaryOption && (
+                     <span className="text-xs text-zinc-500 font-medium">{secondaryOption}</span>
                    )}
                 </div>
               </button>
@@ -139,18 +170,13 @@ export default function QuestionCard({
       <div className="mt-auto pt-10 flex flex-col md:flex-row justify-between items-center gap-6 relative z-10 border-t border-white/5">
          <div className="flex gap-6">
             <button className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-600 hover:text-destructive transition-colors">
-               <AlertCircle className="w-3.5 h-3.5" /> Flag Question
+               <AlertCircle className="w-3.5 h-3.5" /> Flag Error
             </button>
             <button className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-600 hover:text-primary transition-colors">
-               <MessageSquare className="w-3.5 h-3.5" /> Peer Discussion
+               <MessageSquare className="w-3.5 h-3.5" /> Discuss Q
             </button>
          </div>
-         <div className="flex items-center gap-3">
-            <div className="h-1 w-20 bg-zinc-900 rounded-full overflow-hidden">
-               <div className="h-full bg-primary/20 w-1/3" />
-            </div>
-            <p className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Confidence Score: Medium</p>
-         </div>
+         <p className="text-[9px] font-black text-zinc-700 uppercase tracking-widest italic">Atomic Identity: #{question.id?.substring(0,8)}</p>
       </div>
     </div>
   );

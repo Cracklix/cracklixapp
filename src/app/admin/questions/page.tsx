@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, Database, FileText, CheckCircle2, AlertCircle, Plus, Trash2, Languages } from 'lucide-react';
+import { Loader2, Sparkles, Database, FileText, CheckCircle2, AlertCircle, Plus, Trash2, Languages, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -31,7 +31,7 @@ export default function QuestionsAdminPage() {
     try {
       const result = await parseQuestionsAi({ rawText });
       setParsedQuestions(result.questions);
-      toast({ title: "AI Analysis Complete", description: `Extracted ${result.questions.length} structured questions.` });
+      toast({ title: "Extraction Complete", description: `Parsed ${result.questions.length} artifacts across EN/HI/PA.` });
     } catch (err) {
       toast({ title: "Parsing Failed", variant: "destructive" });
     } finally {
@@ -53,7 +53,7 @@ export default function QuestionsAdminPage() {
         })
       );
       await Promise.all(batch);
-      toast({ title: "Question Bank Updated", description: `${parsedQuestions.length} items successfully indexed.` });
+      toast({ title: "Bank Synchronized", description: `${parsedQuestions.length} assets pushed to production.` });
       setParsedQuestions([]);
       setRawText("");
     } catch (err) {
@@ -63,23 +63,16 @@ export default function QuestionsAdminPage() {
     }
   }
 
-  const removeParsed = (idx: number) => {
-    setParsedQuestions(prev => prev.filter((_, i) => i !== idx));
-  };
-
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
         <main className="flex-1 p-8 overflow-y-auto no-scrollbar">
           <div className="max-w-7xl mx-auto space-y-10">
-            <header className="flex justify-between items-end">
+            <header className="flex justify-between items-end border-b border-white/5 pb-10">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="border-primary/20 text-primary uppercase text-[10px] font-black">Question Bank Core v4.2</Badge>
-                </div>
-                <h1 className="font-headline text-5xl font-black tracking-tighter">Ingestion Hub</h1>
-                <p className="text-zinc-500 mt-2 font-medium">Bulk AI ingestion or manual injection pipeline for 15 core subjects.</p>
+                <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Universal Ingest</h1>
+                <p className="text-zinc-500 mt-2 font-medium">Bilingual and Trilingual MCQ Synthesis for National Exams.</p>
               </div>
             </header>
 
@@ -87,138 +80,85 @@ export default function QuestionsAdminPage() {
               <TabsList className="bg-zinc-900 border-white/5 p-1 rounded-2xl h-14">
                 <TabsTrigger value="ai" className="rounded-xl px-8 font-bold data-[state=active]:bg-primary">
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Power Ingest (AI OCR)
+                  AI Trilingual Power Ingest
                 </TabsTrigger>
                 <TabsTrigger value="manual" className="rounded-xl px-8 font-bold data-[state=active]:bg-primary">
                   <Plus className="w-4 h-4 mr-2" />
-                  Manual Form
+                  Manual Entry
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="manual">
-                <QuestionForm />
-              </TabsContent>
-
               <TabsContent value="ai" className="space-y-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid lg:grid-cols-12 gap-8 items-start">
                   <div className="lg:col-span-4">
                     <Card className="rounded-[40px] bg-zinc-900/50 border-white/5 p-10 h-fit sticky top-8">
                       <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
-                        <Database className="text-primary w-6 h-6" />
-                        Extraction Parameters
+                        <Globe className="text-primary" /> Source Payload
                       </h3>
-                      <div className="space-y-8">
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Raw Source Text</label>
-                          <Textarea 
-                            placeholder="Paste text from PDF or OCR output here. Gemini will handle the formatting and bilingual splitting."
-                            value={rawText}
-                            onChange={(e) => setRawText(e.target.value)}
-                            className="min-h-[400px] bg-zinc-800/30 border-white/5 rounded-3xl p-6 text-sm leading-relaxed overflow-y-auto break-words resize-none whitespace-pre-wrap"
-                          />
-                        </div>
-                        <Button 
-                          onClick={handleAiParse}
-                          disabled={parsing || !rawText.trim()}
-                          className="w-full min-h-[64px] h-auto py-4 px-6 rounded-2xl bg-primary hover:bg-primary/90 font-black text-lg shadow-xl blue-glow whitespace-normal break-words leading-tight"
-                        >
-                          {parsing ? <Loader2 className="animate-spin mr-2 shrink-0" /> : <Sparkles className="mr-2 w-5 h-5 shrink-0" />}
-                          <span className="flex-1 text-center">{parsing ? "Synthesizing Data..." : "Execute AI Extraction"}</span>
-                        </Button>
-                      </div>
+                      <Textarea 
+                        placeholder="Paste Trilingual content (English/Hindi/Punjabi)..."
+                        value={rawText}
+                        onChange={(e) => setRawText(e.target.value)}
+                        className="min-h-[400px] bg-zinc-800/30 border-white/5 rounded-3xl p-6 text-sm leading-relaxed overflow-y-auto break-words resize-none"
+                      />
+                      <Button 
+                        onClick={handleAiParse}
+                        disabled={parsing || !rawText.trim()}
+                        className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 mt-8 font-black text-lg blue-glow"
+                      >
+                        {parsing ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
+                        EXECUTE AI PARSER
+                      </Button>
                     </Card>
                   </div>
 
                   <div className="lg:col-span-8 space-y-6">
                      {parsing && (
-                       <div className="py-60 text-center animate-pulse space-y-6">
-                          <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto" />
-                          <div className="space-y-2">
-                             <p className="text-white text-2xl font-black uppercase tracking-tighter">Synthesizing Bilingual Structures</p>
-                             <p className="text-zinc-500 font-medium italic">Our AI is splitting languages, detecting subjects, and formatting Raavi text...</p>
-                          </div>
+                       <div className="py-40 text-center animate-pulse">
+                          <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-6" />
+                          <p className="text-2xl font-black uppercase">Decrypting Multilingual Data</p>
                        </div>
                      )}
 
-                     {!parsing && parsedQuestions.length > 0 ? (
+                     {!parsing && parsedQuestions.length > 0 && (
                        <div className="space-y-8">
-                          <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-900/50 border border-white/5 p-6 px-10 rounded-[32px]">
-                            <div className="flex items-center gap-6">
-                               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                                  <CheckCircle2 className="text-emerald-500 w-6 h-6" />
-                               </div>
-                               <div>
-                                  <h4 className="font-bold text-xl">Extracted Artifacts</h4>
-                                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{parsedQuestions.length} Questions Ready for Bank</p>
-                               </div>
-                            </div>
-                            <Button 
-                              onClick={saveAllToBank} 
-                              disabled={saving} 
-                              className="bg-emerald-600 hover:bg-emerald-700 min-h-[56px] h-auto py-3 px-10 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl whitespace-normal break-words leading-tight text-center"
-                            >
-                              {saving ? <Loader2 className="animate-spin mr-2 shrink-0" /> : <Database className="mr-2 w-4 h-4 shrink-0" />}
-                              <span>Commit to Question Bank</span>
-                            </Button>
+                          <div className="flex justify-between items-center bg-zinc-900/50 border border-white/5 p-8 rounded-[32px]">
+                             <div>
+                               <h4 className="font-bold text-xl">Review Staging Area</h4>
+                               <p className="text-xs text-zinc-500 uppercase tracking-widest font-black">{parsedQuestions.length} Questions Detected</p>
+                             </div>
+                             <Button onClick={saveAllToBank} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 h-14 px-10 rounded-2xl font-black">
+                                COMMIT TO PRODUCTION BANK
+                             </Button>
                           </div>
 
                           <div className="grid gap-6">
                             {parsedQuestions.map((q, i) => (
-                              <Card key={i} className="rounded-[40px] bg-zinc-900/30 border-white/5 overflow-hidden group hover:border-primary/20 transition-all">
+                              <Card key={i} className="rounded-[40px] bg-zinc-900/30 border-white/5 overflow-hidden">
                                 <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                                    <div className="flex gap-4">
-                                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black px-4 py-1 uppercase text-[10px]">{q.subject}</Badge>
-                                      <Badge variant="outline" className="text-zinc-500 font-black px-3 py-1 uppercase text-[10px]">{q.difficulty}</Badge>
-                                    </div>
-                                    <Button variant="ghost" size="icon" onClick={() => removeParsed(i)} className="text-zinc-700 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all">
+                                   <div className="flex gap-4">
+                                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black">{q.subject}</Badge>
+                                      <Badge variant="outline" className="text-zinc-500 font-black">{q.difficulty}</Badge>
+                                   </div>
+                                   <Button variant="ghost" size="icon" onClick={() => setParsedQuestions(prev => prev.filter((_, idx) => idx !== i))} className="text-zinc-700 hover:text-destructive">
                                       <Trash2 size={20} />
-                                    </Button>
+                                   </Button>
                                 </div>
-                                <div className="p-10 grid md:grid-cols-2 gap-12">
-                                    <div className="space-y-6">
-                                      <div className="flex items-center gap-2 mb-2">
-                                         <Languages className="w-3 h-3 text-blue-500" />
-                                         <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">English Context</span>
+                                <div className="p-10 space-y-10">
+                                   <div className="grid md:grid-cols-2 gap-10">
+                                      <div className="space-y-4">
+                                         <Badge className="bg-blue-600 text-[8px] font-black">ENGLISH</Badge>
+                                         <p className="font-bold text-lg leading-relaxed">{q.question_en}</p>
                                       </div>
-                                      <p className="font-bold text-lg leading-relaxed text-white break-words">{q.question_en}</p>
-                                      <div className="grid grid-cols-1 gap-3">
-                                          {q.options_en.map((o: string, idx: number) => (
-                                            <div key={idx} className={`p-4 rounded-xl text-sm transition-all border break-words ${o === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-white/[0.02] border-white/5 text-zinc-500"}`}>
-                                               {String.fromCharCode(65+idx)}. {o}
-                                            </div>
-                                          ))}
+                                      <div className="space-y-4 border-l border-white/5 pl-10">
+                                         <Badge className="bg-orange-600 text-[8px] font-black">NATIVE (HI/PA)</Badge>
+                                         <p className="font-medium text-lg leading-relaxed text-zinc-300">{q.question_hi || q.question_pa}</p>
                                       </div>
-                                    </div>
-                                    <div className="space-y-6 border-l border-white/5 pl-12">
-                                      <div className="flex items-center gap-2 mb-2">
-                                         <Languages className="w-3 h-3 text-primary" />
-                                         <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest">Punjabi Raavi Context</span>
-                                      </div>
-                                      <p className="font-medium text-lg leading-relaxed text-zinc-300 break-words">{q.question_pa}</p>
-                                      <div className="grid grid-cols-1 gap-3">
-                                          {q.options_pa.map((o: string, idx: number) => (
-                                            <div key={idx} className="p-4 rounded-xl text-sm bg-white/[0.02] border border-white/5 text-zinc-400 break-words">
-                                               {o}
-                                            </div>
-                                          ))}
-                                      </div>
-                                    </div>
-                                </div>
-                                <div className="p-8 px-10 bg-white/[0.02] border-t border-white/5">
-                                   <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-2">Academic Explanation</p>
-                                   <p className="text-xs text-zinc-500 leading-relaxed italic break-words">{q.explanation_en}</p>
+                                   </div>
                                 </div>
                               </Card>
                             ))}
                           </div>
-                       </div>
-                     ) : !parsing && (
-                       <div className="py-60 text-center border-2 border-dashed border-white/5 rounded-[60px] bg-zinc-950/20">
-                          <div className="w-24 h-24 rounded-[32px] bg-zinc-900 flex items-center justify-center mx-auto mb-8">
-                             <FileText className="w-12 h-12 text-zinc-800" />
-                          </div>
-                          <h3 className="text-2xl font-bold text-zinc-600 uppercase tracking-tighter">No Ingestion Stream Active</h3>
-                          <p className="text-zinc-700 mt-2 font-medium">Paste raw study data in the left panel to begin atomic extraction.</p>
                        </div>
                      )}
                   </div>

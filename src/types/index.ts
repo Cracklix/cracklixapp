@@ -11,6 +11,8 @@ export type Subject =
   | 'Reasoning'
   | 'English'
   | 'Punjabi'
+  | 'Hindi'
+  | 'Sanskrit'
   | 'Computer'
   | 'Current Affairs'
   | 'General Science'
@@ -20,13 +22,23 @@ export type Subject =
   | 'Agriculture'
   | 'Static GK'
   | 'Law/Constitution'
-  | 'Environment';
+  | 'Environment'
+  | 'Child Development & Pedagogy'
+  | 'EVS'
+  | 'Social Science'
+  | 'Science'
+  | 'Teaching Aptitude';
 
 export const SUBJECTS: Subject[] = [
-  'Punjab GK', 'Quant', 'Reasoning', 'English', 'Punjabi', 
+  'Punjab GK', 'Quant', 'Reasoning', 'English', 'Punjabi', 'Hindi', 'Sanskrit',
   'Computer', 'Current Affairs', 'General Science', 'History', 
   'Polity', 'Geography', 'Agriculture', 'Static GK', 
-  'Law/Constitution', 'Environment'
+  'Law/Constitution', 'Environment', 'Child Development & Pedagogy',
+  'EVS', 'Social Science', 'Science', 'Teaching Aptitude'
+];
+
+export const EXAM_BOARDS = [
+  'PSSSB', 'Punjab Police', 'PPSC', 'CTET', 'PSTET', 'SSC', 'Banking', 'Railways', 'UPSC', 'Jail Warder'
 ];
 
 export interface UserProfile {
@@ -55,8 +67,10 @@ export interface Question {
   id: string;
   question_en: string;
   question_pa?: string;
+  question_hi?: string;
   options_en: string[];
   options_pa?: string[];
+  options_hi?: string[];
   correctAnswer: string;
   subject: Subject;
   topic?: string;
@@ -66,6 +80,7 @@ export interface Question {
   year?: number;
   explanation_en?: string;
   explanation_pa?: string;
+  explanation_hi?: string;
   qualityScore?: number;
   status: 'draft' | 'published' | 'rejected';
   usageCount?: number;
@@ -79,17 +94,12 @@ export interface MockTest {
   id: string;
   title: string;
   exam: string;
+  type: 'full' | 'sectional' | 'chapter';
   duration: number;
   totalQuestions: number;
   negativeMarking: number;
   premium: boolean;
-  published: boolean;
-  aiGenerated?: boolean;
-  questionIds?: string[];
-  sections?: {
-    subject: Subject;
-    count: number;
-  }[];
   status: 'draft' | 'published';
+  questionIds?: string[];
   createdAt: number;
 }
