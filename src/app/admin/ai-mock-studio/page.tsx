@@ -48,7 +48,7 @@ type GenerationSession = {
 
 /**
  * AI MOCK STUDIO v5 (Enterprise Generation Workspace)
- * 3-Panel Layout: History | Workspace | Config
+ * Fix: Reinforced Artifact Injection logic to ensure proper data mapping for CBT engine.
  */
 export default function AiMockStudioV5() {
   const { toast } = useToast();
@@ -106,6 +106,7 @@ export default function AiMockStudioV5() {
 
   async function injectIntoFactory(data: MockGeneratorOutput) {
     try {
+      // 1. Create the Mock Metadata record
       const mockRef = await addDoc(collection(db, "mocks"), {
         title: data.title,
         exam: data.exam,
@@ -120,12 +121,15 @@ export default function AiMockStudioV5() {
         source: 'AI_STUDIO_V5'
       });
 
+      // 2. Perform Batch Injection of artifacts into the sovereign subcollection
       const batch = writeBatch(db);
       data.questions.forEach((q, i) => {
+        // Correct Firestore Subcollection path: /mocks/{id}/questions
         const qRef = doc(collection(db, "mocks", mockRef.id, "questions"));
         batch.set(qRef, { 
           ...q,
           order: i, 
+          status: 'published',
           createdAt: Date.now() 
         });
       });
@@ -133,7 +137,8 @@ export default function AiMockStudioV5() {
 
       toast({ title: "Staging Injection Success", description: "Simulation is now ready in Simulation Factory." });
     } catch (e: any) {
-      toast({ title: "Injection Error", variant: "destructive" });
+      console.error("[AI Studio] Injection Error:", e);
+      toast({ title: "Injection Error", description: e.message, variant: "destructive" });
     }
   }
 
@@ -144,7 +149,7 @@ export default function AiMockStudioV5() {
         
         <main className="flex-1 flex flex-row h-screen overflow-hidden">
           
-          {/* Panel 1: Generation History (Left 280px) */}
+          {/* Panel 1: Generation History */}
           <aside className="w-72 border-r border-white/5 bg-zinc-950/50 flex flex-col shrink-0 hidden xl:flex">
              <header className="p-6 border-b border-white/5 flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.3em]">Saved Blueprints</span>
@@ -183,7 +188,7 @@ export default function AiMockStudioV5() {
              </ScrollArea>
           </aside>
 
-          {/* Panel 2: Large Workspace (Center) */}
+          {/* Panel 2: Workspace */}
           <div className="flex-1 flex flex-col relative bg-[#050816]">
              <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl z-30">
                 <div className="flex items-center gap-3">
@@ -307,7 +312,7 @@ export default function AiMockStudioV5() {
                 </div>
              </ScrollArea>
 
-             {/* Sticky Tactical Input */}
+             {/* Input Footer */}
              <footer className="p-8 bg-[#05070a] border-t border-white/5 z-50">
                 <div className="max-w-4xl mx-auto">
                    <div className="relative group">
@@ -321,14 +326,12 @@ export default function AiMockStudioV5() {
                       />
                       <div className="absolute right-6 top-4 z-20 flex gap-4">
                          {browserSupportsSpeechRecognition && (
-                           <Button 
+                           <button 
                              onClick={() => listening ? SpeechRecognition.stopListening() : SpeechRecognition.startListening()} 
-                             variant="ghost" 
-                             size="icon" 
-                             className={cn("h-12 w-12 rounded-2xl", listening ? "bg-red-500 text-white animate-pulse" : "text-zinc-600 hover:text-white hover:bg-white/5")}
+                             className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all", listening ? "bg-red-500 text-white animate-pulse" : "text-zinc-600 hover:text-white hover:bg-white/5")}
                            >
                               {listening ? <MicOff size={22} /> : <Mic size={22} />}
-                           </Button>
+                           </button>
                          )}
                          <Button onClick={handleLaunchSynthesis} disabled={!input.trim() || (activeSession?.loading)} className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 blue-glow font-black text-xs uppercase tracking-widest shadow-xl">
                             {activeSession?.loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={20} />}
@@ -339,7 +342,7 @@ export default function AiMockStudioV5() {
              </footer>
           </div>
 
-          {/* Panel 3: Calibration Panel (Right 350px) */}
+          {/* Panel 3: Calibration Panel */}
           <aside className="w-[380px] border-l border-white/5 bg-zinc-950 flex flex-col shrink-0 hidden lg:flex">
              <header className="p-8 border-b border-white/5 flex items-center gap-3 bg-zinc-950/50">
                 <Settings className="text-zinc-600 w-4 h-4" />
@@ -388,26 +391,6 @@ export default function AiMockStudioV5() {
                       </Select>
                    </div>
 
-                   <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase text-zinc-700 tracking-widest px-2">Generation Source</label>
-                      <div className="grid gap-2">
-                        {[
-                          { id: 'ai', label: 'Neural Synthetic', icon: Sparkles },
-                          { id: 'bank', label: 'Atomic Bank Port', icon: Database },
-                          { id: 'hybrid', label: 'Hybrid Neural', icon: Layers }
-                        ].map(m => (
-                          <button 
-                            key={m.id} 
-                            onClick={() => setSourceMode(m.id)}
-                            className={cn("flex items-center gap-4 h-14 rounded-2xl px-6 transition-all border", sourceMode === m.id ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-600 border-white/5")}
-                          >
-                             <m.icon size={16} />
-                             <span className="text-[10px] font-black uppercase tracking-widest">{m.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                   </div>
-
                    <div className="p-8 rounded-[40px] bg-emerald-500/5 border border-emerald-500/10 space-y-4 shadow-xl">
                       <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Auto-Syllabus Ready</span></div>
                       <p className="text-[10px] text-zinc-500 leading-relaxed italic">
@@ -426,4 +409,3 @@ export default function AiMockStudioV5() {
     </AdminProtect>
   );
 }
-

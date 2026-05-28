@@ -24,7 +24,7 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 
 /**
  * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Testbook Standard)
- * Enhanced v4: Deduplication, Full-Schema Porting, and Batch Operations.
+ * Enhanced v5: High-Integrity Porting, Deduplication, and Robust Loading.
  */
 
 // 1. REGISTRY OPERATIONS
@@ -41,8 +41,12 @@ export async function getAllMocks(): Promise<MockTest[]> {
 
 export async function getMockDetails(mockId: string): Promise<MockTest | null> {
   if (!mockId) return null;
-  const snap = await getDoc(doc(db, 'mocks', mockId));
-  return snap.exists() ? { id: snap.id, ...snap.data() } as MockTest : null;
+  try {
+    const snap = await getDoc(doc(db, 'mocks', mockId));
+    return snap.exists() ? { id: snap.id, ...snap.data() } as MockTest : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function updateMock(mockId: string, updates: Partial<MockTest>) {
@@ -81,12 +85,20 @@ export async function duplicateMock(mockId: string) {
   const questions = await getMockQuestions(mockId);
   if (questions.length > 0) {
     const batch = writeBatch(db);
-    questions.forEach(q => {
+    questions.forEach((q, i) => {
       const { id: oldId, ...qData } = q;
+      // We generate new IDs for the cloned sub-artifacts to ensure sovereign integrity
       const newQRef = doc(collection(db, 'mocks', newMockRef.id, 'questions'));
-      batch.set(newQRef, { ...qData, createdAt: Date.now() });
+      batch.set(newQRef, { 
+        ...qData, 
+        order: q.order ?? i,
+        createdAt: Date.now() 
+      });
     });
     await batch.commit();
+    
+    // Update count in clone metadata
+    await updateDoc(newMockRef, { totalQuestions: questions.length });
   }
 
   return newMockRef.id;
@@ -106,15 +118,23 @@ export async function deleteMock(mockId: string) {
 
 // 2. ARTIFACT MANAGEMENT (Sovereign Subcollection Pattern)
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
-  const q = query(collection(db, 'mocks', mockId, 'questions'), orderBy('order', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+  // Robust Loading: We remove the orderBy here to prevent 'Missing Index' errors 
+  // that can return an empty array silently. We sort in memory.
+  const colRef = collection(db, 'mocks', mockId, 'questions');
+  const snap = await getDocs(colRef);
+  
+  const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+  
+  // Memory Sort for CBT engine stability
+  return questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 export function subscribeMockQuestions(mockId: string, callback: (questions: Question[]) => void) {
-  const q = query(collection(db, 'mocks', mockId, 'questions'), orderBy('order', 'asc'));
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Question)));
+  const colRef = collection(db, 'mocks', mockId, 'questions');
+  
+  return onSnapshot(colRef, (snap) => {
+    const questions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+    callback(questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
   }, (error) => {
     console.warn("[MockService] Questions sync suspended:", error.message);
   });

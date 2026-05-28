@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   getMockDetails, 
@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
  * Phase-based state machine for zero-loop stability.
  */
 export default function CBTPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
   const mockId = params?.id as string;
@@ -47,6 +47,7 @@ export default function CBTPage() {
 
     async function initialize() {
       try {
+        console.log(`[CBT Engine] Synchronizing Simulation Node: ${mockId}`);
         const mockData = await getMockDetails(mockId);
         if (!mockData) throw new Error("Simulation artifact missing.");
 
@@ -58,7 +59,9 @@ export default function CBTPage() {
         }
 
         const qData = await getMockQuestions(mockId);
-        if (qData.length === 0) throw new Error("This mock has no questions linked.");
+        if (!qData || qData.length === 0) {
+          throw new Error("This mock has no questions linked. Contact admin.");
+        }
 
         const id = await startAttempt(user!.uid, mockData);
         setAttemptId(id);
@@ -66,23 +69,26 @@ export default function CBTPage() {
         setQuestions(qData);
         setPhase('ready');
       } catch (err: any) {
+        console.error("[CBT Engine Critical] Initialization Failure:", err);
         toast({ title: "Signal Error", description: err.message, variant: "destructive" });
         router.push('/exams');
       }
     }
 
     initialize();
-  }, [mockId, user, router, toast]);
+  }, [mockId, user?.uid]); // Use uid specifically to prevent unnecessary effect triggers
 
   const handleSelect = (option: string) => {
-    if (!attemptId) return;
+    if (!attemptId || !questions[current]) return;
+    
     const payload: AttemptAnswer = {
       questionId: questions[current].id,
       selectedOption: option,
       status: 'ANSWERED',
-      timeSpent: 0, // Simplified for rebuild
+      timeSpent: 0,
       lastSavedAt: Date.now()
     };
+    
     setAnswers(prev => ({ ...prev, [current]: payload }));
     saveAnswer(attemptId, current, payload);
   };
@@ -115,7 +121,7 @@ export default function CBTPage() {
          </div>
          <h1 className="text-4xl font-black uppercase tracking-tighter">{mock?.title}</h1>
          <div className="flex justify-center gap-6 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
-            <span>{mock?.totalQuestions} Questions</span>
+            <span>{questions.length} Questions</span>
             <span>{mock?.duration} Minutes</span>
             <span className="text-red-500">Negative: -{mock?.negativeMarking}</span>
          </div>
@@ -134,8 +140,8 @@ export default function CBTPage() {
     <div className="h-screen bg-white flex flex-col overflow-hidden select-none">
       <header className="h-16 px-6 bg-slate-900 text-white flex items-center justify-between shrink-0 z-50">
         <div className="flex items-center gap-6">
-           <span className="font-black text-xs uppercase tracking-widest">{mock?.title}</span>
-           <div className="flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full text-[9px] font-black tracking-widest">
+           <span className="font-black text-xs uppercase tracking-widest truncate max-w-[300px]">{mock?.title}</span>
+           <div className="hidden sm:flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full text-[9px] font-black tracking-widest">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> SYNC: ON
            </div>
         </div>
@@ -150,22 +156,24 @@ export default function CBTPage() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-12 no-scrollbar bg-slate-50">
+        <main className="flex-1 overflow-y-auto p-4 md:p-12 no-scrollbar bg-slate-50">
           <div className="max-w-5xl mx-auto space-y-8">
             <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <span>Section: General Knowledge</span>
               <span>Artifact {current + 1} of {questions.length}</span>
             </div>
-            <QuestionCard 
-              question={questions[current]} 
-              selected={answers[current]?.selectedOption || null} 
-              activeLanguage={activeLang}
-              onSelect={handleSelect} 
-            />
+            {questions[current] && (
+              <QuestionCard 
+                question={questions[current]} 
+                selected={answers[current]?.selectedOption || null} 
+                activeLanguage={activeLang}
+                onSelect={handleSelect} 
+              />
+            )}
           </div>
         </main>
 
-        <aside className="w-[350px] bg-white border-l border-slate-200 flex flex-col">
+        <aside className="w-[350px] bg-white border-l border-slate-200 hidden lg:flex flex-col">
            <div className="p-8 space-y-10 flex-1 overflow-y-auto no-scrollbar">
               <QuestionPalette questions={questions} current={current} answers={answers} setCurrent={setCurrent} />
            </div>
@@ -178,14 +186,14 @@ export default function CBTPage() {
         </aside>
       </div>
 
-      <footer className="h-20 px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
-         <div className="flex gap-4">
-            <Button variant="outline" className="h-12 px-8 rounded-xl border-slate-200 text-purple-600 font-black text-[10px] uppercase">Mark for Review</Button>
-            <Button onClick={() => { setAnswers(prev => { const n = {...prev}; delete n[current]; return n; }); }} variant="ghost" className="h-12 px-8 rounded-xl text-slate-400 font-black text-[10px] uppercase">Clear Response</Button>
+      <footer className="h-20 px-4 md:px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
+         <div className="flex gap-2 sm:gap-4">
+            <Button variant="outline" className="h-10 sm:h-12 px-4 sm:px-8 rounded-xl border-slate-200 text-purple-600 font-black text-[10px] uppercase">Review</Button>
+            <Button onClick={() => setAnswers(prev => { const n = {...prev}; delete n[current]; return n; })} variant="ghost" className="h-10 sm:h-12 px-4 sm:px-8 rounded-xl text-slate-400 font-black text-[10px] uppercase">Clear</Button>
          </div>
-         <div className="flex gap-4">
-            <Button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} variant="outline" className="h-12 px-10 rounded-xl border-slate-200 font-black text-[10px] uppercase">PREVIOUS</Button>
-            <Button onClick={() => { if(current < questions.length-1) setCurrent(c => c + 1); }} className="h-12 px-16 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-xl">SAVE & NEXT</Button>
+         <div className="flex gap-2 sm:gap-4">
+            <Button disabled={current === 0} onClick={() => setCurrent(c => c - 1)} variant="outline" className="h-10 sm:h-12 px-6 sm:px-10 rounded-xl border-slate-200 font-black text-[10px] uppercase">PREV</Button>
+            <Button onClick={() => { if(current < questions.length-1) setCurrent(c => c + 1); }} className="h-10 sm:h-12 px-10 sm:px-16 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase shadow-xl">SAVE & NEXT</Button>
          </div>
       </footer>
     </div>
