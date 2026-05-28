@@ -17,11 +17,7 @@ import {
   Edit3,
   Copy,
   Archive,
-  PlayCircle,
-  BarChart3,
-  ExternalLink,
-  ChevronRight,
-  Filter
+  PlayCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +64,7 @@ export default function MockRegistryPage() {
       const data = await getAllMocks();
       setMocks(data);
       
+      // Background load stats for each row to improve info density
       const statsMap: any = {};
       for (const m of data) {
         if (m.status !== 'draft') {
@@ -77,7 +74,6 @@ export default function MockRegistryPage() {
       }
       setMockStats(statsMap);
     } catch (e) {
-      console.error(e);
       toast({ title: "Registry Error", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -89,11 +85,11 @@ export default function MockRegistryPage() {
       switch(action) {
         case 'publish':
           await publishMock(id);
-          toast({ title: "Mock Published", description: "Visible to all students." });
+          toast({ title: "Mock Published" });
           break;
         case 'live':
           await setMockLive(id, true);
-          toast({ title: "Marked Live", description: "Pinned to student dashboard." });
+          toast({ title: "Signal Live" });
           break;
         case 'stop-live':
           await setMockLive(id, false);
@@ -101,12 +97,12 @@ export default function MockRegistryPage() {
           break;
         case 'duplicate':
           await duplicateMock(id);
-          toast({ title: "Mock Cloned", description: "Check Drafts for the new copy." });
+          toast({ title: "Mock Cloned" });
           break;
         case 'delete':
-          if (confirm('Permanently purge this simulation?')) {
+          if (confirm('Permanently purge this artifact?')) {
             await deleteMock(id);
-            toast({ title: "Mock Purged", variant: "destructive" });
+            toast({ title: "Mock Purged" });
           }
           break;
       }
@@ -125,22 +121,22 @@ export default function MockRegistryPage() {
 
   return (
     <AdminProtect>
-      <div className="flex bg-black min-h-screen">
+      <div className="flex bg-black min-h-screen text-white">
         <AdminSidebar />
-        <main className="flex-1 p-4 md:p-10 overflow-y-auto no-scrollbar">
+        <main className="flex-1 p-8 overflow-y-auto no-scrollbar">
           <div className="max-w-7xl mx-auto space-y-12">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                   <div className="w-12 h-12 rounded-[20px] bg-primary flex items-center justify-center blue-glow">
+                   <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-xl blue-glow">
                       <Rocket className="text-white w-6 h-6" />
                    </div>
-                   <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Registry</h1>
+                   <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Registry</h1>
                 </div>
-                <p className="text-zinc-500 font-medium ml-1">Central CMS for managing PSSSB, Police, and Teaching Mocks.</p>
+                <p className="text-zinc-500 font-medium ml-1">Central CMS for managing CBT simulations.</p>
               </div>
               <div className="flex gap-4">
-                 <Button onClick={() => router.push('/admin/mocks/new')} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest blue-glow">
+                 <Button onClick={() => router.push('/admin/mocks/new')} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-widest blue-glow">
                     <Plus className="w-4 h-4 mr-2" /> Initialize New Mock
                  </Button>
               </div>
@@ -153,7 +149,6 @@ export default function MockRegistryPage() {
                      <TabsTrigger value="draft" className="rounded-xl px-6 h-full font-bold text-[10px] uppercase">Drafts</TabsTrigger>
                      <TabsTrigger value="published" className="rounded-xl px-6 h-full font-bold text-[10px] uppercase">Published</TabsTrigger>
                      <TabsTrigger value="live" className="rounded-xl px-6 h-full font-bold text-[10px] uppercase">Live Arena</TabsTrigger>
-                     <TabsTrigger value="archived" className="rounded-xl px-6 h-full font-bold text-[10px] uppercase">Archived</TabsTrigger>
                   </TabsList>
                </Tabs>
 
@@ -163,12 +158,12 @@ export default function MockRegistryPage() {
                     placeholder="Search by identity..." 
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="pl-10 h-12 bg-zinc-900 border-white/5 rounded-2xl text-xs font-bold"
+                    className="pl-10 h-12 bg-zinc-900 border-white/5 rounded-2xl text-[10px] uppercase font-black tracking-widest"
                   />
                </div>
             </div>
 
-            <div className="bg-zinc-900/40 border border-white/5 rounded-[48px] overflow-hidden shadow-2xl">
+            <div className="bg-zinc-900/40 border border-white/5 rounded-[40px] overflow-hidden shadow-2xl">
                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                      <thead className="bg-zinc-900/60 text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 border-b border-white/5">
@@ -176,17 +171,17 @@ export default function MockRegistryPage() {
                            <th className="px-8 py-6">Mock Identity</th>
                            <th className="px-8 py-6">Board</th>
                            <th className="px-8 py-6">Payload</th>
-                           <th className="px-8 py-6">Monetization</th>
+                           <th className="px-8 py-6">Status</th>
                            <th className="px-8 py-6">Attempts</th>
-                           <th className="px-8 py-6">Avg. Accuracy</th>
+                           <th className="px-8 py-6">Accuracy</th>
                            <th className="px-8 py-6 text-right">Actions</th>
                         </tr>
                      </thead>
-                     <tbody className="divide-y divide-white/5">
+                     <tbody className="divide-y divide-white/5 text-sm">
                         {loading ? (
-                          [1,2,3,4,5].map(i => (
+                          [1,2,3,4].map(i => (
                             <tr key={i} className="animate-pulse">
-                               <td colSpan={7} className="px-8 py-10 bg-white/[0.01]" />
+                               <td colSpan={7} className="px-8 py-10" />
                             </tr>
                           ))
                         ) : filtered.length > 0 ? filtered.map((m) => (
@@ -198,85 +193,71 @@ export default function MockRegistryPage() {
                                     </div>
                                     <div>
                                        <p className="font-bold text-white group-hover:text-primary transition-colors">{m.title}</p>
-                                       <p className="text-[9px] text-zinc-600 font-bold uppercase mt-1 flex items-center gap-2">
-                                          <div className={cn("w-1.5 h-1.5 rounded-full", 
-                                            m.status === 'live' ? "bg-red-500 animate-pulse" : 
-                                            m.status === 'published' ? "bg-emerald-500" : "bg-zinc-600")} 
-                                          />
-                                          {m.status}
-                                       </p>
+                                       <p className="text-[8px] text-zinc-600 font-bold uppercase mt-1 tracking-widest">ID: {m.id.substring(0, 8)}</p>
                                     </div>
                                  </div>
                               </td>
                               <td className="px-8 py-8">
-                                 <Badge variant="outline" className="border-primary/20 text-primary bg-primary/5 text-[9px] font-black uppercase">{m.exam}</Badge>
+                                 <Badge variant="outline" className="border-primary/20 text-primary text-[8px] font-black uppercase tracking-widest">{m.exam}</Badge>
                               </td>
-                              <td className="px-8 py-8 text-xs font-bold text-zinc-400">
-                                 {m.totalQuestions} Questions • {m.duration}m
+                              <td className="px-8 py-8 text-[11px] font-bold text-zinc-400">
+                                 {m.totalQuestions} Qs • {m.duration}m
                               </td>
                               <td className="px-8 py-8">
-                                 {m.accessType === 'pass_plus' ? (
-                                   <Badge className="bg-primary text-white border-none font-black text-[8px] uppercase px-3 py-1">PASS+</Badge>
-                                 ) : m.accessType === 'premium' ? (
-                                   <Badge className="bg-amber-600 text-white border-none font-black text-[8px] uppercase px-3 py-1">PREMIUM</Badge>
-                                 ) : (
-                                   <Badge variant="outline" className="border-emerald-500/20 text-emerald-500 text-[8px] font-black uppercase">FREE</Badge>
-                                 )}
+                                 <div className="flex items-center gap-2">
+                                    <div className={cn("w-1.5 h-1.5 rounded-full", m.status === 'live' ? "bg-red-500 animate-pulse" : m.status === 'published' ? "bg-emerald-500" : "bg-zinc-600")} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{m.status}</span>
+                                 </div>
                               </td>
-                              <td className="px-8 py-8 font-black text-lg text-white">
+                              <td className="px-8 py-8 font-black text-white">
                                  {mockStats[m.id]?.totalAttempts || 0}
                               </td>
                               <td className="px-8 py-8">
-                                 <div className="flex items-center gap-3">
-                                    <span className="font-black text-zinc-300">{mockStats[m.id]?.avgAccuracy || 0}%</span>
-                                    <div className="h-1 w-16 bg-zinc-800 rounded-full overflow-hidden">
-                                       <div className="h-full bg-emerald-500" style={{ width: `${mockStats[m.id]?.avgAccuracy || 0}%` }} />
-                                    </div>
-                                 </div>
+                                 <span className="font-black text-zinc-300">{mockStats[m.id]?.avgAccuracy || 0}%</span>
                               </td>
                               <td className="px-8 py-8 text-right">
                                  <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/5">
-                                          <MoreHorizontal size={20} className="text-zinc-600" />
+                                          <MoreHorizontal size={18} className="text-zinc-600" />
                                        </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="bg-zinc-950 border-white/10 text-white rounded-2xl w-60 p-2 shadow-2xl" align="end">
-                                       <DropdownMenuLabel className="px-4 py-2 text-[10px] uppercase font-black text-zinc-500">Mock Orchestration</DropdownMenuLabel>
-                                       <DropdownMenuItem className="rounded-xl py-3 cursor-pointer" onClick={() => router.push(`/admin/mocks/${m.id}`)}>
-                                          <Edit3 className="w-4 h-4 mr-3 text-primary" /> Open Editor Dashboard
+                                    <DropdownMenuContent className="bg-zinc-950 border-white/10 text-white rounded-2xl w-56 p-2 shadow-2xl" align="end">
+                                       <DropdownMenuLabel className="px-4 py-2 text-[9px] uppercase font-black text-zinc-500 tracking-widest">Orchestration</DropdownMenuLabel>
+                                       <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold" onClick={() => router.push(`/admin/mocks/${m.id}`)}>
+                                          <Edit3 className="w-3.5 h-3.5 mr-2.5 text-primary" /> Open Editor Dashboard
                                        </DropdownMenuItem>
-                                       <DropdownMenuItem className="rounded-xl py-3 cursor-pointer" onClick={() => handleAction(m.id, 'duplicate')}>
-                                          <Copy className="w-4 h-4 mr-3 text-zinc-500" /> Clone Simulation
+                                       <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold" onClick={() => handleAction(m.id, 'duplicate')}>
+                                          <Copy className="w-3.5 h-3.5 mr-2.5 text-zinc-500" /> Clone Simulation
                                        </DropdownMenuItem>
                                        
                                        <DropdownMenuSeparator className="bg-white/5" />
 
                                        {m.status === 'draft' && (
-                                          <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-emerald-500 focus:bg-emerald-500/10 focus:text-emerald-500" onClick={() => handleAction(m.id, 'publish')}>
-                                             <CheckCircle2 className="w-4 h-4 mr-3" /> Push to Production
+                                          <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-emerald-500 focus:text-emerald-500" onClick={() => handleAction(m.id, 'publish')}>
+                                             <CheckCircle2 className="w-3.5 h-3.5 mr-2.5" /> Push to Production
                                           </DropdownMenuItem>
                                        )}
 
                                        {m.status === 'published' && (
-                                          <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-500" onClick={() => handleAction(m.id, 'live')}>
-                                             <PlayCircle className="w-4 h-4 mr-3" /> Mark Live Event
+                                          <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-red-500 focus:text-red-500" onClick={() => handleAction(m.id, 'live')}>
+                                             <PlayCircle className="w-3.5 h-3.5 mr-2.5" /> Mark Live Event
                                           </DropdownMenuItem>
                                        )}
 
                                        {m.status === 'live' && (
-                                          <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-orange-500 focus:bg-orange-500/10 focus:text-orange-500" onClick={() => handleAction(m.id, 'stop-live')}>
-                                             <Zap className="w-4 h-4 mr-3" /> Stop Live Stream
+                                          <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-orange-500 focus:text-orange-500" onClick={() => handleAction(m.id, 'stop-live')}>
+                                             <Zap className="w-3.5 h-3.5 mr-2.5" /> Stop Live Stream
                                           </DropdownMenuItem>
                                        )}
 
-                                       <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-zinc-600" onClick={() => handleAction(m.id, 'archive')}>
-                                          <Archive className="w-4 h-4 mr-3" /> Move to Archive
+                                       <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-zinc-600" onClick={() => handleAction(m.id, 'archive')}>
+                                          <Archive className="w-3.5 h-3.5 mr-2.5" /> Move to Archive
                                        </DropdownMenuItem>
 
                                        <DropdownMenuSeparator className="bg-white/5" />
-                                       <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-red-600 focus:bg-red-600/10 focus:text-red-600" onClick={() => handleAction(m.id, 'delete')}>
-                                          <Trash2 className="w-4 h-4 mr-3" /> Hard Purge Artifact
+                                       <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-red-600 focus:text-red-600" onClick={() => handleAction(m.id, 'delete')}>
+                                          <Trash2 className="w-3.5 h-3.5 mr-2.5" /> Hard Purge Artifact
                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                  </DropdownMenu>
@@ -284,9 +265,8 @@ export default function MockRegistryPage() {
                            </tr>
                         )) : (
                            <tr>
-                              <td colSpan={7} className="px-8 py-32 text-center text-zinc-600 italic font-medium">
-                                 <Database className="w-16 h-16 mx-auto mb-6 opacity-10" />
-                                 No simulations found in this sector.
+                              <td colSpan={7} className="px-8 py-32 text-center text-zinc-700 italic font-medium uppercase tracking-[0.2em] text-xs">
+                                 No simulations indexed in this sector.
                               </td>
                            </tr>
                         )}

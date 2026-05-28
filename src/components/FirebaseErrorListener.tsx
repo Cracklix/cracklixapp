@@ -5,25 +5,23 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * Listens for specialized Firestore errors and surfaces them via toasts
- * instead of throwing global exceptions that trigger the Error Boundary.
+ * Listens for specialized Firestore errors and surfaces them gracefully.
+ * In production, we log to console and show a retry message instead of crashing.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
 
   useEffect(() => {
     const handlePermissionError = (error: any) => {
-      // Log to console for developer visibility
-      console.error("[Firebase Security/Index Error]:", error.message);
+      // Production Logging
+      console.error("[Cracklix Security/Index Heartbeat]:", error.message);
       
-      // Notify the user gracefully without crashing the UI
-      if (process.env.NODE_ENV === 'development') {
-        toast({
-          title: "System Signal Interrupted",
-          description: "A database query failed (check console for index/permission details).",
-          variant: "destructive",
-        });
-      }
+      // Graceful notification instead of a global UI crash
+      toast({
+        title: "System Latency Detected",
+        description: "A database query is synchronizing. Please retry if data remains hidden.",
+        variant: "destructive",
+      });
     };
 
     errorEmitter.on('permission-error', handlePermissionError);
