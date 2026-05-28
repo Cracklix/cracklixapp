@@ -16,60 +16,138 @@ service cloud.firestore {
       );
     }
 
+    // Authenticated User Helper
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    // Default: Master Admin has full read/write across ALL collections
     match /{document=**} {
       allow read, write: if isMaster();
     }
 
+    // USER PROFILES
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if (request.auth.uid == userId) || isAdmin();
     }
 
+    // ACADEMIC DATA
     match /questions/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-
-    match /ingestion_jobs/{id} {
+    match /question_drafts/{id} {
       allow read, write: if isAdmin();
-      match /chunks/{chunkId} {
-        allow read, write: if isAdmin();
-      }
+    }
+    match /mocks/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /pyqs/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /syllabus/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /exams/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
+    // SUBSCRIPTIONS & MARKETPLACE
+    match /plans/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin() || (isAuthenticated() && request.resource.data.creatorId == request.auth.uid);
+    }
+    match /orders/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    match /subscriptions/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+    match /premiumAccess/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+    match /payments/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow write: if isAdmin();
+    }
+    match /creatorEarnings/{creatorId} {
+      allow read, write: if isAdmin() || (isAuthenticated() && request.auth.uid == creatorId);
+    }
+
+    // COMMUNITY & SOCIAL
     match /community_messages/{id} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow delete: if isAdmin() || resource.data.senderId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.senderId == request.auth.uid);
     }
-    
     match /aiChats/{id} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
+    match /classChats/{id} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
 
+    // LEADERBOARD & ATTEMPTS
     match /leaderboards/{userId} {
       allow read: if isAuthenticated();
       allow write: if (request.auth.uid == userId) || isAdmin();
     }
-
+    match /liveRanks/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
     match /attempts/{id} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
 
+    // OPERATIONAL SIGNALS
     match /jobAlerts/{id} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
-    
     match /notifications/{id} {
-      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
       allow write: if isAdmin();
+    }
+    match /liveActivity/{id} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /support_tickets/{id} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /aiUsage/{id} {
+      allow read, write: if isAuthenticated() && (id.startsWith(request.auth.uid) || isAdmin());
+    }
+    match /cms/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /settings/{id} {
+      allow read: if isAdmin() || (id == 'payment' && isAuthenticated());
+      allow write: if isAdmin();
+    }
+    match /dailyTargets/{userId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
   }
 }
