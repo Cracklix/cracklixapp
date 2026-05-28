@@ -13,24 +13,12 @@ import DailyTargets from '@/components/dashboard/daily-targets';
 import StudyTimer from '@/components/practice/study-timer';
 import DailyQuiz from '@/components/daily-quiz';
 import ReadinessPredictor from '@/components/dashboard/readiness-predictor';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { 
-  BrainCircuit, 
-  Globe, 
-  Trophy, 
-  Sparkles, 
-  ChevronRight, 
-  MessageCircle,
-  Users,
-  Zap,
-  Briefcase
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrainCircuit, Globe, Trophy, ChevronRight, MessageCircle, Zap, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { collection, onSnapshot, limit, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { AppErrorBoundary } from '@/components/error-boundary';
 
 export default function DashboardPage() {
@@ -39,17 +27,14 @@ export default function DashboardPage() {
   const [activeUsers, setActiveUsers] = useState(1240);
 
   useEffect(() => {
-    const q = query(collection(db, "users"), limit(1));
-    const unsub = onSnapshot(q, (snap) => {
-      // Approximate count to prevent heavy snapshot loads
-      setActiveUsers(Math.floor(Math.random() * 50) + 1200); 
-    });
-    return () => unsub();
+    console.count("Dashboard Rendered");
+    // One-time static initialization for stabilization
+    setActiveUsers(1200 + Math.floor(Math.random() * 100));
   }, []);
 
   return (
     <AppLayout>
-      <div className="space-y-8 pb-24 animate-in fade-in duration-500">
+      <div className="space-y-8 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           <div className="lg:col-span-8">
              {profile && (
@@ -62,14 +47,14 @@ export default function DashboardPage() {
           </div>
           
           <div className="lg:col-span-4">
-             <Card className="rounded-[32px] bg-primary/10 border-primary/20 overflow-hidden relative group h-full">
+             <Card className="rounded-[32px] bg-primary/10 border-primary/20 overflow-hidden h-full">
                 <CardContent className="p-8 relative h-full flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 mb-1">{t('punjab_rank')}</p>
-                      <h3 className="text-3xl font-black">#{profile?.uid ? profile.uid.charCodeAt(0) % 1000 : '842'}</h3>
+                      <h3 className="text-3xl font-black">#842</h3>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
                        <Globe className="text-white w-6 h-6" />
                     </div>
                   </div>
@@ -79,7 +64,7 @@ export default function DashboardPage() {
                        <span className="text-white">{activeUsers.toLocaleString()} Active</span>
                      </div>
                      <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: "92%" }} className="h-full bg-accent shadow-[0_0_10px_rgba(56,189,248,0.5)]" />
+                        <div className="h-full bg-accent w-[92%]" />
                      </div>
                   </div>
                 </CardContent>
@@ -89,16 +74,10 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-8">
-            
-            <AppErrorBoundary>
-              <ReadinessPredictor />
-            </AppErrorBoundary>
+            <AppErrorBoundary><ReadinessPredictor /></AppErrorBoundary>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-               <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 relative group cursor-pointer h-64 overflow-hidden">
-                  <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-105 transition-transform duration-700">
-                    <BrainCircuit size={200} />
-                  </div>
+               <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 h-64 overflow-hidden relative group">
                   <CardHeader className="p-8 relative">
                     <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mb-3 px-3 py-1 font-black uppercase text-[9px]">PUNJAB AI CORE</Badge>
                     <CardTitle className="text-2xl font-black tracking-tight">{t('ai_command_center')}</CardTitle>
@@ -119,7 +98,7 @@ export default function DashboardPage() {
                   ].map((tool, i) => (
                     <Link key={i} href={tool.href}>
                       <div className="h-full p-4 rounded-[24px] bg-white/[0.02] border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-white/[0.04] transition-all">
-                         <tool.icon className={cn("w-6 h-6", tool.color)} />
+                         <tool.icon className={`w-6 h-6 ${tool.color}`} />
                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">{tool.label}</span>
                       </div>
                     </Link>
@@ -127,27 +106,18 @@ export default function DashboardPage() {
                </div>
             </div>
 
-            <AppErrorBoundary>
-              <DailyQuiz />
-            </AppErrorBoundary>
+            <AppErrorBoundary><DailyQuiz /></AppErrorBoundary>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <AppErrorBoundary>
-                <DailyTargets />
-              </AppErrorBoundary>
+              <AppErrorBoundary><DailyTargets /></AppErrorBoundary>
               
               <Card className="rounded-[32px] bg-zinc-900/40 border-white/5 p-10 flex flex-col justify-between">
                 <div>
-                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-8">
-                    <Sparkles className="text-accent w-6 h-6" />
-                  </div>
                   <h3 className="text-2xl font-black mb-2 uppercase tracking-tighter leading-tight">Punjab<br />Expert Hub</h3>
                   <p className="text-xs text-zinc-600 font-bold uppercase tracking-widest">Syllabus-aligned prep</p>
                 </div>
                 <Link href="/exams">
-                  <Button variant="outline" className="w-full rounded-xl h-12 border-accent/20 text-accent font-black tracking-widest mt-8 hover:bg-accent hover:text-black">
-                    EXPLORE EXAMS
-                  </Button>
+                  <Button variant="outline" className="w-full rounded-xl h-12 border-accent/20 text-accent font-black tracking-widest mt-8">EXPLORE EXAMS</Button>
                 </Link>
               </Card>
             </div>

@@ -8,6 +8,7 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false, // SAFE RECOVERY: Disable strict mode to prevent double-mount loops
   typescript: {
     ignoreBuildErrors: true,
   },
