@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -27,7 +28,9 @@ import {
   ChevronRight,
   ShieldCheck,
   MoreVertical,
-  Clock
+  Clock,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +43,8 @@ import {
   deleteMock, 
   duplicateMock, 
   getMockAnalytics,
-  setMockLive
+  setMockLive,
+  updateMock
 } from "@/services/mocks";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -182,6 +186,13 @@ export default function SimulationFactoryPage() {
           await duplicateMock(id);
           toast({ title: "Cloned", description: "Created a new draft from the source mock." });
           break;
+        case 'toggle_access':
+          const currentMock = mocks.find(m => m.id === id);
+          if (!currentMock) return;
+          const nextAccess = currentMock.accessType === 'free' ? 'pass_plus' : 'free';
+          await updateMock(id, { accessType: nextAccess });
+          toast({ title: "Policy Updated", description: `Mock is now ${nextAccess.toUpperCase()}.` });
+          break;
         case 'delete':
           if (confirm('Permanently purge this simulation artifact?')) {
             await deleteMock(id);
@@ -212,7 +223,7 @@ export default function SimulationFactoryPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                    <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-xl blue-glow">
-                      <Rocket className="text-white w-7 h-7" />
+                      <Rocket className="text-white w-6 h-6" />
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
                 </div>
@@ -228,7 +239,7 @@ export default function SimulationFactoryPage() {
                  { mode: 'ai', label: 'AI Synthesis', icon: BrainCircuit, color: 'bg-primary' },
                  { mode: 'direct', label: 'Direct Inject', icon: FileText, color: 'bg-zinc-800' },
                ].map((btn) => (
-                 <Button 
+                 <button 
                    key={btn.mode}
                    onClick={() => {
                      if (btn.mode === 'direct') router.push('/admin/direct-mock-builder');
@@ -237,10 +248,10 @@ export default function SimulationFactoryPage() {
                    className="h-24 rounded-[28px] bg-zinc-900 border border-white/5 hover:border-white/20 flex flex-col items-center justify-center gap-2 group transition-all"
                  >
                     <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110", btn.color)}>
-                       <btn.icon size={16} />
+                       <btn.icon size={16} className="text-white" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white">{btn.label}</span>
-                 </Button>
+                 </button>
                ))}
             </div>
 
@@ -272,6 +283,7 @@ export default function SimulationFactoryPage() {
                         <tr>
                            <th className="px-8 py-6">Mock Identity</th>
                            <th className="px-8 py-6">Board</th>
+                           <th className="px-8 py-6">Access</th>
                            <th className="px-8 py-6">Payload</th>
                            <th className="px-8 py-6">Status</th>
                            <th className="px-8 py-6">Attempts</th>
@@ -280,7 +292,7 @@ export default function SimulationFactoryPage() {
                      </thead>
                      <tbody className="divide-y divide-white/5">
                         {loading ? (
-                          [1,2,3,4].map(i => <tr key={i} className="animate-pulse"><td colSpan={6} className="h-20" /></tr>)
+                          [1,2,3,4].map(i => <tr key={i} className="animate-pulse"><td colSpan={7} className="h-20" /></tr>)
                         ) : filtered.length > 0 ? filtered.map((m) => (
                            <tr key={m.id} className="hover:bg-white/[0.01] transition-colors">
                               <td className="px-8 py-8">
@@ -296,6 +308,13 @@ export default function SimulationFactoryPage() {
                               </td>
                               <td className="px-8 py-8">
                                  <Badge variant="outline" className="border-primary/20 text-primary text-[8px] font-black uppercase">{m.exam}</Badge>
+                              </td>
+                              <td className="px-8 py-8">
+                                 {m.accessType === 'free' ? (
+                                   <Badge variant="outline" className="border-emerald-500/20 text-emerald-500 text-[8px] font-black uppercase">Free Hub</Badge>
+                                 ) : (
+                                   <Badge variant="outline" className="border-primary/20 text-primary text-[8px] font-black uppercase">PASS+</Badge>
+                                 )}
                               </td>
                               <td className="px-8 py-8">
                                  <span className="text-[11px] font-bold text-zinc-400">{m.totalQuestions || 0} Qs • {m.duration}m</span>
@@ -325,6 +344,17 @@ export default function SimulationFactoryPage() {
                                        <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold" onClick={() => handleAction(m.id, 'duplicate')}>
                                           <Copy className="w-3.5 h-3.5 mr-2.5 text-zinc-500" /> Clone Simulation
                                        </DropdownMenuItem>
+                                       
+                                       <DropdownMenuSeparator className="bg-white/5" />
+                                       <DropdownMenuLabel className="px-2 py-1 text-[8px] uppercase font-black text-zinc-600">Gatekeeper Policy</DropdownMenuLabel>
+                                       <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold" onClick={() => handleAction(m.id, 'toggle_access')}>
+                                          {m.accessType === 'free' ? (
+                                            <><Lock className="w-3.5 h-3.5 mr-2.5 text-amber-500" /> Set as PASS+ (Lock)</>
+                                          ) : (
+                                            <><Unlock className="w-3.5 h-3.5 mr-2.5 text-emerald-500" /> Set as Free (Unlock)</>
+                                          )}
+                                       </DropdownMenuItem>
+
                                        <DropdownMenuSeparator className="bg-white/5" />
                                        {m.status === 'draft' && (
                                           <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-emerald-500" onClick={() => handleAction(m.id, 'publish')}>
@@ -345,7 +375,7 @@ export default function SimulationFactoryPage() {
                               </td>
                            </tr>
                         )) : (
-                           <tr><td colSpan={6} className="px-8 py-32 text-center text-zinc-700 italic font-bold uppercase text-xs">No simulations found in this sector.</td></tr>
+                           <tr><td colSpan={7} className="px-8 py-32 text-center text-zinc-700 italic font-bold uppercase text-xs">No simulations found in this sector.</td></tr>
                         )}
                      </tbody>
                   </table>
@@ -359,7 +389,7 @@ export default function SimulationFactoryPage() {
                <DialogHeader className="mb-8">
                   <div className="flex items-center gap-4">
                      <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-                        {createMode === 'ai' ? <BrainCircuit /> : <Rocket />}
+                        {createMode === 'ai' ? <BrainCircuit className="text-white" /> : <Rocket className="text-white" />}
                      </div>
                      <div>
                         <DialogTitle className="text-3xl font-black uppercase tracking-tighter">
