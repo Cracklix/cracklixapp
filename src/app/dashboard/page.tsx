@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
@@ -10,6 +9,7 @@ import LiveActivity from '@/components/live-activity';
 import DailyTargets from '@/components/dashboard/daily-targets';
 import StudyTimer from '@/components/practice/study-timer';
 import DailyQuiz from '@/components/daily-quiz';
+import InstallPrompt from '@/components/pwa/install-prompt';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BrainCircuit, Sparkles, Beaker, Mic, Camera, FileDown, Target, BookOpen } from 'lucide-react';
 import Link from 'next/link';
@@ -105,6 +105,10 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      
+      {/* PWA Install Trigger */}
+      <InstallPrompt />
+      
       <Navbar />
     </AppLayout>
   );
