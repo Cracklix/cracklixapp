@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -19,7 +18,7 @@ import {
   LifeBuoy,
   Activity,
   BrainCircuit,
-  Layers
+  Sparkles
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -36,27 +35,32 @@ export default function AdminSidebar() {
       ]
     },
     {
-      label: "CBT Infrastructure",
+      label: "AI Generation Core",
+      items: [
+        { name: "AI Mock Studio", href: "/admin/ai-mock-studio", icon: Sparkles },
+        { name: "Power Ingest", href: "/admin/pdf-ingestion", icon: FilePlus2 },
+      ]
+    },
+    {
+      label: "Simulation Factory",
       items: [
         { name: "Mock Generator", href: "/admin/mock-generator", icon: BrainCircuit },
-        { name: "Simulation Factory", href: "/admin/mocks", icon: Rocket },
+        { name: "Simulation Manager", href: "/admin/mocks", icon: Rocket },
         { name: "Atomic Bank", href: "/admin/question-bank", icon: Database },
-        { name: "PDF Ingestion", href: "/admin/pdf-ingestion", icon: FilePlus2 },
       ]
     },
     {
-      label: "Content Layers",
+      label: "Institutional Archive",
       items: [
-        { name: "PYQ Archive", href: "/admin/pyqs", icon: History },
-        { name: "State Ranks", href: "/admin/leaderboards", icon: Trophy },
-        { name: "AI Studio", href: "/admin/ai-assistant", icon: Zap },
+        { name: "PYQ Repository", href: "/admin/pyqs", icon: History },
+        { name: "State Merit List", href: "/admin/leaderboards", icon: Trophy },
       ]
     },
     {
-      label: "Monitoring",
+      label: "Diagnostics",
       items: [
-        { name: "System Health", href: "/admin/system-health", icon: Activity },
-        { name: "Gateway Config", href: "/admin/payment-settings", icon: Settings },
+        { name: "System Pulse", href: "/admin/system-health", icon: Activity },
+        { name: "Gateway Node", href: "/admin/payment-settings", icon: Settings },
       ]
     }
   ];
