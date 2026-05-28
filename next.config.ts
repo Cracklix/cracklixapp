@@ -8,7 +8,6 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -35,12 +34,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   experimental: {
     allowedDevOrigins: [
-      '6000-firebase-studio-1779914357572.cluster-m7dwy2bmizezqukxkuxd55k5ka.cloudworkstations.dev',
-      '*.cloudworkstations.dev'
+      '*.cloudworkstations.dev',
+      'localhost:9002'
     ]
   }
 };
