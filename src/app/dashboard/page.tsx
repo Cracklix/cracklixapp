@@ -15,7 +15,7 @@ import InstallPrompt from '@/components/pwa/install-prompt';
 import SupportTrigger from '@/components/support/support-trigger';
 import ReadinessPredictor from '@/components/dashboard/readiness-predictor';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BrainCircuit, Sparkles, Beaker, Mic, Camera, FileText, Target, BookOpen, TrendingUp, Zap, ChevronRight, Gift, Briefcase, Globe } from 'lucide-react';
+import { BrainCircuit, Sparkles, Beaker, Mic, Camera, FileText, Target, BookOpen, TrendingUp, Zap, ChevronRight, Gift, Briefcase, Globe, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                     <BookOpen className="text-accent w-7 h-7" />
                   </div>
                   <h3 className="text-3xl font-black mb-3">Punjab<br />Mastery</h3>
-                  <p className="text-sm text-zinc-500 leading-relaxed max-w-[220px]">Targeted preparation for PPSC & PSSSB.</p>
+                  <p className="text-sm text-zinc-500 leading-relaxed max-w-[220px]">Targeted preparation for PPSC & PSSSB board exams.</p>
                 </div>
                 <Link href="/exams">
                   <Button variant="outline" className="w-full rounded-2xl h-14 border-accent/20 text-accent font-black tracking-tight mt-8 hover:bg-accent hover:text-black transition-all">

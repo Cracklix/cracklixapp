@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -27,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { useAiLimits } from '@/hooks/use-ai-limits';
+import { useI18n } from '@/app/lib/i18n-context';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
@@ -42,6 +44,7 @@ type Message = {
 
 export default function AiChatInterface() {
   const { user } = useAuth();
+  const { locale } = useI18n();
   const { canUseAi, remaining, incrementUsage } = useAiLimits(user?.uid);
   
   const [input, setInput] = useState('');
@@ -108,7 +111,7 @@ export default function AiChatInterface() {
         reply = `**Subject:** ${result.subject}\n\n**Extracted Question:** ${result.extractedText}\n\n**Solution:**\n${result.solution}\n\n**Key Concepts:** ${result.keyConcepts.join(', ')}`;
         suggestedTopics = result.keyConcepts;
       } else {
-        const result = await askAiTutor({ message: input });
+        const result = await askAiTutor({ message: input, language: locale as any });
         reply = result.reply;
         suggestedTopics = result.suggestedTopics || [];
       }
@@ -183,7 +186,7 @@ export default function AiChatInterface() {
               <CardTitle className="text-xl font-bold">Your AI Teacher</CardTitle>
               <CardDescription className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Next-Gen Doubt Solver
+                Bilingual Mentorship ({locale === 'en' ? 'EN' : 'ਪੰ'})
               </CardDescription>
             </div>
           </div>
@@ -211,7 +214,7 @@ export default function AiChatInterface() {
               </div>
               <div>
                 <h3 className="text-lg font-bold">Ask anything about Punjab Exams</h3>
-                <p className="text-sm max-w-xs">Upload a tricky math question or ask for a GK short trick.</p>
+                <p className="text-sm max-w-xs">Upload a tricky math question or ask for a GK short trick in {locale === 'en' ? 'English' : 'ਪੰਜਾਬੀ'}.</p>
               </div>
             </motion.div>
           )}
