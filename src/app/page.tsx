@@ -8,9 +8,7 @@ import {
   Trophy, 
   ArrowRight, 
   Sparkles, 
-  ShieldCheck, 
   Star,
-  Play,
   Flame
 } from "lucide-react";
 import GlassCard from "@/components/ui/glass-card";

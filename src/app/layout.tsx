@@ -1,7 +1,15 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { Toaster } from '@/components/ui/toaster';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#000000',
+};
 
 export const metadata: Metadata = {
   title: 'CRACKLIX | Master Punjab Government Exams with AI',
@@ -20,8 +28,6 @@ export const metadata: Metadata = {
     title: 'CRACKLIX | AI Punjab Exam Mastery',
     description: 'Master Punjab Govt Exams with the elite AI performance ecosystem.',
   },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
-  themeColor: '#000000',
   manifest: '/manifest.json',
 };
 
