@@ -72,17 +72,8 @@ export interface Question {
   type: 'MCQ' | 'NUMERICAL' | 'MATCH';
 }
 
-export interface ExamSection {
-  id: string;
-  name: string;
-  order: number;
-  questionCount: number;
-  hasNegativeMarking: boolean;
-}
-
 export interface MockTest {
   id: string;
-  seriesId?: string;
   title: string;
   exam: string;
   category: 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
@@ -91,12 +82,11 @@ export interface MockTest {
   negativeMarking: number;
   accessType: PassTier;
   status: 'draft' | 'published';
-  sections?: ExamSection[];
-  pausable: boolean;
   createdAt: number;
   updatedAt: number;
   attemptCount?: number;
   aiGenerated?: boolean;
+  questionIds?: string[];
 }
 
 export interface AttemptAnswer {

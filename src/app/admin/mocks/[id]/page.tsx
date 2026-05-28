@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, use, useMemo } from "react";
@@ -239,7 +240,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                       <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">ਵਿਕਲਪ ਮੈਟ੍ਰਿਕਸ (PA)</p>
                                       <div className="grid gap-3">
                                          {(q.pa?.options || ["","","",""]).map((o, i) => (
-                                           <div key={i} className="p-5 rounded-2xl text-sm bg-black/20 border border-white/5 text-zinc-500 italic">
+                                           <div key={i} className="p-5 rounded-2xl text-sm bg-black/40 border border-white/5 text-zinc-500 italic">
                                               {i + 1}. {o || "Signal Missing"}
                                            </div>
                                          ))}
