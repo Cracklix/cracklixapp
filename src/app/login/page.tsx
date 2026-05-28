@@ -5,23 +5,22 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Zap, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Zap, Mail, Lock, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 const googleProvider = new GoogleAuthProvider();
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'login';
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
@@ -29,13 +28,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   const checkRoleAndRedirect = async (uid: string) => {
-    const userDoc = await getDoc(doc(db, "users", uid));
-    const data = userDoc.data();
-    
-    if (data?.role === 'admin' || data?.role === 'superadmin') {
-      router.push('/admin');
-    } else {
-      router.push('/dashboard');
+    const userRef = doc(db, "users", uid);
+    try {
+      const userDoc = await getDoc(userRef);
+      const data = userDoc.data();
+      
+      if (data?.role === 'admin' || data?.role === 'superadmin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      // If it's a permission error, surface it contextually
+      if (err.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'get',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        throw err;
+      }
     }
   };
 
@@ -60,24 +73,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
-      
-      // Ensure profile exists for Google users
-      const userRef = doc(db, "users", res.user.uid);
-      const userSnap = await getDoc(userRef);
-      
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          uid: res.user.uid,
-          name: res.user.displayName || 'Student',
-          email: res.user.email || '',
-          role: "student",
-          xp: 0,
-          streak: 0,
-          coins: 50,
-          createdAt: Date.now(),
-        });
-      }
-
       await checkRoleAndRedirect(res.user.uid);
     } catch (error: any) {
       toast({
