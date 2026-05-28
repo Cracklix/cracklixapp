@@ -20,28 +20,27 @@ import {
   Loader2, 
   ArrowLeft, 
   Menu,
-  ShieldCheck,
   Globe,
   Monitor,
   ChevronRight,
   Pause,
   Play,
   CheckCircle2,
-  AlertCircle
+  Lock,
+  RotateCcw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer, ExamAttempt, LanguageMode } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function CBTEngineV32({ params }: { params: Promise<{ id: string }> }) {
+export default function CBTEngineV45({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const mockId = unwrappedParams.id;
   
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -61,7 +60,7 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
     if (!user || !mockId) return;
     try {
       const mockData = await getMockDetails(mockId);
-      if (!mockData) throw new Error("Artifact missing.");
+      if (!mockData) throw new Error("Mock missing.");
       const qData = await getMockQuestions(mockId);
       
       setMock(mockData);
@@ -84,7 +83,6 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
 
   useEffect(() => { bootSession(); }, [bootSession]);
 
-  // Real-time Heartbeat (10s Cloud Sync)
   useEffect(() => {
     if (phase !== 'exam' || isPaused || !attempt?.id) return;
     
@@ -103,7 +101,6 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
       saveAnswer(attempt.id, 'meta_sync', {
         remainingTime: timeRemaining,
         currentQuestionIndex: current,
-        lastSynced: Date.now()
       } as any);
     }, 10000);
 
@@ -125,13 +122,13 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
     }
   };
 
-  const handleOptionSelect = (option: string | null) => {
+  const handleOptionSelect = (option: number | null) => {
     if (!attempt?.id || !questions[current]) return;
     const qId = questions[current].id;
     const payload: AttemptAnswer = {
       questionId: qId,
       selectedOption: option,
-      status: option ? 'ANSWERED' : 'VISITED',
+      status: option !== null ? 'ANSWERED' : 'VISITED',
       timeSpent: 0,
       lastUpdated: Date.now()
     };
@@ -143,12 +140,14 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
     if (!attempt?.id || !questions[current]) return;
     const qId = questions[current].id;
     const currentAns = answers[qId];
-    const newStatus = currentAns?.selectedOption ? 'ANSWERED_AND_MARKED' : 'MARKED_FOR_REVIEW';
+    const newStatus = currentAns?.selectedOption !== null ? 'ANSWERED_AND_MARKED' : 'MARKED_FOR_REVIEW';
     const payload = { ...currentAns, questionId: qId, status: newStatus, lastUpdated: Date.now() } as any;
     setAnswers(prev => ({ ...prev, [qId]: payload }));
     saveAnswer(attempt.id, qId, payload);
     handleNext();
   };
+
+  const clearResponse = () => handleOptionSelect(null);
 
   const handleNext = () => current < questions.length - 1 && setCurrent(c => c + 1);
   const handlePrev = () => current > 0 && setCurrent(c => c - 1);
@@ -168,10 +167,8 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
   if (phase === 'booting' || phase === 'submitting') {
     return (
       <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
-         <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="w-16 h-16 rounded-[28px] bg-primary flex items-center justify-center blue-glow">
-            <Monitor className="text-white w-8 h-8" />
-         </motion.div>
-         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">{phase === 'booting' ? 'Initializing Neural Forge' : 'Syncing Final Audit'}</p>
+         <Loader2 className="w-12 h-12 animate-spin text-primary" />
+         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">{phase === 'booting' ? 'Initializing Arena' : 'Syncing Final Audit'}</p>
       </div>
     );
   }
@@ -179,49 +176,43 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
   if (phase === 'gateway') {
     return (
       <div className="min-h-screen bg-[#05070a] text-white flex flex-col">
-         <header className="h-16 bg-black border-b border-white/5 flex items-center px-8 justify-between shrink-0">
-            <div className="flex items-center gap-4">
-               <Button variant="ghost" size="icon" onClick={() => router.push('/exams')} className="rounded-xl"><ArrowLeft size={16} /></Button>
-               <h1 className="font-black text-sm uppercase tracking-tight truncate max-w-xs">{mock?.title}</h1>
-            </div>
+         <header className="h-16 bg-zinc-950 border-b border-white/5 flex items-center px-8 justify-between">
+            <Button variant="ghost" onClick={() => router.push('/exams')} className="text-zinc-500 hover:text-white font-bold text-xs">
+               <ArrowLeft size={16} className="mr-2" /> EXIT ARENA
+            </Button>
+            <h1 className="font-black text-sm uppercase tracking-widest">{mock?.title}</h1>
          </header>
-         <main className="flex-1 p-8 no-scrollbar flex items-center justify-center">
+         <main className="flex-1 flex items-center justify-center p-8">
             <Card className="max-w-3xl w-full rounded-[48px] bg-zinc-950 border border-white/5 p-12 space-y-10 shadow-2xl relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-12 opacity-5"><ShieldCheck size={200} /></div>
-               <div className="space-y-4 relative z-10 text-center">
-                  <Badge className="bg-primary/20 text-primary border-none px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">Preparation Protocol</Badge>
+               <div className="absolute top-0 right-0 p-12 opacity-5"><Monitor size={200} /></div>
+               <div className="text-center space-y-4 relative z-10">
+                  <Badge className="bg-primary/20 text-primary border-none px-4 py-1 font-black uppercase text-[10px]">Protocol Baseline</Badge>
                   <h2 className="text-4xl font-black uppercase tracking-tighter">Instructions & Scheme</h2>
                </div>
-               <div className="space-y-6 relative z-10 text-zinc-400 font-medium leading-relaxed">
-                  <div className="grid md:grid-cols-2 gap-8">
-                     <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                        <p className="text-[9px] font-black text-primary uppercase">Duration</p>
-                        <p className="text-xl font-bold text-white">{mock?.duration} Minutes</p>
-                     </div>
-                     <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                        <p className="text-[9px] font-black text-red-500 uppercase">Penalty</p>
-                        <p className="text-xl font-bold text-white">-{mock?.negativeMarking} Per Wrong</p>
-                     </div>
+               <div className="grid md:grid-cols-2 gap-8 relative z-10">
+                  <div className="p-6 rounded-3xl bg-white/5 border border-white/5 space-y-2">
+                     <p className="text-[9px] font-black text-zinc-500 uppercase">Duration</p>
+                     <p className="text-xl font-bold">{mock?.duration} Minutes</p>
                   </div>
-                  <ul className="space-y-3 text-sm">
-                     <li className="flex gap-3"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Total questions: {mock?.totalQuestions}. All carry 1 mark.</li>
-                     <li className="flex gap-3"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Real-time cloud autosave enabled (Heartbeat v4).</li>
-                  </ul>
+                  <div className="p-6 rounded-3xl bg-white/5 border border-white/5 space-y-2">
+                     <p className="text-[9px] font-black text-red-500 uppercase">Negative Penalty</p>
+                     <p className="text-xl font-bold">-{mock?.negativeMarking} Per Wrong</p>
+                  </div>
                </div>
-               <div className="pt-6 border-t border-white/5 grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase text-zinc-500 px-1">Language Buffer</p>
+               <div className="pt-10 border-t border-white/5 flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1 space-y-2">
+                    <p className="text-[9px] font-black uppercase text-zinc-500 px-2">Primary Language</p>
                     <Select value={activeLang} onValueChange={(v: any) => setActiveLang(v)}>
-                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-black text-[11px] uppercase px-6"><SelectValue /></SelectTrigger>
+                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
                        <SelectContent className="bg-zinc-950 text-white border-white/10">
                           <SelectItem value="english">English</SelectItem>
                           <SelectItem value="punjabi">Punjabi</SelectItem>
-                          <SelectItem value="bilingual">Bilingual</SelectItem>
+                          <SelectItem value="bilingual">Bilingual (EN+PA)</SelectItem>
                        </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleStartExam} className="h-14 mt-auto rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase tracking-widest blue-glow">
-                     BEGIN ASSESSMENT <ChevronRight size={18} className="ml-1" />
+                  <Button onClick={handleStartExam} className="h-14 mt-auto rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-sm uppercase tracking-widest blue-glow px-10">
+                     BEGIN ASSESSMENT <ChevronRight size={18} className="ml-2" />
                   </Button>
                </div>
             </Card>
@@ -231,61 +222,52 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="h-screen bg-white text-slate-900 flex flex-col overflow-hidden relative">
-       {/* Institutional Header v32.5 */}
-       <header className="h-[65px] px-6 bg-[#1e293b] text-white flex items-center justify-between shrink-0 z-50">
+    <div className="h-screen bg-white text-slate-900 flex flex-col overflow-hidden">
+       {/* TESTBOOK STYLE TOP BAR */}
+       <header className="h-[60px] px-6 bg-[#1e293b] text-white flex items-center justify-between shrink-0 z-50">
           <div className="flex items-center gap-4">
-             <Button variant="ghost" size="icon" onClick={() => setPaletteOpen(true)} className="rounded-lg h-9 w-9 hover:bg-white/10"><Menu size={20} /></Button>
-             <div className="flex flex-col">
-                <span className="font-black text-xs uppercase tracking-tight truncate max-w-[120px] md:max-w-xs">{mock?.title}</span>
-                <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> CLOUD SYNCED
-                </span>
-             </div>
+             <Button variant="ghost" size="icon" onClick={() => setIsPaused(!isPaused)} className="rounded-xl h-9 w-9 bg-white/5 hover:bg-white/10">
+                {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
+             </Button>
+             <div className="h-8 w-px bg-white/10 mx-2 hidden sm:block" />
+             <h1 className="font-black text-xs uppercase tracking-tight truncate max-w-[200px]">{mock?.title}</h1>
           </div>
+          
           <div className="flex items-center gap-6">
-             <div className="hidden md:flex items-center gap-2 border-r border-white/10 pr-6">
-                <Globe size={14} className="text-blue-400" />
-                <Select value={activeLang} onValueChange={(v: any) => setActiveLang(v)}>
-                   <SelectTrigger className="h-9 w-32 bg-white/5 border-white/10 rounded-xl font-black text-[9px] uppercase tracking-widest px-3"><SelectValue /></SelectTrigger>
-                   <SelectContent className="bg-[#1e293b] text-white border-white/10">
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="punjabi">Punjabi</SelectItem>
-                      <SelectItem value="bilingual">EN+PA</SelectItem>
-                   </SelectContent>
-                </Select>
-             </div>
+             <Select value={activeLang} onValueChange={(v: any) => setActiveLang(v)}>
+                <SelectTrigger className="h-8 w-32 bg-white/5 border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest px-3"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#1e293b] text-white border-white/10">
+                   <SelectItem value="english">English</SelectItem>
+                   <SelectItem value="punjabi">Punjabi</SelectItem>
+                   <SelectItem value="bilingual">EN+PA</SelectItem>
+                </SelectContent>
+             </Select>
              
-             <Timer duration={timeRemaining / 60} onFinish={handleSubmitFinal} paused={isPaused} />
-             
-             <div className="flex gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setIsPaused(!isPaused)} className="h-9 w-9 rounded-xl hover:bg-white/10">
-                   {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
-                </Button>
-                <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg">SUBMIT TEST</Button>
+             <div className="flex items-center gap-3 bg-white/5 px-4 h-9 rounded-lg border border-white/10">
+                <Timer duration={timeRemaining / 60} onFinish={handleSubmitFinal} paused={isPaused} />
              </div>
+
+             <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg">SUBMIT TEST</Button>
           </div>
        </header>
 
-       {/* Examination Stage (0-Scroll Grid) */}
-       <div className="flex-1 flex overflow-hidden cbt-workspace">
-          <main className="flex-1 overflow-y-auto no-scrollbar p-8 bg-slate-50 relative">
-             <div className="max-w-5xl mx-auto space-y-6 pb-20">
+       <div className="flex-1 flex overflow-hidden">
+          {/* Main Area */}
+          <main className="flex-1 overflow-y-auto p-8 bg-slate-50 relative no-scrollbar">
+             <div className="max-w-4xl mx-auto space-y-6 pb-20">
                 <AnimatePresence mode="wait">
                    {isPaused ? (
-                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-40 bg-slate-50/95 backdrop-blur-md flex flex-col items-center justify-center gap-6">
-                        <div className="w-20 h-20 rounded-[32px] bg-blue-600 flex items-center justify-center shadow-2xl"><Pause size={40} className="text-white" fill="currentColor" /></div>
-                        <div className="text-center space-y-2">
-                           <h3 className="text-3xl font-black uppercase tracking-tighter">Session Interrupted</h3>
-                           <p className="text-slate-500 font-medium">Simulation clock is suspended. Resume whenever ready.</p>
-                        </div>
-                        <Button onClick={() => setIsPaused(false)} className="h-16 px-12 rounded-3xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase tracking-widest">RESUME ASSESSMENT</Button>
-                     </motion.div>
-                   ) : questions[current] && (
-                     <motion.div key={questions[current].id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-6 text-center">
+                         <div className="w-20 h-20 rounded-[32px] bg-blue-600 flex items-center justify-center shadow-2xl"><Pause size={40} className="text-white" fill="currentColor" /></div>
+                         <h3 className="text-3xl font-black uppercase tracking-tighter">Session Suspended</h3>
+                         <p className="text-slate-500 font-medium max-w-xs">Your progress is cloud-synced. Click resume to continue your attempt.</p>
+                         <Button onClick={() => setIsPaused(false)} className="h-16 px-12 rounded-3xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase tracking-widest shadow-xl">RESUME ASSESSMENT</Button>
+                      </motion.div>
+                   ) : (
+                     <motion.div key={current} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                         <QuestionCard 
                           question={questions[current]} 
-                          selected={answers[questions[current].id]?.selectedOption || null} 
+                          selected={answers[questions[current].id]?.selectedOption ?? null} 
                           onSelect={handleOptionSelect}
                           activeLanguage={activeLang}
                           index={current}
@@ -295,58 +277,49 @@ export default function CBTEngineV32({ params }: { params: Promise<{ id: string 
                 </AnimatePresence>
              </div>
           </main>
+
+          {/* Right Palette */}
+          <aside className="w-[340px] bg-white border-l border-slate-200 hidden lg:flex flex-col shrink-0">
+             <PaletteDrawer 
+               questions={questions} 
+               current={current} 
+               answers={answers} 
+               setCurrent={setCurrent} 
+               mockTitle={mock?.title || "Exam"}
+               activeLanguage={activeLang}
+             />
+          </aside>
        </div>
 
-       {/* Navigation Dock */}
-       <footer className="h-[75px] px-8 bg-white border-t border-slate-100 flex items-center justify-between shrink-0 z-50">
+       {/* Footer Action Bar */}
+       <footer className="h-[75px] px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
           <div className="flex gap-3">
-             <Button variant="outline" onClick={markForReview} className="rounded-2xl h-11 px-8 border-slate-200 font-black text-[10px] uppercase tracking-widest text-blue-600 hover:bg-blue-50">MARK FOR REVIEW</Button>
-             <Button variant="ghost" onClick={() => handleOptionSelect(null)} className="rounded-2xl h-11 px-6 font-bold text-[10px] uppercase text-zinc-400">Clear</Button>
+             <Button variant="outline" onClick={markForReview} className="rounded-xl h-11 px-8 border-slate-200 font-black text-[10px] uppercase text-blue-600 hover:bg-blue-50">MARK FOR REVIEW</Button>
+             <Button variant="ghost" onClick={clearResponse} className="rounded-xl h-11 px-6 font-bold text-[10px] uppercase text-slate-400">Clear</Button>
           </div>
-          <div className="flex gap-6 items-center">
-             <button disabled={current === 0} onClick={handlePrev} className="font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-slate-900 disabled:opacity-0 transition-all">Previous</button>
-             <Button onClick={handleNext} disabled={current === questions.length - 1} className="h-12 px-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[0.3em] shadow-xl shadow-blue-600/30 active:scale-95">
+          <div className="flex gap-4 items-center">
+             <Button variant="ghost" disabled={current === 0} onClick={handlePrev} className="font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-900 disabled:opacity-0 transition-all">Previous</Button>
+             <Button onClick={handleNext} disabled={current === questions.length - 1} className="h-12 px-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-blue-600/30 active:scale-95">
                 SAVE & NEXT
              </Button>
           </div>
        </footer>
 
        <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
-         <DialogContent className="bg-white rounded-[40px] p-12 max-w-md border-none shadow-2xl overflow-hidden">
+         <DialogContent className="bg-white rounded-[40px] p-10 max-w-md border-none shadow-2xl">
             <DialogHeader className="text-center space-y-6">
                <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center mx-auto"><CheckCircle2 className="text-emerald-600 w-10 h-10" /></div>
                <div className="space-y-2">
-                 <DialogTitle className="text-3xl font-black uppercase tracking-tighter leading-none">Terminate Session?</DialogTitle>
-                 <DialogDescription className="text-slate-500 font-medium">Your progress is cloud-synced. Submitting will generate your State Rank and Percentile.</DialogDescription>
+                 <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Terminate Session?</DialogTitle>
+                 <DialogDescription className="text-slate-500">Submitting will calculate your final State Rank and percentile analytics across all participants.</DialogDescription>
                </div>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4 py-8">
-               <div className="p-4 bg-slate-50 rounded-2xl text-center">
-                  <p className="text-[10px] font-black uppercase text-slate-400">Attempted</p>
-                  <p className="text-2xl font-black text-slate-900">{Object.values(answers).filter(a => a.selectedOption).length}</p>
-               </div>
-               <div className="p-4 bg-slate-50 rounded-2xl text-center">
-                  <p className="text-[10px] font-black uppercase text-slate-400">Marked</p>
-                  <p className="text-2xl font-black text-blue-600">{Object.values(answers).filter(a => a.status.includes('MARKED')).length}</p>
-               </div>
-            </div>
-            <DialogFooter className="gap-3 flex flex-col sm:flex-row">
-               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-14 rounded-2xl flex-1 font-black text-[11px] uppercase">RESUME</Button>
-               <Button onClick={handleSubmitFinal} className="h-14 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-600/20">SUBMIT FINAL</Button>
+            <DialogFooter className="gap-3 sm:flex-row pt-6">
+               <Button variant="outline" onClick={() => setSubmitConfirmOpen(false)} className="h-14 rounded-2xl flex-1 font-black text-[10px] uppercase">CANCEL</Button>
+               <Button onClick={handleSubmitFinal} className="h-14 rounded-2xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest shadow-xl">SUBMIT FINAL</Button>
             </DialogFooter>
          </DialogContent>
        </Dialog>
-
-       <PaletteDrawer 
-         open={paletteOpen} 
-         onClose={() => setPaletteOpen(false)} 
-         questions={questions} 
-         current={current} 
-         answers={answers} 
-         setCurrent={setCurrent} 
-         mockTitle={mock?.title || "Assessment"}
-         activeLanguage={activeLang}
-       />
     </div>
   );
 }

@@ -1,51 +1,74 @@
 'use server';
 /**
  * CRACKLIX NEURAL FORGE v12 Core
- * Advanced instruction-driven synthesis with bilingual payload enforcement.
+ * Advanced instruction-driven synthesis with strict JSON payload enforcement.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
+const QuestionOptionSchema = z.object({
+  en: z.string(),
+  pa: z.string(),
+});
+
 const QuestionArtifactSchema = z.object({
-  question_en: z.string(),
-  question_pa: z.string(),
-  options_en: z.array(z.string()).length(4),
-  options_pa: z.array(z.string()).length(4),
-  correctAnswer: z.string().describe("The exact text of the correct option in English."),
-  explanation_en: z.string(),
-  explanation_pa: z.string(),
+  questionEn: z.string(),
+  questionPa: z.string(),
+  options: z.array(QuestionOptionSchema).length(4),
+  correctAnswer: z.number().min(0).max(3),
+  solutionEn: z.string(),
+  solutionPa: z.string(),
   subject: z.string(),
   topic: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
+  timeEstimate: z.number().default(45),
 });
 
 const GeneratorInputSchema = z.object({
-  jobId: z.string(),
+  instruction: z.string(),
   exam: z.string(),
   subjects: z.array(z.string()),
   count: z.number().max(10),
   difficulty: z.string(),
-  instruction: z.string().optional(),
 });
 
 const GeneratorOutputSchema = z.object({
   questions: z.array(QuestionArtifactSchema),
-  confidenceScore: z.number(),
 });
 
-export async function generateBilingualArtifacts(input: z.infer<typeof GeneratorInputSchema>) {
+export async function generateStrictBilingualArtifacts(input: z.infer<typeof GeneratorInputSchema>) {
   const prompt = ai.definePrompt({
-    name: `neural_forge_v12_engine_${input.jobId}`,
+    name: `neural_forge_v12_engine`,
     input: { schema: GeneratorInputSchema },
     output: { schema: GeneratorOutputSchema },
-    prompt: `You are the CRACKLIX Neural Forge v12. Synthesize {{{count}}} high-fidelity MCQs for the {{{exam}}}.
+    prompt: `You are India's most advanced competitive exam mock generator.
+Generate ONLY valid JSON.
 
-REQUIREMENTS:
-1. BILINGUAL PAYLOAD: Every question MUST include BOTH English and Raavi-compliant Punjabi.
-2. CORRECTNESS: The correctAnswer text must match one of the options_en values EXACTLY.
-3. LOGICAL PATH: Provide deep step-by-step explanations in both languages.
-4. CUSTOM INSTRUCTION: {{{instruction}}}
+INPUT CONTEXT:
+Exam: {{{exam}}}
+Subjects: {{{subjects}}}
+Count: {{{count}}}
+Difficulty: {{{difficulty}}}
+Instruction: {{{instruction}}}
+
+RULES:
+1. Every question MUST have:
+- English question (questionEn)
+- Punjabi question (questionPa)
+- English options (options.en)
+- Punjabi options (options.pa)
+- correct answer index 0-3 (correctAnswer)
+- Detailed English solution (solutionEn)
+- Detailed Punjabi solution (solutionPa)
+- difficulty
+- subject
+- topic
+
+2. NEVER leave Punjabi fields blank. If Punjabi translation is unavailable, copy the English text into those fields.
+3. Solutions MUST be step-by-step and logical. Include "Elite Speed Tricks" if applicable.
+4. Distractors (wrong options) must be realistic.
+5. Match the level of {{{exam}}}.
 
 Respond ONLY with a valid JSON object matching the output schema.`,
   });
@@ -53,13 +76,7 @@ Respond ONLY with a valid JSON object matching the output schema.`,
   try {
     const { output } = await prompt(input);
     if (!output || !output.questions) throw new Error("Synthesis failed.");
-
-    return output.questions.map(q => ({
-      ...q,
-      en: { question: q.question_en, options: q.options_en, explanation: q.explanation_en },
-      pa: { question: q.question_pa, options: q.options_pa, explanation: q.explanation_pa },
-      status: 'published'
-    }));
+    return output.questions;
   } catch (error: any) {
     console.error("Neural Synthesis Error:", error);
     throw error;
