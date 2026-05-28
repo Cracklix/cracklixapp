@@ -30,7 +30,8 @@ import {
   ExternalLink,
   ChevronRight,
   Flame,
-  LayoutGrid
+  LayoutGrid,
+  Eye
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
@@ -217,7 +218,7 @@ export default function AiMockOS() {
         publishedAt: directPublish ? Date.now() : null
       });
 
-      // 2. Link every question artifact
+      // 2. Link every question artifact using Batch
       let globalIndex = 0;
       for (const section of output.sections) {
         for (const q of section.questions) {
@@ -273,7 +274,7 @@ export default function AiMockOS() {
         <AdminSidebar />
         
         <main className="flex-1 flex flex-row h-screen overflow-hidden">
-          {/* Neural Canvas - Expanded Space */}
+          {/* Neural Canvas */}
           <div className="flex-1 flex flex-col relative bg-[#020408] overflow-hidden" style={{ width: 'calc(100% - 380px)' }}>
              <header className="h-16 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl z-30">
                 <div className="flex items-center gap-3">
@@ -323,7 +324,7 @@ export default function AiMockOS() {
                         <div className="text-center space-y-6">
                            <h3 className="text-2xl font-black uppercase tracking-[0.2em] animate-pulse">{STAGES[currentStage].label}</h3>
                            <div className="space-y-2 font-mono text-[11px] text-zinc-600 max-w-md mx-auto">
-                             {logs.map((log, i) => <div key={i} className="flex gap-2"><span className="text-primary">>></span> {log}</div>)}
+                             {logs.map((log, i) => <div key={i} className="flex gap-2"><span className="text-primary">&gt;&gt;</span> {log}</div>)}
                            </div>
                         </div>
                      </div>
@@ -331,7 +332,7 @@ export default function AiMockOS() {
 
                    {output && (
                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-                        {/* Dynamic Post-Generation Action Bar */}
+                        {/* Permanent Tactical Console */}
                         <div className="sticky top-2 z-40 p-4 bg-zinc-950/80 backdrop-blur-xl border border-primary/20 rounded-[32px] flex flex-wrap items-center justify-between gap-4 shadow-2xl shadow-primary/10">
                            <div className="flex items-center gap-4 px-4">
                               <Badge className="bg-emerald-600 text-[8px] font-black px-3 py-1">SYNTHESIS READY</Badge>
@@ -355,7 +356,6 @@ export default function AiMockOS() {
                                  <div className="flex flex-wrap gap-6 mt-4 text-zinc-500 font-bold uppercase text-[10px] tracking-widest">
                                     <span className="flex items-center gap-2"><Globe size={12} className="text-primary" /> {output.exam}</span>
                                     <span className="flex items-center gap-2"><Clock size={12} /> {getFinalDuration()}m</span>
-                                    <span className="flex items-center gap-2"><Flame size={12} className="text-orange-500" /> {language.toUpperCase()} Fidelity</span>
                                     <span className="flex items-center gap-2 text-emerald-500"><CheckCircle2 size={12} /> {output.syllabusCoverage}% Coverage</span>
                                  </div>
                               </div>
