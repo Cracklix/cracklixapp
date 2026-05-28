@@ -45,6 +45,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/**
+ * PRODUCTION MOCK REGISTRY
+ * Functional command center for simulation lifecycle management.
+ */
 export default function MockRegistryPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -64,7 +68,7 @@ export default function MockRegistryPage() {
       const data = await getAllMocks();
       setMocks(data);
       
-      // Background load stats for each row to improve info density
+      // Load performance stats asynchronously to keep UI fast
       const statsMap: any = {};
       for (const m of data) {
         if (m.status !== 'draft') {
@@ -74,7 +78,7 @@ export default function MockRegistryPage() {
       }
       setMockStats(statsMap);
     } catch (e) {
-      toast({ title: "Registry Error", variant: "destructive" });
+      toast({ title: "Registry Error", description: "Failed to fetch simulation index.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -85,30 +89,30 @@ export default function MockRegistryPage() {
       switch(action) {
         case 'publish':
           await publishMock(id);
-          toast({ title: "Mock Published" });
+          toast({ title: "Signal Published", description: "Simulation is now live for students." });
           break;
         case 'live':
           await setMockLive(id, true);
-          toast({ title: "Signal Live" });
+          toast({ title: "Arena Signal: LIVE", description: "Mock promoted to High-Priority Live Event." });
           break;
         case 'stop-live':
           await setMockLive(id, false);
-          toast({ title: "Live Stopped" });
+          toast({ title: "Live Signal Terminated" });
           break;
         case 'duplicate':
           await duplicateMock(id);
-          toast({ title: "Mock Cloned" });
+          toast({ title: "Simulation Cloned", description: "Created a new draft artifact from source." });
           break;
         case 'delete':
-          if (confirm('Permanently purge this artifact?')) {
+          if (confirm('Permanently purge this artifact from the repository?')) {
             await deleteMock(id);
-            toast({ title: "Mock Purged" });
+            toast({ title: "Registry Purged" });
           }
           break;
       }
       loadRegistry();
     } catch (e) {
-      toast({ title: "Action Failed", variant: "destructive" });
+      toast({ title: "Action Failure", description: "Infrastructure synchronization error.", variant: "destructive" });
     }
   }
 
@@ -131,12 +135,12 @@ export default function MockRegistryPage() {
                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-xl blue-glow">
                       <Rocket className="text-white w-6 h-6" />
                    </div>
-                   <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Registry</h1>
+                   <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Registry</h1>
                 </div>
-                <p className="text-zinc-500 font-medium ml-1">Central CMS for managing CBT simulations.</p>
+                <p className="text-zinc-500 font-medium ml-1">Central management for PSSSB and PPSC CBT environments.</p>
               </div>
               <div className="flex gap-4">
-                 <Button onClick={() => router.push('/admin/mocks/new')} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-widest blue-glow">
+                 <Button onClick={() => router.push('/admin/direct-mock-builder')} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-widest blue-glow">
                     <Plus className="w-4 h-4 mr-2" /> Initialize New Mock
                  </Button>
               </div>
@@ -155,7 +159,7 @@ export default function MockRegistryPage() {
                <div className="relative w-full md:w-80 group">
                   <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-600 group-focus-within:text-primary transition-colors" />
                   <Input 
-                    placeholder="Search by identity..." 
+                    placeholder="Search by identity signal..." 
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="pl-10 h-12 bg-zinc-900 border-white/5 rounded-2xl text-[10px] uppercase font-black tracking-widest"
@@ -168,10 +172,10 @@ export default function MockRegistryPage() {
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                      <thead className="bg-zinc-900/60 text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 border-b border-white/5">
                         <tr>
-                           <th className="px-8 py-6">Mock Identity</th>
+                           <th className="px-8 py-6">Simulation Name</th>
                            <th className="px-8 py-6">Board</th>
                            <th className="px-8 py-6">Payload</th>
-                           <th className="px-8 py-6">Status</th>
+                           <th className="px-8 py-6">Access</th>
                            <th className="px-8 py-6">Attempts</th>
                            <th className="px-8 py-6">Accuracy</th>
                            <th className="px-8 py-6 text-right">Actions</th>
@@ -193,7 +197,10 @@ export default function MockRegistryPage() {
                                     </div>
                                     <div>
                                        <p className="font-bold text-white group-hover:text-primary transition-colors">{m.title}</p>
-                                       <p className="text-[8px] text-zinc-600 font-bold uppercase mt-1 tracking-widest">ID: {m.id.substring(0, 8)}</p>
+                                       <div className="flex items-center gap-2 mt-1">
+                                          <div className={cn("w-1 h-1 rounded-full", m.status === 'live' ? "bg-red-500 animate-pulse" : m.status === 'published' ? "bg-emerald-500" : "bg-zinc-600")} />
+                                          <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest">{m.status}</span>
+                                       </div>
                                     </div>
                                  </div>
                               </td>
@@ -201,13 +208,12 @@ export default function MockRegistryPage() {
                                  <Badge variant="outline" className="border-primary/20 text-primary text-[8px] font-black uppercase tracking-widest">{m.exam}</Badge>
                               </td>
                               <td className="px-8 py-8 text-[11px] font-bold text-zinc-400">
-                                 {m.totalQuestions} Qs • {m.duration}m
+                                 {m.totalQuestions || 0} Qs • {m.duration}m
                               </td>
                               <td className="px-8 py-8">
-                                 <div className="flex items-center gap-2">
-                                    <div className={cn("w-1.5 h-1.5 rounded-full", m.status === 'live' ? "bg-red-500 animate-pulse" : m.status === 'published' ? "bg-emerald-500" : "bg-zinc-600")} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{m.status}</span>
-                                 </div>
+                                 <Badge className={cn("text-[8px] font-black uppercase border-none", m.accessType === 'free' ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary")}>
+                                    {m.accessType}
+                                 </Badge>
                               </td>
                               <td className="px-8 py-8 font-black text-white">
                                  {mockStats[m.id]?.totalAttempts || 0}
@@ -247,7 +253,7 @@ export default function MockRegistryPage() {
 
                                        {m.status === 'live' && (
                                           <DropdownMenuItem className="rounded-xl py-2.5 cursor-pointer text-xs font-bold text-orange-500 focus:text-orange-500" onClick={() => handleAction(m.id, 'stop-live')}>
-                                             <Zap className="w-3.5 h-3.5 mr-2.5" /> Stop Live Stream
+                                             <Zap className="w-3.5 h-3.5 mr-2.5" /> Stop Live Arena
                                           </DropdownMenuItem>
                                        )}
 

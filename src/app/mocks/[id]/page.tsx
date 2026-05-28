@@ -21,13 +21,9 @@ import { generateAnalytics } from "@/services/analytics-engine";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { 
-  ChevronLeft, 
-  ChevronRight, 
   Loader2, 
   ShieldAlert, 
   FileText, 
-  Languages,
-  ArrowLeft,
   FileSearch,
   Maximize2
 } from "lucide-react";
@@ -38,6 +34,10 @@ import { AttemptAnswer, QuestionStatus } from "@/types";
 import { increment } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
 
+/**
+ * PRODUCTION CBT ENGINE
+ * High-integrity examination environment with real-time Firestore synchronization.
+ */
 export default function MockPage() {
   const { user, profile } = useAuth();
   const router = useRouter();
@@ -45,7 +45,6 @@ export default function MockPage() {
   const mockId = params?.id as string;
   const { toast } = useToast();
   
-  // Phase management
   const [phase, setPhase] = useState<'loading' | 'instructions' | 'test'>('loading');
   const [mock, setMock] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -68,11 +67,12 @@ export default function MockPage() {
         setLoading(true);
         const mockData = await getMockDetails(mockId);
         if (!mockData) {
-          setErrorState("The requested simulation does not exist.");
+          setErrorState("The requested simulation does not exist or has been archived.");
           setLoading(false);
           return;
         }
         
+        // 1. Validate Subscription Access
         const access = await checkMockAccess(user.uid, mockData);
         if (!access.allowed) {
           toast({ title: "Access Denied", description: access.reason, variant: "destructive" });
@@ -80,10 +80,12 @@ export default function MockPage() {
           return;
         }
 
+        // 2. Load Artifacts
         const qData = await getMockQuestions(mockId);
         setMock(mockData);
         setQuestions(qData);
         
+        // 3. Initialize or Resume Attempt
         const id = await startAttempt(user.uid, mockData);
         setAttemptId(id);
 
@@ -100,13 +102,15 @@ export default function MockPage() {
           setPhase('instructions');
         }
       } catch (err: any) {
-        setErrorState("A network synchronization error occurred. Please refresh.");
+        console.error("CBT Init Error:", err);
+        setErrorState("Infrastructure sync error. Please refresh the arena.");
       } finally {
         setLoading(false);
       }
     }
     init();
 
+    // Anti-Cheat: Log tab switching
     const handleVisibility = () => {
       if (document.hidden && phase === 'test' && attemptId) {
         updateAttemptActivity(attemptId, { cheatFlags: increment(1) });
@@ -151,13 +155,13 @@ export default function MockPage() {
   };
 
   const handleClear = () => {
-    if (!attemptId) return;
+    if (!attemptId || !questions[current]) return;
     const answerData: AttemptAnswer = {
       ...answers[current],
       selectedOption: null,
       status: 'NOT_ANSWERED',
       lastSavedAt: Date.now(),
-      questionId: questions[current]?.id || ''
+      questionId: questions[current].id
     };
     setAnswers(prev => ({ ...prev, [current]: answerData }));
     saveQuestionState(attemptId, current, answerData);
@@ -175,7 +179,7 @@ export default function MockPage() {
       trackProgress(user.uid, 'mocks', 1);
       router.push("/mocks/result");
     } catch (e: any) {
-      toast({ title: "Submission Failure", variant: "destructive" });
+      toast({ title: "Submission Failure", description: "Signal lost during transmission. Retrying...", variant: "destructive" });
       setSubmitting(false);
     }
   }, [submitting, user, questions, answers, mock, attemptId, profile?.name, router, toast]);
@@ -183,7 +187,7 @@ export default function MockPage() {
   if (loading) return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
       <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest animate-pulse">Initializing CBT Stream...</p>
+      <p className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest animate-pulse">Establishing CBT Stream...</p>
     </div>
   );
 
@@ -206,25 +210,25 @@ export default function MockPage() {
         <div className="max-w-4xl mx-auto space-y-10">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
             <div className="space-y-2">
-              <h1 className="text-3xl font-black tracking-tight uppercase leading-none">{mock.title}</h1>
-              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">{mock.exam} • Production Port</p>
+              <h1 className="text-3xl font-black tracking-tight uppercase leading-none">{mock?.title || 'Unknown Test'}</h1>
+              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">{mock?.exam} • Production Entry</p>
             </div>
-            <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black text-[10px] px-3 py-1 uppercase">{mock.accessType}</Badge>
+            <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black text-[10px] px-3 py-1 uppercase">{mock?.accessType}</Badge>
           </header>
 
           <div className="bg-zinc-900/40 border border-white/5 rounded-[40px] p-8 md:p-12 space-y-8 shadow-2xl">
              <div className="space-y-6">
                 <h3 className="text-xl font-bold flex items-center gap-3 text-zinc-200">
-                  <ShieldAlert className="text-primary w-6 h-6" /> Portal Instructions
+                  <ShieldAlert className="text-primary w-6 h-6" /> Required Protocols
                 </h3>
                 <div className="grid md:grid-cols-2 gap-12 text-sm text-zinc-400 leading-relaxed">
                    <div className="space-y-4">
-                      <p><span className="text-primary font-black">1.</span> Total Time: <strong>{mock.duration} minutes</strong>. Auto-submit enabled.</p>
-                      <p><span className="text-primary font-black">2.</span> Penalty: <strong>{mock.negativeMarking}</strong> per incorrect match.</p>
+                      <p><span className="text-primary font-black">1.</span> Timing: <strong>{mock?.duration} minutes</strong>. Auto-submit is active.</p>
+                      <p><span className="text-primary font-black">2.</span> Penalty: <strong>{mock?.negativeMarking}</strong> per incorrect matches.</p>
                    </div>
                    <div className="space-y-4">
-                      <p><span className="text-primary font-black">3.</span> Anti-Cheat: Tab switching is monitored and flagged.</p>
-                      <p><span className="text-primary font-black">4.</span> Persistence: Answers are synced in background.</p>
+                      <p><span className="text-primary font-black">3.</span> Anti-Cheat: Parallel sessions and tab switches are logged.</p>
+                      <p><span className="text-primary font-black">4.</span> Resume: Your state is synced to the cloud every second.</p>
                    </div>
                 </div>
              </div>
@@ -232,7 +236,7 @@ export default function MockPage() {
              <div className="pt-8 border-t border-white/5 flex items-start gap-4">
                 <Checkbox id="confirm" checked={hasConfirmed} onCheckedChange={(v) => setHasConfirmed(!!v)} className="mt-1 border-primary" />
                 <label htmlFor="confirm" className="text-xs font-medium text-zinc-500 leading-relaxed cursor-pointer">
-                  I confirm that I am using a stable connection and agree to the PSSSB/PPSC compliant examination protocols.
+                  I have read and understood the PSSSB/PPSC compliant examination instructions. I am ready to begin my performance audit.
                 </label>
              </div>
 
@@ -241,7 +245,7 @@ export default function MockPage() {
                disabled={!hasConfirmed} 
                className="w-full h-20 rounded-[28px] bg-primary text-xl font-black text-white shadow-xl hover:scale-[1.01] transition-all"
              >
-                AGREE & INITIALIZE SESSION
+                AGREE & INITIALIZE SIMULATION
              </Button>
           </div>
         </div>
@@ -257,13 +261,13 @@ export default function MockPage() {
              <FileText className="text-primary w-4 h-4" />
            </div>
            <div className="hidden sm:block">
-              <span className="font-black text-sm text-white uppercase tracking-tight truncate max-w-[300px] block">{mock.title}</span>
-              <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{mock.exam}</p>
+              <span className="font-black text-sm text-white uppercase tracking-tight truncate max-w-[300px] block">{mock?.title}</span>
+              <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{mock?.exam}</p>
            </div>
         </div>
 
         <div className="flex items-center gap-6">
-           <Timer duration={mock.duration} onFinish={submitTest} />
+           <Timer duration={mock?.duration || 60} onFinish={submitTest} expiresAt={mock?.expiresAt} />
            
            <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-xl">
              {['en', 'pa'].map((l: any) => (
@@ -290,7 +294,7 @@ export default function MockPage() {
            </div>
 
            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-6 rounded-xl font-black text-[10px] tracking-widest" onClick={submitTest}>
-             SUBMIT
+             {submitting ? <Loader2 className="animate-spin w-4 h-4" /> : "SUBMIT TEST"}
            </Button>
         </div>
       </header>
@@ -333,9 +337,6 @@ export default function MockPage() {
                 <div className="flex items-center gap-2 text-[9px] font-bold text-zinc-500 uppercase">
                    <div className="w-3 h-3 rounded bg-red-500" /> Unanswered
                 </div>
-                <div className="flex items-center gap-2 text-[9px] font-bold text-zinc-500 uppercase">
-                   <div className="w-3 h-3 rounded bg-purple-600" /> Marked
-                </div>
              </div>
           </div>
         </aside>
@@ -356,7 +357,7 @@ export default function MockPage() {
              className="h-11 px-6 rounded-xl font-bold text-[10px] text-red-500 uppercase tracking-widest hover:bg-red-500/10" 
              onClick={handleClear}
            >
-              CLEAR
+              CLEAR RESPONSE
            </Button>
         </div>
         
@@ -366,7 +367,7 @@ export default function MockPage() {
              className="h-11 px-6 rounded-xl border-purple-500/20 bg-purple-500/5 text-purple-500 font-bold text-[10px] tracking-widest uppercase hover:bg-purple-500/10" 
              onClick={() => handleSaveAndNext(true)}
            >
-              MARK REVIEW
+              MARK FOR REVIEW
            </Button>
            <Button 
              className="h-11 px-10 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] tracking-widest uppercase blue-glow" 

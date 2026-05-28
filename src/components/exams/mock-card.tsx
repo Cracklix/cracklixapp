@@ -5,13 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
-  Clock, 
-  FileText, 
-  Trophy, 
+  Target, 
   ChevronRight, 
-  Zap,
-  Target,
-  Languages,
   Users,
   AlertCircle,
   Lock
@@ -26,20 +21,20 @@ interface MockCardProps {
   mock: MockTest;
 }
 
+/**
+ * PRODUCTION MOCK CARD
+ * Corrected Access Logic: IF mock.accessType === "free" THEN unlock for everyone.
+ */
 export default function MockCard({ mock }: MockCardProps) {
   const { user, profile } = useAuth();
   const { isPremium } = usePremium(user?.uid);
   
-  // Admin universal bypass
+  // Admin universal bypass for QA
   const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin' || user?.email === 'arshdeepgrewal1122@gmail.com';
   
-  // CONSOLIDATED ACCESS LOGIC:
-  // 1. Always allow if admin.
-  // 2. Always allow if accessType is explicitly 'free'.
-  // 3. Otherwise, check if user is premium.
+  // LOGIC FIX: Check accessType FIRST. 
+  // If explicitly 'free', isLocked is ALWAYS false.
   const isLocked = !isAdmin && mock.accessType !== 'free' && !isPremium;
-  
-  const totalMarks = mock.totalQuestions * (mock.marksPerQuestion || 1);
   
   return (
     <motion.div
@@ -52,7 +47,7 @@ export default function MockCard({ mock }: MockCardProps) {
       <Card className={cn(
         "rounded-[32px] bg-zinc-900/40 border-white/5 overflow-hidden relative h-full flex flex-col transition-all duration-300",
         "hover:bg-zinc-900 hover:border-primary/30",
-        isLocked && "grayscale-[0.2]"
+        isLocked && "grayscale-[0.2] opacity-80"
       )}>
         {/* Header: Identity */}
         <div className="p-6 pb-4 border-b border-white/5 bg-white/[0.01]">
@@ -77,7 +72,7 @@ export default function MockCard({ mock }: MockCardProps) {
                 ) : mock.accessType === 'premium' ? (
                   <Badge className="bg-amber-500 text-black border-none font-black text-[8px] px-2 py-0.5 uppercase tracking-widest shadow-lg shadow-amber-500/20">PREMIUM</Badge>
                 ) : (
-                  <Badge variant="outline" className="border-emerald-500/20 text-emerald-500 font-black text-[8px] px-2 py-0.5 uppercase">FREE</Badge>
+                  <Badge variant="outline" className="border-emerald-500/20 text-emerald-500 font-black text-[8px] px-2 py-0.5 uppercase">FREE HUB</Badge>
                 )}
              </div>
           </div>
@@ -86,13 +81,13 @@ export default function MockCard({ mock }: MockCardProps) {
              <div className="flex items-center gap-1.5">
                 <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isLocked ? "bg-zinc-700" : "bg-emerald-500")} />
                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-                  {isLocked ? 'Locked' : 'Active Stream'}
+                  {isLocked ? 'Locked' : 'Available Now'}
                 </span>
              </div>
              <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">•</span>
              <div className="flex items-center gap-1.5">
                 <Users size={10} className="text-zinc-600" />
-                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Board Validated</span>
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Aspirant Favorite</span>
              </div>
           </div>
         </div>
@@ -103,7 +98,7 @@ export default function MockCard({ mock }: MockCardProps) {
              <div className="space-y-0.5">
                 <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Questions</p>
                 <div className="flex items-center gap-2">
-                   <span className="text-sm font-bold text-zinc-200">{mock.totalQuestions} Artifacts</span>
+                   <span className="text-sm font-bold text-zinc-200">{mock.totalQuestions || 0} Artifacts</span>
                 </div>
              </div>
              <div className="space-y-0.5">
@@ -117,7 +112,7 @@ export default function MockCard({ mock }: MockCardProps) {
           <div className="p-3 rounded-2xl bg-zinc-950/50 border border-white/5 flex items-center justify-between">
              <div className="flex items-center gap-2">
                 <AlertCircle size={12} className="text-red-500/70" />
-                <span className="text-[10px] font-bold text-zinc-500 uppercase">Negative: -{mock.negativeMarking}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Negative: -{mock.negativeMarking}</span>
              </div>
              <Badge variant="outline" className="border-white/5 text-[9px] font-black text-zinc-600 px-2 uppercase">{mock.difficulty || 'mixed'}</Badge>
           </div>
@@ -136,7 +131,7 @@ export default function MockCard({ mock }: MockCardProps) {
                    </>
                  ) : (
                    <>
-                     BEGIN SIMULATION
+                     START SIMULATION
                      <ChevronRight className="ml-1 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                    </>
                  )}
