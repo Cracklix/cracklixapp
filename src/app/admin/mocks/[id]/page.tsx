@@ -440,7 +440,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                 <DialogFooter className="p-10 border-t border-white/5 bg-white/[0.01]">
                    <Button variant="ghost" onClick={() => setEditorOpen(false)} className="rounded-xl h-14 px-10 font-bold text-zinc-500 text-[11px] uppercase tracking-widest">Discard</Button>
                    <Button onClick={handleSaveQuestion} disabled={saving} className="h-14 px-16 rounded-[24px] bg-primary hover:bg-primary/90 text-white font-black text-[11px] uppercase tracking-widest shadow-xl ml-4">
-                      {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 w-4 h-4" />}
+                      {saving ? <Loader2 size={14} className="animate-spin" /> : <Save className="mr-2 w-4 h-4" />}
                       Sync Artifact
                    </Button>
                 </DialogFooter>
@@ -451,4 +451,3 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     </AdminProtect>
   );
 }
-

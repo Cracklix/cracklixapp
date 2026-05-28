@@ -40,14 +40,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function SimulationFactoryPage() {
   const { toast } = useToast();
@@ -146,7 +138,7 @@ export default function SimulationFactoryPage() {
                       placeholder="Audit artifacts by identity or board..." 
                       className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl pl-14 font-bold text-sm"
                       value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      onChange={(e) => setSearch(search)}
                     />
                  </div>
                  <Button variant="ghost" size="sm" onClick={loadMocks} className="text-zinc-500 hover:text-white"><RefreshCw size={14} className="mr-2" /> Refresh Stream</Button>
@@ -263,4 +255,3 @@ export default function SimulationFactoryPage() {
     </AdminProtect>
   );
 }
-
