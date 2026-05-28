@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -78,7 +77,6 @@ export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const mockSnap = await getDoc(mockRef);
   const questionIds = mockSnap.data()?.questionIds || [];
   
-  // Fetch specific documents from central bank
   const questions: Question[] = [];
   for (const id of questionIds) {
     const qSnap = await getDoc(doc(db, "questions", id));
