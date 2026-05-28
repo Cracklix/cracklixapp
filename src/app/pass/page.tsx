@@ -19,7 +19,9 @@ import {
   Languages, 
   BrainCircuit,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  Trophy
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Script from 'next/script';
@@ -29,13 +31,16 @@ import { getPublicPaymentConfig } from '@/services/payment-settings';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
+/**
+ * PRODUCTION PASS PAGE v12 - TESTBOOK DECODED
+ * Features tiered pricing, high-density comparison, and trust signals.
+ */
 export default function PassPage() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
-  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     getActivePlans().then(data => {
@@ -45,10 +50,6 @@ export default function PassPage() {
       console.error(err);
       setLoadingPlans(false);
     });
-
-    const handleScroll = () => setScrolled(window.scrollY > 400);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const buyPass = async (plan: Plan) => {
@@ -145,7 +146,7 @@ export default function PassPage() {
           </h1>
           
           <p className="text-xl md:text-2xl text-zinc-500 max-w-3xl mx-auto leading-relaxed font-medium px-4">
-            Unlock 500+ Mocks, Bilingual Engine, and AI Performance Coaching. One PASS for all PPSC, PSSSB, and Punjab Police Exams.
+            Unlock 500+ Mocks, Previous Year Papers, and AI Performance Coaching. One PASS for all PPSC, PSSSB, and Punjab Police Exams.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
@@ -164,43 +165,7 @@ export default function PassPage() {
           </div>
         </div>
 
-        {/* FEATURE COMPARISON TABLE */}
-        <div className="space-y-12 px-4">
-           <div className="text-center">
-             <h2 className="text-4xl font-black tracking-tight uppercase">Access Matrix</h2>
-             <p className="text-zinc-500 mt-2 font-medium">Why elite aspirants choose PASS+</p>
-           </div>
-
-           <div className="max-w-4xl mx-auto bg-zinc-900/30 border border-white/5 rounded-[48px] overflow-hidden backdrop-blur-xl">
-              <table className="w-full text-left border-collapse">
-                 <thead>
-                    <tr className="bg-zinc-900/60 border-b border-white/5">
-                       <th className="p-8 text-xs font-black uppercase text-zinc-500 tracking-[0.2em]">Feature Payload</th>
-                       <th className="p-8 text-center text-xs font-black uppercase text-zinc-600 tracking-[0.2em]">Free Hub</th>
-                       <th className="p-8 text-center text-xs font-black uppercase text-primary tracking-[0.2em]">PASS+ Tier</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-white/5">
-                    {[
-                      { f: "Mock Inventory", free: "Limited (5)", pro: "Unlimited (500+)" },
-                      { f: "Bilingual Engine (RAAVI)", free: "Basic", pro: "Full Support" },
-                      { f: "AI Performance Coach", free: "❌", pro: "✅ Included" },
-                      { f: "Punjab State Ranking", free: "❌", pro: "✅ Realtime" },
-                      { f: "PYQ Archives (10Y)", free: "Recent Only", pro: "Complete Vault" },
-                      { f: "Selection Predictor", free: "❌", pro: "✅ Powered by AI" },
-                    ].map((row, i) => (
-                      <tr key={i} className="hover:bg-white/[0.01] transition-colors">
-                         <td className="p-6 px-10 text-sm font-bold text-zinc-300">{row.f}</td>
-                         <td className="p-6 text-center text-xs font-medium text-zinc-600">{row.free}</td>
-                         <td className="p-6 text-center text-sm font-black text-white">{row.pro}</td>
-                      </tr>
-                    ))}
-                 </tbody>
-              </table>
-           </div>
-        </div>
-
-        {/* PRICING MATRIX */}
+        {/* PRICING MATRIX - TESTBOOK CARDS */}
         <div id="pricing-matrix" className="space-y-12 px-4 scroll-mt-24">
            <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-white/5 pb-10">
               <h2 className="text-4xl md:text-5xl font-black tracking-tight uppercase leading-none">Subscription Plans</h2>
@@ -285,6 +250,42 @@ export default function PassPage() {
            )}
         </div>
 
+        {/* FEATURE COMPARISON TABLE */}
+        <div className="space-y-12 px-4">
+           <div className="text-center">
+             <h2 className="text-4xl font-black tracking-tight uppercase">Access Matrix</h2>
+             <p className="text-zinc-500 mt-2 font-medium">Why elite aspirants choose PASS+</p>
+           </div>
+
+           <div className="max-w-4xl mx-auto bg-zinc-900/30 border border-white/5 rounded-[48px] overflow-hidden backdrop-blur-xl">
+              <table className="w-full text-left border-collapse">
+                 <thead>
+                    <tr className="bg-zinc-900/60 border-b border-white/5">
+                       <th className="p-8 text-xs font-black uppercase text-zinc-500 tracking-[0.2em]">Feature Payload</th>
+                       <th className="p-8 text-center text-xs font-black uppercase text-zinc-600 tracking-[0.2em]">Free Hub</th>
+                       <th className="p-8 text-center text-xs font-black uppercase text-primary tracking-[0.2em]">PASS+ Tier</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-white/5">
+                    {[
+                      { f: "Mock Inventory", free: "Limited (5)", pro: "Unlimited (500+)" },
+                      { f: "Bilingual Engine (RAAVI)", free: "Basic", pro: "Full Support" },
+                      { f: "AI Performance Coach", free: "❌", pro: "✅ Included" },
+                      { f: "Punjab State Ranking", free: "❌", pro: "✅ Realtime" },
+                      { f: "PYQ Archives (10Y)", free: "Recent Only", pro: "Complete Vault" },
+                      { f: "Selection Predictor", free: "❌", pro: "✅ Powered by AI" },
+                    ].map((row, i) => (
+                      <tr key={i} className="hover:bg-white/[0.01] transition-colors">
+                         <td className="p-6 px-10 text-sm font-bold text-zinc-300">{row.f}</td>
+                         <td className="p-6 text-center text-xs font-medium text-zinc-600">{row.free}</td>
+                         <td className="p-6 text-center text-sm font-black text-white">{row.pro}</td>
+                      </tr>
+                    ))}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+
         {/* SECURITY & FOUNDER VISION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center border-t border-white/5 pt-24 px-4">
            <div className="space-y-10">
@@ -327,3 +328,4 @@ export default function PassPage() {
     </AppLayout>
   );
 }
+

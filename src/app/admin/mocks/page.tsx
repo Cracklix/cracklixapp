@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +7,8 @@ import AdminProtect from "@/components/admin/admin-protect";
 import { 
   Plus, Zap, Loader2, Search, BookOpen, 
   Trash2, Edit3, PlayCircle, Lock, Unlock, 
-  Database, BarChart3, RefreshCw, AlertCircle
+  Database, BarChart3, RefreshCw, AlertCircle,
+  MoreVertical, ShieldCheck, Crown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +40,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function SimulationFactoryPage() {
   const { toast } = useToast();
@@ -253,3 +263,4 @@ export default function SimulationFactoryPage() {
     </AdminProtect>
   );
 }
+

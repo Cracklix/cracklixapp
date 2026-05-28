@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, use, useMemo } from "react";
@@ -26,6 +27,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
+/**
+ * DEEP SIMULATION EDITOR v12.5
+ * Full artifact management: Add, Edit, Delete questions.
+ * Dynamic parameter calibration.
+ */
 export default function MockEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const mockId = unwrappedParams.id;
@@ -38,6 +44,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("questions");
   
+  // Question Editor State
   const [editingQuestion, setEditingQuestion] = useState<Partial<Question> | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [expandedQs, setExpandedQs] = useState<Set<string>>(new Set());
@@ -125,7 +132,8 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen text-white overflow-hidden">
-        <aside className="w-60 border-r border-white/5 flex flex-col bg-zinc-950 shrink-0">
+        {/* Sub-Sidebar for Editor */}
+        <aside className="w-64 border-r border-white/5 flex flex-col bg-zinc-950 shrink-0">
           <div className="p-6 border-b border-white/5 flex items-center gap-3">
              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-white/5" onClick={() => router.push('/admin/mocks')}>
                 <ArrowLeft size={16} />
@@ -158,6 +166,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
           </div>
         </aside>
 
+        {/* Main Editor Canvas */}
         <main className="flex-1 overflow-y-auto no-scrollbar bg-[#050816] flex flex-col">
           <header className="h-16 px-10 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl sticky top-0 z-30">
              <div className="flex items-center gap-4">
@@ -314,6 +323,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
           </div>
         </main>
 
+        {/* Modal Editor for Questions */}
         <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
           <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-5xl p-0 rounded-[48px] shadow-2xl overflow-hidden">
              <DialogHeader className="p-10 pb-0">
@@ -441,3 +451,4 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     </AdminProtect>
   );
 }
+
