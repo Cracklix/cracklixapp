@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -20,7 +21,8 @@ import {
   History,
   Newspaper,
   ShieldAlert,
-  User as UserIcon
+  User as UserIcon,
+  Crown
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -30,6 +32,7 @@ import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/language-switcher';
 import { checkIsAdmin } from '@/hooks/useAdmin';
 import SupportTrigger from '@/components/support/support-trigger';
+import { usePremium } from '@/hooks/usePremium';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, logout } = useAuth();
   const { t } = useI18n();
   const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { isPremium } = usePremium(user?.uid);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -91,7 +95,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isAdmin = checkIsAdmin(user, profile);
 
   return (
-    <div className="flex h-screen bg-black overflow-hidden font-body">
+    <div className="flex h-screen bg-black overflow-hidden font-body text-white">
       {/* Sidebar - Testbook Compact Style */}
       <motion.aside
         initial={false}
@@ -155,7 +159,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <header className="h-14 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl z-20">
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl z-20">
           <div className="flex items-center gap-6">
             <Button variant="ghost" size="icon" className="md:flex hidden h-8 w-8 rounded-lg" onClick={toggleSidebar}>
               <Menu className="w-4 h-4 text-zinc-400" />
@@ -167,7 +171,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-5">
+            {!isAdmin && !isPremium && (
+              <Link href="/pass" className="hidden sm:block">
+                <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-primary text-[10px] font-black uppercase tracking-widest blue-glow animate-pulse">
+                   <Crown className="w-3.5 h-3.5 mr-2 fill-current" />
+                   Get Pass+
+                </Button>
+              </Link>
+            )}
+            
             <LanguageSwitcher />
+            
             <div className="flex items-center gap-3 pl-5 border-l border-white/5">
               <div className="text-right hidden sm:block">
                 <p className="text-[11px] font-bold text-white leading-none">{profile?.name || 'Aspirant'}</p>
@@ -176,7 +190,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Avatar className="h-7 w-7 border border-white/10 cursor-pointer hover:border-primary/50 transition-colors">
+                  <Avatar className="h-8 w-8 border border-white/10 cursor-pointer hover:border-primary/50 transition-colors">
                     <AvatarImage src={`https://picsum.photos/seed/${profile?.uid || user?.uid}/100`} />
                     <AvatarFallback className="text-[10px]">{profile?.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
@@ -185,6 +199,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuItem onClick={() => router.push('/profile')} className="rounded-xl cursor-pointer py-2.5 text-xs">
                     <UserIcon className="mr-2 h-3.5 w-3.5 text-zinc-500" />
                     <span>My Identity</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/pass')} className="rounded-xl cursor-pointer py-2.5 text-xs text-primary">
+                    <Crown className="mr-2 h-3.5 w-3.5" />
+                    <span>My Pass+</span>
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem onClick={() => router.push('/admin')} className="rounded-xl cursor-pointer py-2.5 text-xs text-blue-500">
