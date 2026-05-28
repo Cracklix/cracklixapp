@@ -22,7 +22,8 @@ import {
   Bookmark,
   History,
   Newspaper,
-  ShieldAlert
+  ShieldAlert,
+  User as UserIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/language-switcher';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const SidebarItem = ({ href, icon: Icon, label, active, sidebarOpen }: { href: string, icon: any, label: string, active: boolean, sidebarOpen: boolean }) => (
   <Link href={href}>
@@ -81,7 +90,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.email === 'arshdeepgrewal1122@gmail.com';
 
   return (
     <div className="flex h-screen bg-black overflow-hidden font-body">
@@ -155,10 +164,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <p className="text-xs font-bold text-white">{profile?.name || 'Aspirant'}</p>
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{profile?.xp || 0} XP Pool</p>
               </div>
-              <Avatar className="w-10 h-10 border-2 border-white/5">
-                <AvatarImage src={`https://picsum.photos/seed/${profile?.uid}/100`} />
-                <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
-              </Avatar>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Avatar className="w-10 h-10 border-2 border-white/5 cursor-pointer hover:border-primary/50 transition-colors">
+                    <AvatarImage src={`https://picsum.photos/seed/${profile?.uid}/100`} />
+                    <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-zinc-950 border-white/10 text-white rounded-2xl shadow-2xl p-2" align="end">
+                  <DropdownMenuLabel className="px-4 py-3">
+                    <p className="text-sm font-bold truncate">{profile?.name}</p>
+                    <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  <DropdownMenuItem onClick={() => router.push('/profile')} className="rounded-xl cursor-pointer py-3 focus:bg-white/5">
+                    <UserIcon className="mr-2 h-4 w-4 text-zinc-500" />
+                    <span>My Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/profile')} className="rounded-xl cursor-pointer py-3 focus:bg-white/5">
+                    <Settings className="mr-2 h-4 w-4 text-zinc-500" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  <DropdownMenuItem onClick={logout} className="rounded-xl cursor-pointer py-3 text-red-500 focus:bg-red-500/10 focus:text-red-500">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span className="font-bold">Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
