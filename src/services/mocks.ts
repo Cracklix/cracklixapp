@@ -197,6 +197,33 @@ export async function updateAttemptActivity(attemptId: string, updates: any) {
     .catch(() => {});
 }
 
+/**
+ * Finalizes the attempt by calculating scores and updating user stats.
+ */
+export async function finalizeAttempt(userId: string, attemptId: string, analytics: any, xpGain: number) {
+  const attemptRef = doc(db, 'attempts', attemptId);
+  const userRef = doc(db, 'users', userId);
+
+  const batch = writeBatch(db);
+
+  // 1. Mark attempt as completed with results
+  batch.update(attemptRef, {
+    status: 'completed',
+    completedAt: Date.now(),
+    score: analytics.score,
+    accuracy: analytics.accuracy,
+    analytics: analytics
+  });
+
+  // 2. Award XP and engagement rewards
+  batch.update(userRef, {
+    xp: increment(xpGain),
+    coins: increment(10) // Completion bonus
+  });
+
+  await batch.commit();
+}
+
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const mockRef = doc(db, 'mocks', mockId);
   const mockSnap = await getDoc(mockRef);

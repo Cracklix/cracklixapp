@@ -130,6 +130,7 @@ export interface ExamAttempt {
   mockTitle: string;
   status: 'ongoing' | 'completed';
   startedAt: number;
+  completedAt?: number;
   expiresAt: number;
   lastActiveAt: number;
   currentQuestionIndex: number;
@@ -138,6 +139,7 @@ export interface ExamAttempt {
   cheatFlags: number;
   deviceInfo: string;
   language?: string;
+  analytics?: any;
 }
 
 export interface AttemptAnswer {
