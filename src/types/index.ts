@@ -28,21 +28,31 @@ export interface UserProfile {
 
 export type QuestionStatus = 'NOT_VISITED' | 'NOT_ANSWERED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
 
+export interface QuestionContent {
+  question: string;
+  options: string[];
+  explanation?: string;
+}
+
 export interface Question {
   id: string;
-  mockId?: string;
-  question_en: string;
-  question_pa?: string;
-  options_en: string[];
-  options_pa?: string[];
-  correctAnswer: string;
+  en: QuestionContent;
+  pa?: QuestionContent;
+  correctAnswer: string; // The exact text match or index reference
   subject: Subject;
+  chapter?: string;
+  topic?: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  explanation_en?: string;
-  explanation_pa?: string;
+  exam?: string;
+  year?: number;
+  tags?: string[];
   status: 'draft' | 'published';
-  order: number;
+  usageCount: number;
+  qualityScore?: number;
+  correctPercentage?: number;
+  avgTimeSeconds?: number;
   createdAt: number;
+  updatedAt: number;
 }
 
 export type MockStatus = 'draft' | 'published' | 'live' | 'archived';
