@@ -45,13 +45,15 @@ export interface Question {
   createdAt: number;
 }
 
-export type MockStatus = 'draft' | 'published' | 'live';
-export type MockAccessType = 'free' | 'pass_plus';
+export type MockStatus = 'draft' | 'published' | 'live' | 'archived';
+export type MockAccessType = 'free' | 'pass_plus' | 'premium';
+export type MockCategory = 'full' | 'sectional' | 'chapter' | 'quiz' | 'live_test' | 'pyq';
 
 export interface MockTest {
   id: string;
   title: string;
   exam: string;
+  category: MockCategory;
   duration: number;
   totalQuestions: number;
   negativeMarking: number;
@@ -60,6 +62,8 @@ export interface MockTest {
   createdAt: number;
   updatedAt: number;
   publishedAt?: number;
+  attemptCount?: number;
+  avgScore?: number;
 }
 
 export interface ExamAttempt {

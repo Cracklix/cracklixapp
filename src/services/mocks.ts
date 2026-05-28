@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -85,22 +84,27 @@ export async function deleteMock(mockId: string) {
   });
 }
 
+/**
+ * DEEP CLONE: Institutional Copying Protocol
+ * Duplicates both metadata and the entire subcollection of artifacts.
+ */
 export async function duplicateMock(mockId: string) {
   const sourceMock = await getMockDetails(mockId);
-  if (!sourceMock) throw new Error("Source mock not found.");
+  if (!sourceMock) throw new Error("Source simulation artifact missing.");
 
   const { id: _, ...rest } = sourceMock;
   const newMock = {
     ...rest,
-    title: `${rest.title} (Copy)`,
+    title: `${rest.title} (Clone)`,
     status: 'draft' as const,
+    attemptCount: 0,
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
 
   const newMockRef = await addDoc(collection(db, 'mocks'), newMock);
   
-  // Copy questions
+  // Copy questions payload
   const questions = await getMockQuestions(mockId);
   const batch = writeBatch(db);
   questions.forEach((q, idx) => {
@@ -200,7 +204,7 @@ export async function updateMockQuestion(mockId: string, questionId: string, upd
   return updateDoc(qRef, { ...updates, updatedAt: Date.now() });
 }
 
-// 3. ANALYTICS
+// 3. ANALYTICS AGGREGATOR
 export async function getMockAnalytics(mockId: string) {
   const q = query(collection(db, 'attempts'), where('mockId', '==', mockId));
   const snap = await getDocs(q);
@@ -219,57 +223,7 @@ export async function getMockAnalytics(mockId: string) {
   };
 }
 
-// 4. CBT ENGINE PROTOCOLS
-export async function startAttempt(userId: string, mock: MockTest): Promise<string> {
-  const attemptId = `${userId}_${mock.id}`;
-  const attemptRef = doc(db, 'attempts', attemptId);
-  const existing = await getDoc(attemptRef);
-  
-  if (existing.exists() && existing.data().status === 'ongoing') {
-    return attemptId;
-  }
-
-  const payload: Partial<ExamAttempt> = {
-    userId,
-    mockId: mock.id,
-    mockTitle: mock.title,
-    status: 'ongoing',
-    startedAt: Date.now(),
-    expiresAt: Date.now() + (mock.duration * 60 * 1000),
-    currentQuestionIndex: 0,
-    deviceInfo: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'
-  };
-
-  await setDoc(attemptRef, payload, { merge: true });
-  return attemptId;
-}
-
-export async function saveAnswer(attemptId: string, qIndex: number, answer: AttemptAnswer) {
-  const ref = doc(db, 'attempts', attemptId, 'answers', qIndex.toString());
-  setDoc(ref, { ...answer, lastSavedAt: Date.now() }, { merge: true })
-    .catch(async (e) => {
-      const pErr = new FirestorePermissionError({ path: ref.path, operation: 'write', requestResourceData: answer });
-      errorEmitter.emit('permission-error', pErr);
-    });
-}
-
-export async function finalizeAttempt(userId: string, attemptId: string, analytics: any) {
-  const batch = writeBatch(db);
-  batch.update(doc(db, 'attempts', attemptId), {
-    status: 'completed',
-    completedAt: Date.now(),
-    analytics: analytics,
-    score: analytics.score,
-    accuracy: analytics.accuracy
-  });
-  batch.update(doc(db, 'users', userId), {
-    xp: increment(50),
-    coins: increment(10)
-  });
-  return batch.commit();
-}
-
-// 5. ACCESS CONTROL
+// 4. ACCESS CONTROL
 export async function checkMockAccess(userId: string, mock: MockTest): Promise<{ allowed: boolean; reason?: string }> {
   if (mock.accessType === 'free') return { allowed: true };
   
