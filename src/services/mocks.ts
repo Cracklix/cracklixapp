@@ -118,7 +118,7 @@ export async function publishMock(mockId: string) {
 }
 
 export async function setMockLive(mockId: string, isLive: boolean) {
-  const ref = doc(db, 'mocks', id);
+  const ref = doc(db, 'mocks', mockId);
   return updateDoc(ref, { 
     status: isLive ? 'live' : 'published',
     liveAt: isLive ? Date.now() : null
