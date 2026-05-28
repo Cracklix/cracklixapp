@@ -1,4 +1,3 @@
-
 'use client';
 
 import { cn } from "@/lib/utils";
@@ -135,7 +134,9 @@ export default function PaletteDrawer({
                   )}
                  >
                     <span className="text-xs font-black text-slate-400 w-6">#{i+1}</span>
-                    <p className="text-xs font-bold text-slate-700 line-clamp-1 flex-1">{q.en.question}</p>
+                    <p className="text-xs font-bold text-slate-700 line-clamp-1 flex-1">
+                      {q.en?.question || q.pa?.question || "Question Payload Missing"}
+                    </p>
                     {answers[q.id]?.status === 'ANSWERED' && <CheckCircle size={14} className="text-emerald-500" />}
                  </button>
                ))}

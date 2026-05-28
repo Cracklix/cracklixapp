@@ -19,8 +19,8 @@ interface QuestionCardProps {
 }
 
 /**
- * PRODUCTION BILINGUAL RENDERER v30.2
- * Hardened with defensive property access to prevent runtime crashes.
+ * PRODUCTION BILINGUAL RENDERER v30.3
+ * Re-hardened with deep defensive property access for stable institutional hosting.
  */
 export default function QuestionCard({
   question,
@@ -72,16 +72,24 @@ export default function QuestionCard({
                {question.pa.question}
             </div>
          )}
+
+         {!question.en?.question && !question.pa?.question && (
+            <div className="p-8 rounded-3xl bg-red-50 border border-red-100 text-red-600 font-bold">
+               SIGNAL CORRUPTION: This question artifact contains no valid text payload.
+            </div>
+         )}
       </div>
 
       {/* OPTION MATRIX (STACKED BILINGUAL) */}
       <div className="grid grid-cols-1 gap-5 pt-12 border-t border-slate-100">
-         {(question.en?.options || question.pa?.options || []).map((_, idx) => {
+         {[0, 1, 2, 3].map((idx) => {
            const letter = String.fromCharCode(65 + idx);
            const isOptionSelected = selected === letter;
            
            const enOption = question.en?.options?.[idx];
            const paOption = question.pa?.options?.[idx];
+
+           if (!enOption && !paOption) return null;
 
            return (
              <button
@@ -123,21 +131,21 @@ export default function QuestionCard({
 
       <div className="flex items-center justify-between pt-12 opacity-60 group-hover:opacity-100 transition-opacity">
          <div className="flex items-center gap-10">
-            <Button variant="ghost" className="h-10 gap-2 text-slate-400 hover:text-blue-600 rounded-xl" onClick={toggleBookmark}>
+            <button className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors" onClick={toggleBookmark}>
                <Bookmark size={20} className={cn(isBookmarked ? "fill-current text-blue-600" : "")} />
                <span className="text-[10px] font-black uppercase tracking-widest">Bookmark Artifact</span>
-            </Button>
-            <Button variant="ghost" className="h-10 gap-2 text-slate-400 hover:text-red-500 rounded-xl">
+            </button>
+            <button className="flex items-center gap-2 text-slate-400 hover:text-red-500 transition-colors">
                <AlertTriangle size={20} />
                <span className="text-[10px] font-black uppercase tracking-widest">Report Error</span>
-            </Button>
+            </button>
          </div>
          <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
                <Zap className="text-yellow-500 fill-current" size={16} />
                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AI Analysis Ready</span>
             </div>
-            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-300">CORE ENGINE v30.0</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-300">CORE ENGINE v30.3</span>
          </div>
       </div>
     </div>
