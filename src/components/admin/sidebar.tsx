@@ -8,19 +8,14 @@ import {
   LayoutDashboard, 
   Users, 
   Zap,
-  Newspaper,
   History,
   Trophy,
   ShieldCheck,
-  MessageSquare,
   Database,
-  Cpu,
   CreditCard,
   Settings,
   Rocket,
   FilePlus2,
-  ListFilter,
-  Terminal,
   LifeBuoy,
   Activity
 } from "lucide-react";
@@ -64,21 +59,21 @@ export default function AdminSidebar() {
   ];
 
   return (
-    <div className="w-72 bg-zinc-950 border-r border-white/5 min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto no-scrollbar pb-10">
-      <div className="p-8 pb-4 flex items-center gap-2 mb-4 group">
-        <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center blue-glow">
-          <ShieldCheck className="text-white w-6 h-6" />
+    <div className="w-64 bg-zinc-950 border-r border-white/5 min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto no-scrollbar pb-6">
+      <div className="p-6 pb-4 flex items-center gap-2 mb-2 group">
+        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center blue-glow shrink-0">
+          <ShieldCheck className="text-white w-5 h-5" />
         </div>
         <div className="flex flex-col">
-          <span className="font-headline text-lg font-bold text-white leading-none">CRACKLIX</span>
-          <span className="text-[9px] text-primary font-black uppercase mt-1 tracking-widest">Admin Control</span>
+          <span className="font-headline text-base font-bold text-white leading-none tracking-tight">CRACKLIX</span>
+          <span className="text-[8px] text-primary font-black uppercase mt-1 tracking-[0.2em]">Command Console</span>
         </div>
       </div>
 
-      <div className="px-4 space-y-8">
+      <div className="px-3 space-y-6">
         {groups.map((group) => (
-          <div key={group.label} className="space-y-2">
-            <h4 className="px-4 text-[10px] font-black uppercase text-zinc-600 tracking-[0.2em]">{group.label}</h4>
+          <div key={group.label} className="space-y-1">
+            <h4 className="px-4 text-[11px] font-black uppercase text-zinc-600 tracking-[0.25em] mb-2">{group.label}</h4>
             <nav className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
@@ -87,12 +82,12 @@ export default function AdminSidebar() {
                 return (
                   <Link key={item.href} href={item.href}>
                     <div className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group mx-2",
+                      "flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 group mx-1",
                       isActive 
-                        ? "bg-primary text-white shadow-lg" 
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
                         : "text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300"
                     )}>
-                      <Icon className={cn("w-4 h-4", isActive ? "text-white" : "group-hover:text-primary")} />
+                      <Icon className={cn("w-4.5 h-4.5", isActive ? "text-white" : "group-hover:text-primary")} size={18} />
                       <span className="font-bold tracking-tight text-xs">{item.name}</span>
                     </div>
                   </Link>
@@ -103,11 +98,11 @@ export default function AdminSidebar() {
         ))}
       </div>
 
-      <div className="mt-auto px-8 pt-8 space-y-4">
+      <div className="mt-auto px-6 pt-4">
         <Link href="/dashboard">
-          <div className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-            <Rocket className="w-4 h-4" />
-            <span>Exit Admin</span>
+          <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest">
+            <Rocket className="w-3.5 h-3.5" />
+            <span>Exit Arena</span>
           </div>
         </Link>
       </div>

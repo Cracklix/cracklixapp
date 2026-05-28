@@ -17,7 +17,6 @@ import {
   Menu,
   MessageSquare,
   ShoppingBag,
-  Briefcase,
   Keyboard,
   Bookmark,
   History,
@@ -48,9 +47,9 @@ const SidebarItem = ({ href, icon: Icon, label, active, sidebarOpen }: { href: s
       whileHover={{ backgroundColor: "rgba(255,255,255,0.03)" }}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200",
+        "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200",
         active 
-          ? "bg-primary text-white shadow-xl shadow-primary/20" 
+          ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
           : "text-zinc-500 hover:text-white"
       )}
     >
@@ -74,7 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [user, loading, router]);
 
   const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/community', icon: MessageSquare, label: 'Community' },
     { href: '/exams', icon: BookOpen, label: 'Mock Tests' },
     { href: '/pyqs', icon: History, label: 'PYQ Archive' },
@@ -99,18 +98,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: sidebarOpen ? 280 : 84 }}
-        className="hidden md:flex bg-zinc-950 border-r border-white/5 flex-col transition-all duration-300"
+        animate={{ width: sidebarOpen ? 256 : 84 }}
+        className="hidden md:flex bg-zinc-950 border-r border-white/5 flex-col transition-all duration-300 z-50"
       >
-        <div className="p-6 overflow-y-auto no-scrollbar flex-1">
-          <Link href="/dashboard" className="flex items-center gap-3 mb-10 overflow-hidden group">
-            <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center shrink-0 blue-glow">
+        <div className="p-5 overflow-y-auto no-scrollbar flex-1">
+          <Link href="/dashboard" className="flex items-center gap-3 mb-8 overflow-hidden group">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 blue-glow">
               <Zap className="text-white w-5 h-5 fill-current" />
             </div>
             {sidebarOpen && (
               <div className="flex flex-col">
-                <span className="font-headline text-2xl font-black tracking-tighter">CRACKLIX</span>
-                <span className="text-[7px] text-zinc-600 font-black uppercase tracking-[0.4em] leading-none mt-1 group-hover:text-primary transition-colors">Arsh Grewal</span>
+                <span className="font-headline text-xl font-black tracking-tighter uppercase leading-none">CRACKLIX</span>
+                <span className="text-[7px] text-zinc-600 font-black uppercase tracking-[0.3em] leading-none mt-1 group-hover:text-primary transition-colors">By Arsh Grewal</span>
               </div>
             )}
           </Link>
@@ -122,11 +121,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                    whileHover={{ scale: 1.02 }}
                    whileTap={{ scale: 0.98 }}
                    className={cn(
-                   "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-6 shadow-[0_0_15px_-5px_rgba(16,185,129,0.3)]",
+                   "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-6 shadow-lg shadow-emerald-500/5",
                    !sidebarOpen && "justify-center"
                  )}>
                    <ShieldAlert className="w-5 h-5" />
-                   {sidebarOpen && <span className="font-bold text-sm">Admin Command</span>}
+                   {sidebarOpen && <span className="font-bold text-xs uppercase tracking-widest">Admin Control</span>}
                  </motion.div>
                </Link>
             )}
@@ -142,32 +141,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
 
-        <div className="mt-auto p-6 space-y-4">
-          <SidebarItem href="/profile" icon={Settings} label="Settings" active={pathname === '/profile'} sidebarOpen={sidebarOpen} />
+        <div className="mt-auto p-5 space-y-1">
+          <SidebarItem href="/profile" icon={Settings} label="Identity" active={pathname === '/profile'} sidebarOpen={sidebarOpen} />
           <button 
             onClick={logout}
-            className="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-zinc-600 hover:text-destructive w-full transition-all duration-200"
+            className={cn(
+              "flex items-center gap-3 px-4 py-2.5 rounded-xl text-zinc-600 hover:text-destructive w-full transition-all duration-200",
+              !sidebarOpen && "justify-center"
+            )}
           >
             <LogOut className="w-5 h-5" />
             {sidebarOpen && <span className="font-bold text-sm">Sign Out</span>}
           </button>
-          {sidebarOpen && (
-            <div className="px-4 py-2 border-t border-white/5 mt-4">
-               <p className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-800 text-center">Engineered by Arsh Grewal</p>
-            </div>
-          )}
         </div>
       </motion.aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl z-20">
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl z-20">
           <div className="flex items-center gap-6">
-            <Button variant="ghost" size="icon" className="md:flex hidden rounded-xl" onClick={toggleSidebar}>
-              <Menu className="w-5 h-5 text-zinc-400" />
+            <Button variant="ghost" size="icon" className="md:flex hidden h-9 w-9 rounded-lg" onClick={toggleSidebar}>
+              <Menu className="w-4 h-4 text-zinc-400" />
             </Button>
-            <div className="flex md:hidden items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0"><Zap className="text-white w-4 h-4 fill-current" /></div>
+            <div className="flex md:hidden items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0"><Zap className="text-white w-3.5 h-3.5 fill-current" /></div>
               <span className="font-headline text-lg font-black tracking-tighter">CRACKLIX</span>
             </div>
           </div>
@@ -177,12 +174,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-4 pl-6 border-l border-white/5">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-bold text-white">{profile?.name || 'Aspirant'}</p>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{profile?.xp || 0} XP Pool</p>
+                <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">{profile?.xp || 0} XP Pool</p>
               </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Avatar className="w-10 h-10 border-2 border-white/5 cursor-pointer hover:border-primary/50 transition-colors">
+                  <Avatar className="h-8 w-8 border border-white/10 cursor-pointer hover:border-primary/50 transition-colors">
                     <AvatarImage src={`https://picsum.photos/seed/${profile?.uid || user?.uid}/100`} />
                     <AvatarFallback>{profile?.name?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
                   </Avatar>
@@ -195,7 +192,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   {isAdmin && (
                     <>
                       <DropdownMenuSeparator className="bg-white/5" />
-                      <DropdownMenuItem onClick={() => router.push('/admin')} className="rounded-xl cursor-pointer py-3 text-emerald-500 focus:bg-emerald-500/10 focus:text-emerald-500">
+                      <DropdownMenuItem onClick={() => router.push('/admin')} className="rounded-xl cursor-pointer py-3 text-blue-500 focus:bg-blue-500/10 focus:text-blue-500">
                         <ShieldAlert className="mr-2 h-4 w-4" />
                         <span className="font-bold">Admin Panel</span>
                       </DropdownMenuItem>
@@ -204,7 +201,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuSeparator className="bg-white/5" />
                   <DropdownMenuItem onClick={() => router.push('/profile')} className="rounded-xl cursor-pointer py-3 focus:bg-white/5">
                     <UserIcon className="mr-2 h-4 w-4 text-zinc-500" />
-                    <span>My Profile</span>
+                    <span>My Identity</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/5" />
                   <DropdownMenuItem onClick={logout} className="rounded-xl cursor-pointer py-3 text-red-500 focus:bg-red-500/10 focus:text-red-500">
@@ -217,8 +214,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
-          <div className="max-w-[1400px] mx-auto">
+        <main className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth no-scrollbar">
+          <div className="max-w-[1500px] mx-auto">
             {children}
           </div>
           <div className="h-24 md:hidden" />

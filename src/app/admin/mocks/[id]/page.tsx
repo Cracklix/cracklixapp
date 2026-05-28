@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, use } from "react";
@@ -6,9 +7,7 @@ import AdminProtect from "@/components/admin/admin-protect";
 import { 
   ArrowLeft, Settings, Database, ShieldCheck, Zap, 
   BarChart3, Loader2, Save, Plus, Search, Trash2, 
-  CheckCircle2, FileText, Clock, LayoutGrid, Languages, 
-  Sparkles, Eye, List, MoreVertical, GripVertical, Copy, 
-  Lock, Unlock, ChevronRight
+  Eye, MoreVertical, Copy, Lock, Unlock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,8 +29,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 
 /**
- * INSTITUTIONAL MOCK COMMAND CENTER
- * 3-Panel Professional EdTech Layout
+ * HIGH-DENSITY MOCK COMMAND CENTER
+ * Optimized for Testbook-grade artifact management.
  */
 export default function MockEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -49,7 +48,6 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   const [bankSearch, setBankSearch] = useState("");
   const [activeTab, setActiveTab] = useState("questions");
   
-  // Question Editor State
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
 
@@ -61,7 +59,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
         const data = await getMockDetails(mockId);
         setMock(data);
       } catch (e) {
-        toast({ title: "Registry Signals Lost", variant: "destructive" });
+        toast({ title: "Fetch Protocol Failed", variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -89,7 +87,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
     setSaving(true);
     try {
       await updateMock(mockId, mock);
-      toast({ title: "Mock Synchronized" });
+      toast({ title: "Metadata Propagated" });
     } finally {
       setSaving(false);
     }
@@ -119,147 +117,132 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
         await addQuestionToMock(mockId, editingQuestion);
       }
       setEditorOpen(false);
-      toast({ title: "Question Artifact Saved" });
+      toast({ title: "Artifact Calibrated" });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) return <div className="h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
-  if (!mock) return <div className="h-screen bg-black flex items-center justify-center text-zinc-500 font-bold">Mock Not Found</div>;
+  if (!mock) return <div className="h-screen bg-black flex items-center justify-center text-zinc-500 font-bold">Artifact Missing</div>;
 
   return (
     <AdminProtect>
       <div className="flex bg-black min-h-screen text-white overflow-hidden">
-        {/* Panel 1: Tactical Sidebar (Left) */}
-        <aside className="w-60 border-r border-white/5 flex flex-col bg-zinc-950 shrink-0">
-          <div className="p-6 border-b border-white/5 flex items-center gap-3">
-             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => router.push('/admin/mocks')}>
-                <ArrowLeft size={16} />
+        {/* Panel 1: Slim Tactical Navigation */}
+        <aside className="w-56 border-r border-white/5 flex flex-col bg-zinc-950 shrink-0">
+          <div className="p-4 border-b border-white/5 flex items-center gap-2">
+             <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => router.push('/admin/mocks')}>
+                <ArrowLeft size={14} />
              </Button>
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Command</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Sim Control</span>
           </div>
-          <div className="p-4 space-y-2 flex-1">
+          <div className="p-2.5 space-y-1 flex-1">
              {[
-               { id: 'questions', label: 'Artifacts', icon: Database },
+               { id: 'questions', label: 'Payload', icon: Database },
                { id: 'metadata', label: 'Calibration', icon: Settings },
-               { id: 'analytics', label: 'Performance', icon: BarChart3 },
-               { id: 'settings', label: 'Gating', icon: ShieldCheck },
+               { id: 'analytics', label: 'Metrics', icon: BarChart3 },
+               { id: 'settings', label: 'Security', icon: ShieldCheck },
              ].map(tab => (
                <button
                  key={tab.id}
                  onClick={() => setActiveTab(tab.id)}
                  className={cn(
-                   "w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold text-xs",
-                   activeTab === tab.id ? "bg-primary text-white blue-glow" : "text-zinc-500 hover:bg-white/5"
+                   "w-full flex items-center gap-3 p-2.5 rounded-xl transition-all font-bold text-[11px] uppercase tracking-tight",
+                   activeTab === tab.id ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-zinc-500 hover:bg-white/5"
                  )}
                >
-                 <tab.icon size={16} />
+                 <tab.icon size={15} />
                  {tab.label}
                </button>
              ))}
           </div>
           <div className="p-4 border-t border-white/5">
-             <Button onClick={handleUpdateMetadata} disabled={saving} className="w-full h-11 bg-zinc-900 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black">
-                {saving ? <Loader2 size={12} className="animate-spin" /> : "Commit All"}
+             <Button onClick={handleUpdateMetadata} disabled={saving} className="w-full h-10 bg-zinc-900 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                {saving ? <Loader2 size={12} className="animate-spin" /> : "Commit Sync"}
              </Button>
           </div>
         </aside>
 
-        {/* Panel 2: Center Workspace */}
+        {/* Panel 2: Major Artifact Workspace */}
         <main className="flex-1 overflow-y-auto no-scrollbar bg-[#050816] flex flex-col">
-          <header className="h-16 px-10 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl">
-             <div className="flex items-center gap-4">
-                <h1 className="text-sm font-black uppercase tracking-widest truncate max-w-md">{mock.title}</h1>
-                <Badge variant="outline" className="border-primary/20 text-primary text-[8px] px-2">{mock.status}</Badge>
+          <header className="h-14 px-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/40 backdrop-blur-xl">
+             <div className="flex items-center gap-3">
+                <h1 className="text-xs font-black uppercase tracking-widest truncate max-w-xs">{mock.title}</h1>
+                <Badge className="bg-primary/20 text-primary text-[8px] px-2">{mock.status}</Badge>
              </div>
-             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                   <Eye size={14} className="mr-2" /> Live Preview
+             <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                   <Eye size={12} className="mr-1.5" /> Preview
                 </Button>
-                <div className="h-4 w-px bg-white/10 mx-2" />
-                <Button onClick={() => handleEditQuestion({} as any)} className="bg-primary h-9 px-6 rounded-lg font-black text-[10px] uppercase tracking-widest blue-glow">
-                   <Plus size={14} className="mr-2" /> Inject Question
+                <div className="h-3 w-px bg-white/10 mx-1" />
+                <Button onClick={() => handleEditQuestion({} as any)} className="bg-primary h-8 px-4 rounded-lg font-black text-[9px] uppercase tracking-widest blue-glow">
+                   <Plus size={12} className="mr-1.5" /> Inject Artifact
                 </Button>
              </div>
           </header>
 
-          <div className="p-10 flex-1">
-             <div className="max-w-4xl mx-auto space-y-8">
+          <div className="p-8 flex-1">
+             <div className="max-w-5xl mx-auto space-y-6">
                 {activeTab === 'questions' && (
-                  <div className="space-y-6">
+                  <div className="grid gap-4">
                     {questions.length > 0 ? questions.map((q, idx) => (
-                      <Card key={q.id} className="rounded-[32px] bg-zinc-900/40 border-white/5 overflow-hidden group hover:border-primary/20 transition-all">
-                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
-                           <div className="flex items-center gap-4">
-                              <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center font-black text-xs text-zinc-500">
-                                 {idx + 1}
-                              </div>
-                              <Badge variant="outline" className="border-none text-[8px] font-black uppercase text-zinc-500 bg-zinc-800/50 px-3">{q.subject}</Badge>
-                              <Badge variant="outline" className={cn("border-none text-[8px] font-black uppercase px-3", q.difficulty === 'hard' ? "bg-red-500/10 text-red-500" : "bg-emerald-500/10 text-emerald-500")}>
+                      <Card key={q.id} className="rounded-2xl bg-zinc-900/40 border-white/5 overflow-hidden hover:border-blue-500/20 transition-all">
+                        <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                           <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-black text-zinc-600">{idx + 1}</span>
+                              <Badge variant="outline" className="border-none text-[8px] font-black uppercase text-zinc-500 bg-zinc-800/50 px-2">{q.subject}</Badge>
+                              <Badge variant="outline" className={cn("border-none text-[8px] font-black uppercase px-2", q.difficulty === 'hard' ? "bg-red-500/10 text-red-500" : "bg-emerald-500/10 text-emerald-500")}>
                                  {q.difficulty}
                               </Badge>
                            </div>
-                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-zinc-500 hover:text-white" onClick={() => handleEditQuestion(q)}>
-                                 <Settings size={14} />
+                           <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-zinc-600 hover:text-white" onClick={() => handleEditQuestion(q)}>
+                                 <Settings size={12} />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-zinc-500 hover:text-red-500" onClick={() => deleteMockQuestion(mockId, q.id)}>
-                                 <Trash2 size={14} />
+                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-zinc-600 hover:text-red-500" onClick={() => deleteMockQuestion(mockId, q.id)}>
+                                 <Trash2 size={12} />
                               </Button>
                            </div>
                         </div>
-                        <div className="p-8 grid md:grid-cols-2 gap-12">
-                           <div className="space-y-4">
-                              <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest">English Payload</p>
-                              <p className="font-bold text-lg leading-relaxed text-zinc-100">{q.question_en}</p>
-                              <div className="space-y-2">
-                                 {q.options_en.map((opt, i) => (
-                                   <div key={i} className={cn("p-3 rounded-xl border text-xs font-medium", opt === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-black/20 border-white/5 text-zinc-500")}>
-                                      {opt}
-                                   </div>
-                                 ))}
-                              </div>
+                        <div className="p-6 grid md:grid-cols-2 gap-8">
+                           <div className="space-y-3">
+                              <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Primary Context</p>
+                              <p className="font-bold text-sm leading-relaxed text-zinc-100 line-clamp-3">{q.question_en}</p>
                            </div>
-                           <div className="space-y-4 border-l border-white/5 pl-12">
-                              <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Punjabi Signal (Raavi)</p>
-                              <p className="font-medium text-lg leading-relaxed text-zinc-300">{q.question_pa || "No translation artifact"}</p>
-                              <div className="space-y-2">
-                                 {q.options_pa?.map((opt, i) => (
-                                   <div key={i} className="p-3 rounded-xl bg-black/20 border border-white/5 text-xs text-zinc-500">{opt}</div>
-                                 ))}
-                              </div>
+                           <div className="space-y-3 border-l border-white/5 pl-8">
+                              <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Secondary (Raavi)</p>
+                              <p className="font-medium text-sm leading-relaxed text-zinc-400 line-clamp-3 italic">{q.question_pa || "No artifact"}</p>
                            </div>
                         </div>
                       </Card>
                     )) : (
-                      <div className="py-40 text-center border-2 border-dashed border-white/5 rounded-[48px] bg-zinc-950/20">
-                         <Database className="w-16 h-16 text-zinc-800 mx-auto mb-6 opacity-30" />
-                         <h3 className="text-xl font-black uppercase text-zinc-600 tracking-tighter">Payload Empty</h3>
-                         <p className="text-zinc-700 mt-2 text-sm italic">Link artifacts from the Atomic Bank to build the syllabus.</p>
+                      <div className="py-32 text-center border-2 border-dashed border-white/5 rounded-[32px] bg-zinc-950/20">
+                         <Database className="w-12 h-12 text-zinc-800 mx-auto mb-4 opacity-20" />
+                         <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">Payload Empty</p>
                       </div>
                     )}
                   </div>
                 )}
 
                 {activeTab === 'metadata' && (
-                  <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-12 space-y-12">
-                    <div className="grid md:grid-cols-2 gap-10">
-                       <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Simulation Identity</label>
-                          <Input value={mock.title} onChange={e => setMock({...mock, title: e.target.value})} className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold" />
+                  <Card className="rounded-[32px] bg-zinc-900/40 border-white/5 p-10 space-y-10">
+                    <div className="grid md:grid-cols-2 gap-8">
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Identity Signal</label>
+                          <Input value={mock.title} onChange={e => setMock({...mock, title: e.target.value})} className="h-12 bg-black/40 border-white/5 rounded-xl px-4 font-bold text-sm" />
                        </div>
-                       <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Recruitment Board</label>
-                          <Input value={mock.exam} onChange={e => setMock({...mock, exam: e.target.value})} className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-bold" />
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Board Class</label>
+                          <Input value={mock.exam} onChange={e => setMock({...mock, exam: e.target.value})} className="h-12 bg-black/40 border-white/5 rounded-xl px-4 font-bold text-sm" />
                        </div>
-                       <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Duration (Minutes)</label>
-                          <Input type="number" value={mock.duration} onChange={e => setMock({...mock, duration: parseInt(e.target.value)})} className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-black text-2xl text-primary" />
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Duration (Min)</label>
+                          <Input type="number" value={mock.duration} onChange={e => setMock({...mock, duration: parseInt(e.target.value)})} className="h-12 bg-black/40 border-white/5 rounded-xl px-4 font-black text-xl text-primary" />
                        </div>
-                       <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Penalty Logic (Negative)</label>
-                          <Input type="number" step="0.01" value={mock.negativeMarking} onChange={e => setMock({...mock, negativeMarking: parseFloat(e.target.value)})} className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-black text-2xl text-red-500" />
+                       <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Penalty Offset</label>
+                          <Input type="number" step="0.01" value={mock.negativeMarking} onChange={e => setMock({...mock, negativeMarking: parseFloat(e.target.value)})} className="h-12 bg-black/40 border-white/5 rounded-xl px-4 font-black text-xl text-red-500" />
                        </div>
                     </div>
                   </Card>
@@ -268,82 +251,82 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
           </div>
         </main>
 
-        {/* Panel 3: Utility Panel (Right) */}
-        <aside className="w-80 border-l border-white/5 bg-zinc-950 flex flex-col shrink-0">
-          <div className="p-6 border-b border-white/5">
-             <div className="flex items-center justify-between mb-6">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Atomic Bank</span>
-                <Badge className="bg-emerald-600 text-white text-[8px] font-black">SYNCED</Badge>
+        {/* Panel 3: Slim Utility Panel */}
+        <aside className="w-72 border-l border-white/5 bg-zinc-950 flex flex-col shrink-0">
+          <div className="p-5 border-b border-white/5">
+             <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Atomic Bank</span>
+                <Badge className="bg-emerald-600/10 text-emerald-500 text-[8px] font-black px-2">SYNCED</Badge>
              </div>
              <div className="relative">
-                <Search size={14} className="absolute left-3 top-3 text-zinc-600" />
+                <Search size={12} className="absolute left-3 top-3 text-zinc-600" />
                 <Input 
                   placeholder="Search globally..." 
                   value={bankSearch}
                   onChange={e => setBankSearch(e.target.value)}
-                  className="pl-10 h-10 bg-black/40 border-white/5 rounded-xl text-[10px] font-bold uppercase tracking-widest" 
+                  className="pl-9 h-9 bg-black/40 border-white/5 rounded-lg text-[9px] font-bold uppercase tracking-widest" 
                 />
              </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
              {bankLoading ? (
-               <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto text-zinc-800" /></div>
+               <div className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-zinc-800" size={16} /></div>
              ) : bank.map(bq => (
-               <div key={bq.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 hover:border-primary/30 transition-all cursor-pointer group" onClick={() => handleLinkFromBank(bq.id)}>
-                  <div className="flex justify-between items-start mb-2">
-                     <Badge variant="outline" className="text-[7px] border-white/10 text-zinc-600 uppercase">{bq.subject}</Badge>
-                     <Plus size={12} className="text-zinc-700 group-hover:text-primary" />
+               <div key={bq.id} className="p-3 rounded-xl bg-zinc-900/50 border border-white/5 hover:border-blue-500/30 transition-all cursor-pointer group" onClick={() => handleLinkFromBank(bq.id)}>
+                  <div className="flex justify-between items-start mb-1.5">
+                     <Badge variant="outline" className="text-[7px] border-white/5 text-zinc-600 uppercase px-1">{bq.subject}</Badge>
+                     <Plus size={10} className="text-zinc-700 group-hover:text-primary" />
                   </div>
-                  <p className="text-[10px] font-bold text-zinc-400 line-clamp-2 leading-relaxed">{bq.question_en}</p>
+                  <p className="text-[9px] font-bold text-zinc-400 line-clamp-2 leading-snug">{bq.question_en}</p>
                </div>
              ))}
           </div>
-          <div className="p-6 border-t border-white/5 space-y-4">
-             <div className="flex justify-between items-center text-[10px] font-black uppercase text-zinc-600 tracking-widest">
-                <span>Payload Analysis</span>
+          <div className="p-5 border-t border-white/5 space-y-2.5">
+             <div className="flex justify-between items-center text-[9px] font-black uppercase text-zinc-600 tracking-widest">
+                <span>Load Factor</span>
                 <span className="text-white">{questions.length} / {mock.totalQuestions}</span>
              </div>
-             <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-                <div className="h-full bg-primary" style={{ width: `${(questions.length / (mock.totalQuestions || 1)) * 100}%` }} />
+             <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
+                <div className="h-full bg-primary transition-all duration-500" style={{ width: `${(questions.length / (mock.totalQuestions || 1)) * 100}%` }} />
              </div>
           </div>
         </aside>
 
-        {/* Global Question Editor Modal */}
+        {/* Global Calibration Modal */}
         <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-          <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-4xl p-10 rounded-[40px] shadow-2xl">
-             <DialogHeader className="mb-8">
-                <DialogTitle className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-                   <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Zap size={20} /></div>
+          <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-3xl p-8 rounded-[32px] shadow-2xl">
+             <DialogHeader className="mb-6">
+                <DialogTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg"><Zap size={16} /></div>
                    Artifact Calibration
                 </DialogTitle>
              </DialogHeader>
 
              {editingQuestion && (
-               <div className="space-y-10 max-h-[60vh] overflow-y-auto pr-6 no-scrollbar">
-                  <div className="grid md:grid-cols-2 gap-10">
-                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">English Question</label>
+               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-4 no-scrollbar">
+                  <div className="grid md:grid-cols-2 gap-6">
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Primary Payload</label>
                         <Textarea 
                           value={editingQuestion.question_en} 
                           onChange={e => setEditingQuestion({...editingQuestion, question_en: e.target.value})}
-                          className="min-h-[120px] bg-white/5 border-white/10 rounded-2xl p-6 text-sm"
+                          className="min-h-[100px] bg-white/5 border-white/10 rounded-xl p-4 text-xs"
                         />
                      </div>
-                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Punjabi (Raavi)</label>
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Secondary Artifact (Raavi)</label>
                         <Textarea 
                           value={editingQuestion.question_pa} 
                           onChange={e => setEditingQuestion({...editingQuestion, question_pa: e.target.value})}
-                          className="min-h-[120px] bg-white/5 border-white/10 rounded-2xl p-6 text-sm"
+                          className="min-h-[100px] bg-white/5 border-white/10 rounded-xl p-4 text-xs"
                         />
                      </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-10">
-                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Options (English)</label>
-                        <div className="grid gap-3">
+                  <div className="grid md:grid-cols-2 gap-6">
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase text-zinc-600 tracking-widest px-1">Options Matrix</label>
+                        <div className="grid gap-2">
                            {[0,1,2,3].map(i => (
                              <Input 
                                key={i} 
@@ -353,33 +336,35 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                  opts[i] = e.target.value;
                                  setEditingQuestion({...editingQuestion, options_en: opts});
                                }}
-                               className="bg-white/5 border-white/10 rounded-xl h-12"
-                               placeholder={`Option ${String.fromCharCode(65+i)}`}
+                               className="bg-white/5 border-white/10 rounded-lg h-9 text-[10px]"
+                               placeholder={`Terminal ${String.fromCharCode(65+i)}`}
                              />
                            ))}
                         </div>
                      </div>
                      <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase text-zinc-600 tracking-widest px-2">Correct Answer (Match English)</label>
-                        <Input 
-                          value={editingQuestion.correctAnswer} 
-                          onChange={e => setEditingQuestion({...editingQuestion, correctAnswer: e.target.value})}
-                          className="bg-zinc-900 border-emerald-500/20 rounded-xl h-14 font-bold text-emerald-500"
-                        />
-                        <div className="grid grid-cols-2 gap-4 pt-6">
-                           <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-zinc-600 px-2">Subject</label>
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-emerald-500 tracking-widest px-1">Correct Identity</label>
+                           <Input 
+                             value={editingQuestion.correctAnswer} 
+                             onChange={e => setEditingQuestion({...editingQuestion, correctAnswer: e.target.value})}
+                             className="bg-zinc-900 border-emerald-500/20 rounded-lg h-10 font-bold text-emerald-500 text-xs"
+                           />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                           <div className="space-y-1.5">
+                              <label className="text-[8px] font-black uppercase text-zinc-600 px-1">Subject</label>
                               <Select value={editingQuestion.subject} onValueChange={v => setEditingQuestion({...editingQuestion, subject: v as any})}>
-                                 <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                                 <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[9px]"><SelectValue /></SelectTrigger>
                                  <SelectContent className="bg-zinc-950 border-white/10 text-white">
                                     {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                                  </SelectContent>
                               </Select>
                            </div>
-                           <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase text-zinc-600 px-2">Level</label>
+                           <div className="space-y-1.5">
+                              <label className="text-[8px] font-black uppercase text-zinc-600 px-1">Complexity</label>
                               <Select value={editingQuestion.difficulty} onValueChange={v => setEditingQuestion({...editingQuestion, difficulty: v as any})}>
-                                 <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                                 <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[9px]"><SelectValue /></SelectTrigger>
                                  <SelectContent className="bg-zinc-950 border-white/10 text-white">
                                     <SelectItem value="easy">Easy</SelectItem>
                                     <SelectItem value="medium">Medium</SelectItem>
@@ -393,11 +378,11 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                </div>
              )}
 
-             <DialogFooter className="mt-12">
-                <Button variant="ghost" onClick={() => setEditorOpen(false)} className="rounded-xl h-14 px-8 font-bold text-zinc-500">Discard</Button>
-                <Button onClick={handleSaveQuestion} disabled={saving} className="rounded-2xl h-14 px-12 bg-primary hover:bg-primary/90 font-black uppercase text-xs tracking-widest blue-glow shadow-2xl">
-                   {saving ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />}
-                   Commit Artifact
+             <DialogFooter className="mt-8 border-t border-white/5 pt-6">
+                <Button variant="ghost" onClick={() => setEditorOpen(false)} className="rounded-xl h-12 px-6 font-bold text-zinc-500 text-[10px] uppercase">Discard</Button>
+                <Button onClick={handleSaveQuestion} disabled={saving} className="rounded-xl h-12 px-10 bg-primary hover:bg-primary/90 font-black uppercase text-[10px] tracking-widest blue-glow shadow-xl">
+                   {saving ? <Loader2 className="animate-spin" /> : <Save className="mr-2 w-4 h-4" />}
+                   Sync Artifact
                 </Button>
              </DialogFooter>
           </DialogContent>
