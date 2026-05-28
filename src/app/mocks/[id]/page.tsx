@@ -39,8 +39,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /**
- * INSTITUTIONAL CBT PLAYER v25.0
- * Features: High-frequency autosave, Stacked Bilingual, Sectional tabs.
+ * INSTITUTIONAL CBT ENGINE v25.0
+ * Features: High-frequency autosave, Sectional navigation, Standard state palette.
  */
 export default function CBTEngineV25() {
   const { user, profile } = useAuth();
@@ -161,9 +161,9 @@ export default function CBTEngineV25() {
 
   if (phase === 'booting' || phase === 'submitting') {
     return (
-      <div className="h-screen bg-[#F8FAFC] flex flex-col items-center justify-center text-center space-y-6">
-         <Loader2 className="w-12 h-12 animate-spin text-primary" />
-         <p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-500">Establishing Secure Buffer...</p>
+      <div className="h-screen bg-[#F1F5F9] flex flex-col items-center justify-center text-center space-y-6">
+         <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+         <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500">Re-stabilizing Secure Buffer...</p>
       </div>
     );
   }
@@ -183,12 +183,14 @@ export default function CBTEngineV25() {
                <div className="lg:col-span-2 space-y-8">
                   <div className="bg-white rounded-[40px] border border-slate-200 p-10 shadow-sm space-y-10">
                      <h3 className="text-2xl font-black flex items-center gap-3">
-                        <CheckCircle2 className="text-emerald-500 w-7 h-7" /> Examination Protocol
+                        <CheckCircle2 className="text-emerald-500 w-7 h-7" /> Institutional Instructions
                      </h3>
-                     <div className="space-y-6 text-slate-600 font-medium">
-                        <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> Duration: <strong>{mock?.duration} Minutes</strong></p>
-                        <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> Marking: <strong>+1.0 Correct</strong> / <strong>-{mock?.negativeMarking} Incorrect</strong></p>
-                        <p className="flex gap-4"><AlertTriangle className="text-orange-500 shrink-0 mt-1" size={18} /> Tab switching will trigger a security signal.</p>
+                     <div className="space-y-5 text-slate-600 leading-relaxed font-medium">
+                        <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> Total duration: <strong>{mock?.duration} minutes</strong>.</p>
+                        <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> Each correct answer gains <strong>1 mark</strong>.</p>
+                        <p className="flex gap-4"><AlertTriangle className="text-red-500 shrink-0 mt-1" size={18} /> Penalty of <strong>{mock?.negativeMarking} marks</strong> for incorrect responses.</p>
+                        <p className="flex gap-4"><CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={18} /> The exam uses real-time auto-save technology.</p>
+                        <p className="flex gap-4"><AlertTriangle className="text-orange-500 shrink-0 mt-1" size={18} /> Switching tabs or windows will trigger a security warning.</p>
                      </div>
                   </div>
                </div>
@@ -209,7 +211,7 @@ export default function CBTEngineV25() {
                         </Select>
                      </div>
                      <Button onClick={handleStartExam} className="w-full h-16 rounded-[24px] bg-blue-600 hover:bg-blue-700 text-white font-black text-lg shadow-xl shadow-blue-600/20 uppercase tracking-widest transition-all">
-                        Begin Assessment
+                        START MOCK TEST
                      </Button>
                   </Card>
                </div>
@@ -257,14 +259,14 @@ export default function CBTEngineV25() {
           </div>
        </header>
 
-       {/* SECTION TABS */}
+       {/* SUBJECT SECTIONS */}
        <div className="h-12 bg-white border-b border-slate-200 flex items-center px-10 shrink-0">
           <div className="flex items-center gap-10">
              <button className="h-full border-b-4 border-blue-600 flex items-center px-2">
-                <span className="text-[11px] font-black uppercase tracking-widest text-blue-600">Part A: Core Proficiency</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-blue-600">Core Subjects</span>
              </button>
              <button className="h-full border-b-4 border-transparent flex items-center px-2 hover:border-slate-200">
-                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Part B: Native Qualifiers</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Qualifiers</span>
              </button>
           </div>
        </div>
@@ -277,7 +279,7 @@ export default function CBTEngineV25() {
                       <Badge className="bg-blue-50 text-blue-600 border-blue-100 px-4 py-1 font-black uppercase text-[10px] tracking-widest">
                          {questions[current]?.subject || 'GENERAL STUDIES'}
                       </Badge>
-                      <Badge variant="outline" className="border-slate-200 text-slate-400 text-[10px] font-bold">ARTIFACT {current + 1}</Badge>
+                      <Badge variant="outline" className="border-slate-200 text-slate-400 text-[10px] font-bold">Q {current + 1}</Badge>
                    </div>
                    <div className="flex items-center gap-6">
                       <div className="flex items-center gap-2 text-slate-400">
@@ -326,7 +328,7 @@ export default function CBTEngineV25() {
                       <p className="text-xl font-black text-emerald-700">{Object.keys(answers).length}</p>
                    </div>
                    <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100">
-                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Unvisited</p>
+                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Not Answered</p>
                       <p className="text-xl font-black text-blue-700">{questions.length - Object.keys(answers).length}</p>
                    </div>
                 </div>

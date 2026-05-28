@@ -40,6 +40,26 @@
   }
 }
 
+/* Institutional Exam Typography */
+.question-en {
+  font-size: 30px;
+  line-height: 1.5;
+  @apply font-bold text-zinc-100;
+}
+
+.question-pa {
+  font-size: 30px;
+  line-height: 1.5;
+  font-weight: 500;
+  @apply text-zinc-400 italic;
+}
+
+@media (max-width: 768px) {
+  .question-en, .question-pa {
+    font-size: 22px;
+  }
+}
+
 .cracklix-glass {
   @apply bg-white/[0.02] backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
 }

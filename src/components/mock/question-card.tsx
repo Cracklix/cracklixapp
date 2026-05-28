@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Question } from "@/types";
 
@@ -29,38 +29,21 @@ export default function QuestionCard({
   activeLanguage = 'bilingual',
   index
 }: QuestionCardProps) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  
-  const isBookmarked = profile?.bookmarks?.some((b: any) => b.id === question.id);
 
   const toggleBookmark = async () => {
     if (!user) return;
     try {
-      const userRef = doc(db, "users", user.uid);
-      const bookmarkData = {
-        id: question.id,
-        text: question.en.question,
-        subject: question.subject,
-        type: 'question',
-        savedAt: Date.now()
-      };
-
-      if (isBookmarked) {
-        // Find exact bookmark object to remove
-        const bookmarkToRemove = profile?.bookmarks?.find((b: any) => b.id === question.id);
-        if (bookmarkToRemove) {
-          await updateDoc(userRef, {
-            bookmarks: arrayRemove(bookmarkToRemove)
-          });
-        }
-        toast({ title: "Bookmark Removed" });
-      } else {
-        await updateDoc(userRef, {
-          bookmarks: arrayUnion(bookmarkData)
-        });
-        toast({ title: "Artifact Bookmarked", description: "Signal cached to your revision desk." });
-      }
+      await updateDoc(doc(db, "users", user.uid), {
+        bookmarks: arrayUnion({
+          id: question.id,
+          text: question.en.question,
+          subject: question.subject,
+          savedAt: Date.now()
+        })
+      });
+      toast({ title: "Artifact Bookmarked", description: "Signal cached to your revision desk." });
     } catch (e) {
       console.error(e);
     }
@@ -74,14 +57,14 @@ export default function QuestionCard({
       <div className="space-y-8">
          {/* English Header */}
          {(activeLanguage === 'en' || isBilingual) && (
-            <div className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed break-words font-body">
+            <div className="question-en">
                {question.en.question}
             </div>
          )}
 
          {/* Punjabi Signal (Raavi Font Optimization) */}
          {(activeLanguage === 'pa' || isBilingual) && question.pa?.question && (
-            <div className="text-[28px] md:text-[32px] font-medium text-slate-500 leading-[1.7] break-words border-l-4 border-blue-500/10 pl-10 py-2 italic font-body">
+            <div className="question-pa border-l-4 border-blue-500/10 pl-10 py-2">
                {question.pa.question}
             </div>
          )}
@@ -120,10 +103,10 @@ export default function QuestionCard({
                    {letter}
                 </div>
                 <div className="flex flex-col gap-3 flex-1 pt-3.5">
-                   <p className="font-bold text-lg md:text-xl leading-tight font-body">{option}</p>
+                   <p className="font-bold text-lg md:text-xl leading-tight">{option}</p>
                    {(isBilingual || activeLanguage === 'pa') && paOption && (
                      <p className={cn(
-                       "text-[20px] md:text-[24px] font-medium leading-tight font-body",
+                       "text-[20px] md:text-[24px] font-medium leading-tight",
                        isOptionSelected ? "text-white/70" : "text-slate-400"
                      )}>{paOption}</p>
                    )}
@@ -141,7 +124,7 @@ export default function QuestionCard({
       <div className="flex items-center justify-between pt-12 opacity-60 group-hover:opacity-100 transition-opacity">
          <div className="flex items-center gap-10">
             <Button variant="ghost" className="h-10 gap-2 text-slate-400 hover:text-blue-600 rounded-xl" onClick={toggleBookmark}>
-               <Bookmark size={20} className={cn(isBookmarked ? "fill-current text-primary" : "")} />
+               <Bookmark size={20} />
                <span className="text-[10px] font-black uppercase tracking-widest">Bookmark Artifact</span>
             </Button>
             <Button variant="ghost" className="h-10 gap-2 text-slate-400 hover:text-red-500 rounded-xl">
