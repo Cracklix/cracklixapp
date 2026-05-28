@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,7 +18,15 @@ import {
   Edit3,
   Copy,
   Archive,
-  PlayCircle
+  PlayCircle,
+  BrainCircuit,
+  Layers,
+  FileText,
+  LayoutGrid,
+  Filter,
+  BarChart3,
+  ChevronRight,
+  ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +41,9 @@ import {
   getMockAnalytics,
   setMockLive
 } from "@/services/mocks";
-import { MockTest, MockStatus } from "@/types";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { MockTest, MockStatus, SUBJECTS } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -44,12 +55,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { generateAIMock } from "@/services/ai-mock-generator";
 
 /**
- * PRODUCTION MOCK REGISTRY
- * Functional command center for simulation lifecycle management.
+ * PRODUCTION SIMULATION FACTORY & REGISTRY
+ * Rebuilt for multi-modal generation and real-time management.
  */
-export default function MockRegistryPage() {
+export default function SimulationFactoryPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [mocks, setMocks] = useState<MockTest[]>([]);
@@ -57,6 +79,20 @@ export default function MockRegistryPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<MockStatus | "all">("published");
   const [mockStats, setMockStats] = useState<Record<string, any>>({});
+  
+  // Creation States
+  const [creating, setCreating] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createMode, setCreateMode] = useState<'manual' | 'ai' | 'sectional' | 'chapter' | 'quiz'>('manual');
+  const [formData, setFormData] = useState({
+    title: "",
+    exam: "Punjab Police SI",
+    duration: 100,
+    negativeMarking: 0.25,
+    accessType: 'pass_plus' as any,
+    subject: "Punjab GK",
+    count: 100
+  });
 
   useEffect(() => {
     loadRegistry();
@@ -68,7 +104,7 @@ export default function MockRegistryPage() {
       const data = await getAllMocks();
       setMocks(data);
       
-      // Load performance stats asynchronously to keep UI fast
+      // Load performance stats asynchronously
       const statsMap: any = {};
       for (const m of data) {
         if (m.status !== 'draft') {
@@ -81,6 +117,52 @@ export default function MockRegistryPage() {
       toast({ title: "Registry Error", description: "Failed to fetch simulation index.", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCreateMock() {
+    if (!formData.title && createMode !== 'ai') {
+      toast({ title: "Identity Required", description: "Please provide a title for the simulation." });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      let mockId = "";
+      
+      if (createMode === 'ai') {
+        const result = await generateAIMock({ 
+          exam: formData.exam, 
+          totalQuestions: formData.count 
+        });
+        mockId = result.mockId;
+        toast({ title: "AI Synthesis Complete", description: `Successfully forged ${result.questions.length} questions.` });
+      } else {
+        const payload = {
+          title: formData.title,
+          exam: formData.exam,
+          duration: Number(formData.duration),
+          negativeMarking: Number(formData.negativeMarking),
+          accessType: formData.accessType,
+          status: 'draft',
+          totalQuestions: 0,
+          questionIds: [],
+          type: createMode === 'sectional' ? 'sectional' : createMode === 'quiz' ? 'chapter' : 'full',
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+        const docRef = await addDoc(collection(db, "mocks"), payload);
+        mockId = docRef.id;
+        toast({ title: "Simulation Template Initialized", description: "Artifact saved to Drafts." });
+      }
+
+      setShowCreateDialog(false);
+      loadRegistry();
+      router.push(`/admin/mocks/${mockId}`);
+    } catch (e: any) {
+      toast({ title: "Creation Failed", description: e.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -117,8 +199,8 @@ export default function MockRegistryPage() {
   }
 
   const filtered = mocks.filter(m => {
-    const matchesSearch = m.title.toLowerCase().includes(search.toLowerCase()) || 
-                          m.exam.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = m.title?.toLowerCase().includes(search.toLowerCase()) || 
+                          m.exam?.toLowerCase().includes(search.toLowerCase());
     const matchesTab = activeTab === "all" || m.status === activeTab;
     return matchesSearch && matchesTab;
   });
@@ -127,25 +209,47 @@ export default function MockRegistryPage() {
     <AdminProtect>
       <div className="flex bg-black min-h-screen text-white">
         <AdminSidebar />
-        <main className="flex-1 p-8 overflow-y-auto no-scrollbar">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto no-scrollbar">
           <div className="max-w-7xl mx-auto space-y-12">
+            {/* Header */}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                   <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-xl blue-glow">
-                      <Rocket className="text-white w-6 h-6" />
+                   <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-xl blue-glow">
+                      <Rocket className="text-white w-7 h-7" />
                    </div>
-                   <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Registry</h1>
+                   <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
                 </div>
                 <p className="text-zinc-500 font-medium ml-1">Central management for PSSSB and PPSC CBT environments.</p>
               </div>
-              <div className="flex gap-4">
-                 <Button onClick={() => router.push('/admin/direct-mock-builder')} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 font-black text-[10px] uppercase tracking-widest blue-glow">
-                    <Plus className="w-4 h-4 mr-2" /> Initialize New Mock
-                 </Button>
-              </div>
             </header>
 
+            {/* Factory Actions */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+               {[
+                 { mode: 'manual', label: 'Full Mock', icon: LayoutGrid, color: 'bg-blue-600' },
+                 { mode: 'sectional', label: 'Sectional', icon: Layers, color: 'bg-emerald-600' },
+                 { mode: 'quiz', label: 'Quick Quiz', icon: Zap, color: 'bg-orange-600' },
+                 { mode: 'ai', label: 'AI Generate', icon: BrainCircuit, color: 'bg-primary' },
+                 { mode: 'direct', label: 'Direct Inject', icon: FileText, color: 'bg-zinc-800' },
+               ].map((btn) => (
+                 <Button 
+                   key={btn.mode}
+                   onClick={() => {
+                     if (btn.mode === 'direct') router.push('/admin/direct-mock-builder');
+                     else { setCreateMode(btn.mode as any); setShowCreateDialog(true); }
+                   }}
+                   className="h-24 rounded-[28px] bg-zinc-900 border border-white/5 hover:border-white/20 flex flex-col items-center justify-center gap-2 group transition-all"
+                 >
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110", btn.color)}>
+                       <btn.icon size={16} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white">{btn.label}</span>
+                 </Button>
+               ))}
+            </div>
+
+            {/* Registry Filters */}
             <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
                <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} className="w-full md:w-auto">
                   <TabsList className="bg-zinc-900 border-white/5 p-1 rounded-2xl h-14 w-full md:w-auto overflow-x-auto no-scrollbar justify-start">
@@ -167,6 +271,7 @@ export default function MockRegistryPage() {
                </div>
             </div>
 
+            {/* Registry Table */}
             <div className="bg-zinc-900/40 border border-white/5 rounded-[40px] overflow-hidden shadow-2xl">
                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[1000px]">
@@ -281,6 +386,124 @@ export default function MockRegistryPage() {
                </div>
             </div>
           </div>
+
+          {/* Creation Dialog */}
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogContent className="bg-zinc-950 border-white/10 rounded-[40px] p-8 md:p-12 text-white max-w-2xl">
+               <DialogHeader className="mb-8">
+                  <div className="flex items-center gap-4">
+                     <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+                        {createMode === 'ai' ? <BrainCircuit /> : <Rocket />}
+                     </div>
+                     <div>
+                        <DialogTitle className="text-3xl font-black uppercase tracking-tighter">
+                           {createMode === 'ai' ? 'AI Synthesis' : createMode === 'sectional' ? 'Sectional Init' : 'Mock Initialization'}
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest mt-1">Configure generation parameters</DialogDescription>
+                     </div>
+                  </div>
+               </DialogHeader>
+
+               <div className="space-y-8">
+                  {createMode !== 'ai' && (
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Simulation Title</label>
+                       <Input 
+                         placeholder="e.g. Punjab Police SI Full Test #42" 
+                         value={formData.title}
+                         onChange={e => setFormData({...formData, title: e.target.value})}
+                         className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold px-6"
+                       />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-6">
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Exam Board</label>
+                        <Select value={formData.exam} onValueChange={v => setFormData({...formData, exam: v})}>
+                           <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="bg-zinc-950 border-white/10 text-white">
+                              <SelectItem value="Punjab Police SI">Punjab Police SI</SelectItem>
+                              <SelectItem value="PSSSB Clerk">PSSSB Clerk</SelectItem>
+                              <SelectItem value="PPSC PCS">PPSC PCS</SelectItem>
+                              <SelectItem value="Patwari">Patwari</SelectItem>
+                           </SelectContent>
+                        </Select>
+                     </div>
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Access Policy</label>
+                        <Select value={formData.accessType} onValueChange={v => setFormData({...formData, accessType: v})}>
+                           <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="bg-zinc-950 border-white/10 text-white">
+                              <SelectItem value="pass_plus">PASS+ Active</SelectItem>
+                              <SelectItem value="free">Free Hub</SelectItem>
+                              <SelectItem value="premium">Elite Premium</SelectItem>
+                           </SelectContent>
+                        </Select>
+                     </div>
+                  </div>
+
+                  {createMode === 'ai' && (
+                    <div className="grid grid-cols-2 gap-6">
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Question Volume</label>
+                          <Input 
+                            type="number" 
+                            value={formData.count}
+                            onChange={e => setFormData({...formData, count: Number(e.target.value)})}
+                            className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-black text-xl px-6"
+                          />
+                       </div>
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Pattern Match</label>
+                          <div className="h-14 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center gap-2">
+                             <CheckCircle2 size={14} className="text-emerald-500" />
+                             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">PYQ Weighted</span>
+                          </div>
+                       </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-6">
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Duration (Mins)</label>
+                        <Input 
+                          type="number" 
+                          value={formData.duration}
+                          onChange={e => setFormData({...formData, duration: Number(e.target.value)})}
+                          className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold px-6"
+                        />
+                     </div>
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest px-2">Neg. Marking</label>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          value={formData.negativeMarking}
+                          onChange={e => setFormData({...formData, negativeMarking: Number(e.target.value)})}
+                          className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold px-6 text-red-500"
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <DialogFooter className="mt-12 flex flex-col gap-4">
+                  <Button 
+                    onClick={handleCreateMock} 
+                    disabled={creating}
+                    className="w-full h-18 rounded-3xl bg-primary hover:bg-primary/90 text-xl font-black blue-glow shadow-2xl transition-transform active:scale-95"
+                  >
+                     {creating ? <Loader2 className="animate-spin mr-3" /> : <ShieldCheck className="mr-3" />}
+                     {createMode === 'ai' ? 'SYNTHESIZE MOCK' : 'INITIALIZE SIMULATION'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setShowCreateDialog(false)} className="w-full text-zinc-600 font-bold uppercase text-[10px] tracking-widest">Discard Setup</Button>
+               </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </AdminProtect>
