@@ -1,7 +1,7 @@
 
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v20.0 (Enterprise Standard)
+ * Production-grade Architecture Layer v25.0 (Institutional Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -42,7 +42,6 @@ export interface UserProfile {
   role: UserRole;
   activePass: PassTier;
   passExpiry: number;
-  purchasedTests: string[];
   languageMode: LanguageMode;
   createdAt: number;
   updatedAt: number;
@@ -68,22 +67,22 @@ export interface Question {
   marks: number;
   negativeMarks: number;
   order?: number;
-  type: 'MCQ' | 'MULTIPLE_SELECT' | 'NUMERICAL' | 'MATCH' | 'COMPREHENSION';
+  qualityScore?: number;
+  status: 'draft' | 'published';
+  type: 'MCQ' | 'NUMERICAL' | 'MATCH';
 }
 
 export interface ExamSection {
   id: string;
   name: string;
   order: number;
-  questionIds: string[];
-  timeLimitMinutes?: number;
-  isLocked?: boolean;
-  hasNegativeMarking?: boolean;
+  questionCount: number;
+  hasNegativeMarking: boolean;
 }
 
 export interface MockTest {
   id: string;
-  seriesId: string;
+  seriesId?: string;
   title: string;
   exam: string;
   category: 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
@@ -92,16 +91,17 @@ export interface MockTest {
   negativeMarking: number;
   accessType: PassTier;
   status: 'draft' | 'published';
-  sections: ExamSection[];
+  sections?: ExamSection[];
   pausable: boolean;
   createdAt: number;
+  updatedAt: number;
   attemptCount?: number;
-  examMode?: 'PSSSB' | 'CTET' | 'PPSC';
+  aiGenerated?: boolean;
 }
 
 export interface AttemptAnswer {
   questionId: string;
-  selectedOption: string | string[] | number | null;
+  selectedOption: string | null;
   status: QuestionStatus;
   timeSpent: number; 
   lastUpdated: number;
@@ -117,8 +117,8 @@ export interface ExamAttempt {
   completedAt?: number;
   remainingTime: number; 
   currentQuestionIndex: number;
-  currentSectionId: string;
   answers: Record<string, AttemptAnswer>; 
-  deviceInfo: string;
-  suspiciousActivityCount: number;
+  score?: number;
+  accuracy?: number;
+  topicPerformance?: Record<string, { total: number; correct: number }>;
 }
