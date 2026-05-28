@@ -11,7 +11,8 @@ import {
   orderBy, 
   addDoc, 
   updateDoc,
-  increment
+  increment,
+  limit
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { MockTest, Question } from '@/types';
@@ -21,6 +22,38 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 /**
  * Enterprise Service for the Mock Test CBT Engine.
  */
+
+export async function generateAutoMock(params: {
+  exam: string;
+  subjects: string[];
+  count: number;
+  difficulty: string;
+}) {
+  const bankRef = collection(db, "questions");
+  const q = query(
+    bankRef,
+    where("exam", "==", params.exam),
+    where("difficulty", "==", params.difficulty),
+    limit(params.count)
+  );
+  
+  const snap = await getDocs(q);
+  const selectedIds = snap.docs.map(d => d.id);
+
+  if (selectedIds.length === 0) throw new Error("Not enough questions in bank for these criteria.");
+
+  const mockData = {
+    title: `${params.exam} Auto-Gen ${new Date().toLocaleDateString()}`,
+    exam: params.exam,
+    questionIds: selectedIds,
+    duration: 60,
+    negativeMarking: 0.25,
+    published: false,
+    createdAt: Date.now()
+  };
+
+  return await addDoc(collection(db, "mocks"), mockData);
+}
 
 export async function getMocksByExam(examName: string): Promise<MockTest[]> {
   const q = query(
@@ -41,15 +74,23 @@ export async function getMockDetails(mockId: string): Promise<MockTest> {
 }
 
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
-  const q = query(collection(db, 'mocks', mockId, 'questions'));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+  const mockRef = doc(db, 'mocks', mockId);
+  const mockSnap = await getDoc(mockRef);
+  const questionIds = mockSnap.data()?.questionIds || [];
+  
+  // Fetch specific documents from central bank
+  const questions: Question[] = [];
+  for (const id of questionIds) {
+    const qSnap = await getDoc(doc(db, "questions", id));
+    if (qSnap.exists()) questions.push({ id: qSnap.id, ...qSnap.data() } as Question);
+  }
+  
+  return questions;
 }
 
 export function saveAttempt(userId: string, data: any) {
   const attemptsRef = collection(db, 'attempts');
   
-  // Non-blocking write with optimistic cache update
   addDoc(attemptsRef, {
     ...data,
     userId,
@@ -64,7 +105,6 @@ export function saveAttempt(userId: string, data: any) {
     errorEmitter.emit('permission-error', permissionError);
   });
 
-  // Increment Student XP & Interaction Stamp
   const userRef = doc(db, 'users', userId);
   updateDoc(userRef, {
     xp: increment(50),

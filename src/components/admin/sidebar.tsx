@@ -20,7 +20,9 @@ import {
   Briefcase,
   MessageSquare,
   Trophy,
-  ShieldAlert
+  ShieldAlert,
+  Database,
+  Cpu
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -29,15 +31,14 @@ export default function AdminSidebar() {
   const items = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Users", href: "/admin/users", icon: Users },
-    { name: "Questions", href: "/admin/questions", icon: FileQuestion },
+    { name: "Ingestion Hub", href: "/admin/questions", icon: Cpu },
+    { name: "Question Bank", href: "/admin/question-bank", icon: Database },
     { name: "Mock Tests", href: "/admin/mocks", icon: FileText },
     { name: "Community Hub", href: "/admin/community", icon: MessageSquare },
     { name: "PYQ Bank", href: "/admin/pyqs", icon: History },
     { name: "Current Affairs", href: "/admin/current-affairs", icon: Newspaper },
-    { name: "Job Alerts", href: "/admin/jobs", icon: Briefcase },
     { name: "Leaderboards", href: "/admin/leaderboards", icon: Trophy },
     { name: "Revenue Ops", href: "/admin/payments", icon: IndianRupee },
-    { name: "Notifications", href: "/admin/notifications", icon: Bell },
     { name: "AI Factory", href: "/admin/ai-assistant", icon: Zap },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   ];

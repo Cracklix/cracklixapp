@@ -21,6 +21,29 @@
         "bookmarks": { "type": "array" }
       }
     },
+    "Question": {
+      "title": "Question Bank Item",
+      "description": "Atomic bilingual question for the central bank.",
+      "type": "object",
+      "properties": {
+        "question_en": { "type": "string" },
+        "question_pa": { "type": "string" },
+        "options_en": { "type": "array" },
+        "options_pa": { "type": "array" },
+        "correctAnswer": { "type": "string" },
+        "explanation_en": { "type": "string" },
+        "explanation_pa": { "type": "string" },
+        "subject": { "type": "string" },
+        "topic": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "exam": { "type": "string" },
+        "pyq": { "type": "boolean" },
+        "year": { "type": "number" },
+        "source": { "type": "string" },
+        "usageCount": { "type": "number" },
+        "createdAt": { "type": "number" }
+      }
+    },
     "MockTest": {
       "title": "Mock Test",
       "description": "CBT Exam configuration.",
@@ -33,33 +56,8 @@
         "negativeMarking": { "type": "number" },
         "isLive": { "type": "boolean" },
         "published": { "type": "boolean" },
+        "questionIds": { "type": "array" },
         "createdAt": { "type": "number" }
-      }
-    },
-    "CommunityMessage": {
-      "title": "Community Message",
-      "description": "Social learning chat message.",
-      "type": "object",
-      "properties": {
-        "channelId": { "type": "string" },
-        "senderId": { "type": "string" },
-        "senderName": { "type": "string" },
-        "text": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "JobAlert": {
-      "title": "Job Alert",
-      "description": "Punjab recruitment notification.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "department": { "type": "string" },
-        "postCount": { "type": "number" },
-        "lastDate": { "type": "number" },
-        "applyUrl": { "type": "string" },
-        "status": { "type": "string" }
       }
     }
   },
@@ -72,44 +70,16 @@
       "description": "Student profiles and roles."
     },
     "/questions/{qId}": {
-      "schema": "object",
-      "description": "Bilingual question bank."
+      "schema": "Question",
+      "description": "Central bilingual question bank."
     },
     "/mocks/{mockId}": {
       "schema": "MockTest",
-      "description": "Standardized mock tests."
-    },
-    "/attempts/{attemptId}": {
-      "schema": "object",
-      "description": "User test attempts and analytics."
+      "description": "Standardized mock tests referencing question IDs."
     },
     "/community_messages/{msgId}": {
       "schema": "CommunityMessage",
       "description": "Real-time discussion streams."
-    },
-    "/jobAlerts/{jobId}": {
-      "schema": "JobAlert",
-      "description": "Punjab government vacancy alerts."
-    },
-    "/leaderboards/{userId}": {
-      "schema": "object",
-      "description": "Punjab State Merit Registry."
-    },
-    "/subscriptions/{subId}": {
-      "schema": "object",
-      "description": "Premium PASS records."
-    },
-    "/ai_logs/{logId}": {
-      "schema": "object",
-      "description": "Gemini token usage tracking."
-    },
-    "/typing_tests/{id}": {
-      "schema": "object",
-      "description": "Student typing speed logs."
-    },
-    "/reports/{reportId}": {
-      "schema": "object",
-      "description": "Community moderation reports."
     }
   }
 }
