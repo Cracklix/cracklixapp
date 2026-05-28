@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Trophy, BookOpen, User, Zap, Sparkles } from 'lucide-react';
+import { Home, Trophy, BookOpen, User, Zap, Sparkles, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -11,6 +12,7 @@ export default function Navbar() {
 
   const navItems = [
     { href: '/dashboard', icon: Home, label: 'Home' },
+    { href: '/live', icon: Radio, label: 'Live' },
     { href: '/exams', icon: BookOpen, label: 'Mocks' },
     { href: '/leaderboard', icon: Trophy, label: 'Ranks' },
     { href: '/ai', icon: Sparkles, label: 'AI Tutor' },
@@ -23,7 +25,7 @@ export default function Navbar() {
       <div className="bg-zinc-950/80 backdrop-blur-2xl border border-white/10 rounded-[32px] p-2 flex justify-around items-center shadow-2xl">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           
           return (
             <Link key={item.href} href={item.href} className="relative group">

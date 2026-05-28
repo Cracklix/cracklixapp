@@ -20,6 +20,45 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
+    "LiveClass": {
+      "title": "Live Class",
+      "description": "A live or recorded instructional session.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "exam": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "description": { "type": "string" },
+        "live": { "type": "boolean" },
+        "meetingId": { "type": "string" },
+        "scheduledAt": { "type": "number" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "ClassChat": {
+      "title": "Class Chat",
+      "description": "Messages sent during a live class.",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "Attendance": {
+      "title": "Attendance Record",
+      "description": "Logs of user participation in live sessions.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "classId": { "type": "string" },
+        "joinedAt": { "type": "number" }
+      }
+    },
     "AdminRecord": {
       "title": "Admin Record",
       "description": "Permissions and status for admin accounts.",
@@ -43,28 +82,6 @@
         "published": { "type": "boolean" },
         "createdAt": { "type": "number" }
       }
-    },
-    "AuditLog": {
-      "title": "Audit Log",
-      "description": "Chronological log of administrative actions.",
-      "type": "object",
-      "properties": {
-        "adminId": { "type": "string" },
-        "adminEmail": { "type": "string" },
-        "action": { "type": "string" },
-        "target": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "FeatureFlag": {
-      "title": "Feature Flag",
-      "description": "Toggles for system features.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "enabled": { "type": "boolean" },
-        "description": { "type": "string" }
-      }
     }
   },
   "auth": {
@@ -74,6 +91,18 @@
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "Student profiles."
+    },
+    "/liveClasses/{classId}": {
+      "schema": "LiveClass",
+      "description": "Live session registry."
+    },
+    "/classChats/{id}": {
+      "schema": "ClassChat",
+      "description": "Class-specific chat messages."
+    },
+    "/attendance/{id}": {
+      "schema": "Attendance",
+      "description": "Session participation logs."
     },
     "/admins/{id}": {
       "schema": "AdminRecord",

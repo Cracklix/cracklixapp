@@ -14,7 +14,8 @@ import {
   Zap,
   Menu,
   Bell,
-  Search
+  Search,
+  Radio
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/live', icon: Radio, label: 'Live Classes' },
     { href: '/exams', icon: BookOpen, label: 'Exams' },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { href: '/coach', icon: BrainCircuit, label: 'AI Coach' },
@@ -93,7 +95,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarItem 
                 key={item.href} 
                 {...item} 
-                active={pathname.startsWith(item.href)} 
+                active={pathname === item.href || pathname.startsWith(item.href + '/')} 
               />
             ))}
           </nav>
