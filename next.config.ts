@@ -1,4 +1,3 @@
-
 import type {NextConfig} from 'next';
 const withPWA = require('next-pwa')({
   dest: 'public',
@@ -43,12 +42,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    allowedDevOrigins: [
-      '*.cloudworkstations.dev',
-      'localhost:9002'
-    ]
-  }
 };
 
 export default withPWA(nextConfig);
