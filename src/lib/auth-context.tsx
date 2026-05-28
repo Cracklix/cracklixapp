@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -11,7 +12,7 @@ export interface UserProfile {
   name: string;
   xp: number;
   streak: number;
-  role: 'student' | 'admin' | 'superadmin';
+  role: 'student' | 'admin' | 'superadmin' | 'creator';
   createdAt: number;
   referralCode?: string;
   targetExam?: string;
@@ -51,16 +52,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
+        // Listen to Firestore profile updates
         unsubProfile = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as UserProfile);
           } else {
-            // Profile missing - handled by Auto-Repair in Login/Signup
+            // Profile missing in Firestore - this state is now handled 
+            // by Auto-Repair logic during Login/Signup redirection.
             setProfile(null);
           }
           setLoading(false);
         }, (error) => {
           console.error("Auth context listener error:", error);
+          // Don't block loading on error, let the pages handle missing profile
           setLoading(false);
         });
       } else {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -47,28 +48,27 @@ export default function SignupPage() {
     };
 
     // 1. Core Profile creation with merge to prevent overwriting if exists
-    await setDoc(userRef, profilePayload, { merge: true });
+    // We initiate the write immediately as per guidelines
+    setDoc(userRef, profilePayload, { merge: true })
+      .catch((err) => console.error("Profile write error:", err));
 
     // 2. Initialize Operational Sub-collections
     const targetRef = doc(db, "dailyTargets", uid);
-    const targetSnap = await getDoc(targetRef);
-    if (!targetSnap.exists()) {
-      await setDoc(targetRef, {
-        userId: uid,
-        questionsGoal: 50,
-        questionsCompleted: 0,
-        mockGoal: 1,
-        mockCompleted: 0,
-        studyMinutesGoal: 120,
-        studyMinutesCompleted: 0,
-        date: today,
-        updatedAt: Date.now()
-      });
-    }
+    setDoc(targetRef, {
+      userId: uid,
+      questionsGoal: 50,
+      questionsCompleted: 0,
+      mockGoal: 1,
+      mockCompleted: 0,
+      studyMinutesGoal: 120,
+      studyMinutesCompleted: 0,
+      date: today,
+      updatedAt: Date.now()
+    }, { merge: true });
 
     // 3. AI Usage Initialization
     const usageRef = doc(db, "aiUsage", `${uid}_${today}`);
-    await setDoc(usageRef, {
+    setDoc(usageRef, {
       userId: uid,
       count: 0,
       date: today,
@@ -96,7 +96,7 @@ export default function SignupPage() {
       // Step 1: Create Auth User
       const res = await createUserWithEmailAndPassword(auth, cleanEmail, password);
       
-      // Step 2: Initialize Firestore Profile (Atomic)
+      // Step 2: Initialize Firestore Profile (Self-healing merge)
       await initializeUserProfile(res.user.uid, cleanEmail, name);
       
       toast({ title: "Enrollment Successful", description: "Identity verified. Redirecting to Arena..." });
@@ -105,9 +105,11 @@ export default function SignupPage() {
       console.error("Signup error:", error);
       
       if (error.code === 'auth/email-already-in-use') {
+        // Fallback check: If auth user exists but profile was never created, 
+        // we can't "signup" again, they must log in (where auto-repair will kick in)
         toast({
           title: "Account Exists",
-          description: "This identity is already registered. Please access the terminal via Login.",
+          description: "This email is already in our system. Please try logging in instead.",
           variant: "destructive",
         });
       } else {
