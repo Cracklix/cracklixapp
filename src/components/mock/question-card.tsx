@@ -1,9 +1,9 @@
-
 'use client';
 
 import { cn } from "@/lib/utils";
 import { Bookmark, Target, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, arrayUnion } from "firebase/firestore";
