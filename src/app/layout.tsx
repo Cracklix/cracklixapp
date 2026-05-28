@@ -1,9 +1,9 @@
-
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { LocaleProvider } from '@/app/lib/i18n-context';
 import { Toaster } from '@/components/ui/toaster';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -23,19 +23,6 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'CRACKLIX',
   },
-  openGraph: {
-    title: 'CRACKLIX | High-Performance Learning Ecosystem',
-    description: 'Elevate your prep with AI-powered coaching and Punjab-specific simulations.',
-    url: 'https://cracklix.in',
-    siteName: 'CRACKLIX',
-    locale: 'en_IN',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'CRACKLIX | AI Punjab Exam Mastery',
-    description: 'Master Punjab Govt Exams with the elite AI performance ecosystem.',
-  },
 };
 
 export default function RootLayout({
@@ -49,16 +36,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-body antialiased bg-background text-foreground min-h-screen">
-        <AuthProvider>
-          <LocaleProvider>
-            {children}
-            <Toaster />
-          </LocaleProvider>
-        </AuthProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
+            <LocaleProvider>
+              {children}
+              <Toaster />
+            </LocaleProvider>
+          </AuthProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

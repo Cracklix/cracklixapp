@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -14,62 +13,35 @@
         "streak": { "type": "number" },
         "coins": { "type": "number" },
         "referralCode": { "type": "string" },
-        "referredBy": { "type": "string" },
-        "state": { "type": "string", "description": "User's target state for exams." },
-        "targetExam": { "type": "string", "description": "Primary exam category (SSC, UPSC, etc.)" },
+        "targetExam": { "type": "string" },
         "createdAt": { "type": "number" }
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "JobAlert": {
-      "title": "Job Alert",
-      "description": "National and State government vacancy notification.",
+    "MockTest": {
+      "title": "Mock Test",
+      "description": "CBT simulation structure.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "department": { "type": "string" },
-        "postCount": { "type": "number" },
-        "lastDate": { "type": "number" },
-        "applyUrl": { "type": "string" },
-        "category": { "type": "string" },
-        "location": { "type": "string", "description": "State or Central" },
-        "status": { "type": "string", "enum": ["active", "closed"] }
-      }
-    },
-    "Referral": {
-      "title": "Referral Record",
-      "description": "Tracks successful invites and commissions.",
-      "type": "object",
-      "properties": {
-        "referrerId": { "type": "string" },
-        "referredId": { "type": "string" },
-        "rewardClaimed": { "type": "boolean" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "SupportTicket": {
-      "title": "Support Ticket",
-      "description": "User help requests.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "subject": { "type": "string" },
-        "message": { "type": "string" },
-        "status": { "type": "string", "enum": ["open", "resolved"] },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "RankPrediction": {
-      "title": "AI Rank Prediction",
-      "description": "AI-generated prediction of student success.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
         "exam": { "type": "string" },
-        "probability": { "type": "number" },
-        "predictedRank": { "type": "string" },
-        "weakAreas": { "type": "array", "items": { "type": "string" } },
-        "updatedAt": { "type": "number" }
+        "duration": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "premium": { "type": "boolean" }
+      }
+    },
+    "DailyTarget": {
+      "title": "Daily Target",
+      "description": "Student daily goals tracking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "questionsGoal": { "type": "number" },
+        "questionsCompleted": { "type": "number" },
+        "mockGoal": { "type": "number" },
+        "mockCompleted": { "type": "number" },
+        "studyMinutesGoal": { "type": "number" },
+        "studyMinutesCompleted": { "type": "number" }
       }
     }
   },
@@ -79,27 +51,15 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Global user profiles."
+      "description": "User profiles and settings."
     },
-    "/jobAlerts/{alertId}": {
-      "schema": "JobAlert",
-      "description": "National vacancy updates."
+    "/mocks/{mockId}": {
+      "schema": "MockTest",
+      "description": "Test definitions."
     },
-    "/referrals/{id}": {
-      "schema": "Referral",
-      "description": "Viral loop tracking."
-    },
-    "/supportTickets/{id}": {
-      "schema": "SupportTicket",
-      "description": "Customer support logs."
-    },
-    "/rankPredictions/{userId}": {
-      "schema": "RankPrediction",
-      "description": "AI Rank Insight data."
-    },
-    "/systemMetrics/global": {
-      "schema": "object",
-      "description": "SaaS level platform metrics."
+    "/dailyTargets/{userId}": {
+      "schema": "DailyTarget",
+      "description": "Goal tracking per user."
     }
   }
 }
