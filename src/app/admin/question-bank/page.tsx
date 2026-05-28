@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { collection, query, limit, getDocs, where, deleteDoc, doc, updateDoc, writeBatch, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import AdminSidebar from '@/components/admin/sidebar';
@@ -329,7 +329,7 @@ function QuestionBankContent() {
                                     <p className="text-xl font-bold leading-relaxed">{q.en?.question}</p>
                                     <div className="grid gap-3">
                                        {q.en?.options.map((opt, i) => (
-                                         <div key={i} className={cn("p-4 rounded-2xl text-sm border", opt === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/40 border-white/5 text-zinc-500")}>
+                                         <div key={i} className={cn("p-4 rounded-2xl text-sm border", opt === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500")}>
                                             {String.fromCharCode(65+i)}. {opt}
                                          </div>
                                        ))}
@@ -398,7 +398,7 @@ function QuestionBankContent() {
                    <>
                      <TabsContent value="en" className="m-0 space-y-8">
                         <div className="space-y-3">
-                           <Label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Question Narrative (EN)</Label>
+                           <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">Question Narrative (EN)</label>
                            <Textarea 
                              value={editingQuestion.en.question} 
                              onChange={e => setEditingQuestion({...editingQuestion, en: {...editingQuestion.en, question: e.target.value}})}
@@ -408,7 +408,7 @@ function QuestionBankContent() {
                         <div className="grid md:grid-cols-2 gap-6">
                            {editingQuestion.en.options.map((opt, i) => (
                              <div key={i} className="space-y-2">
-                                <Label className="text-[9px] font-black text-zinc-600 uppercase px-2">Option {String.fromCharCode(65+i)}</Label>
+                                <label className="text-[9px] font-black text-zinc-600 uppercase px-2">Option {String.fromCharCode(65+i)}</label>
                                 <Input 
                                   value={opt} 
                                   onChange={e => {
@@ -422,7 +422,7 @@ function QuestionBankContent() {
                            ))}
                         </div>
                         <div className="space-y-3">
-                           <Label className="text-[10px] font-black uppercase text-zinc-500 px-2">Logical Explanation (EN)</Label>
+                           <label className="text-[10px] font-black uppercase text-zinc-500 px-2">Logical Explanation (EN)</label>
                            <Textarea 
                              value={editingQuestion.en.explanation} 
                              onChange={e => setEditingQuestion({...editingQuestion, en: {...editingQuestion.en, explanation: e.target.value}})}
@@ -433,7 +433,7 @@ function QuestionBankContent() {
 
                      <TabsContent value="pa" className="m-0 space-y-8">
                         <div className="space-y-3">
-                           <Label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">ਪ੍ਰਸ਼ਨ (Raavi Punjabi)</Label>
+                           <label className="text-[10px] font-black uppercase text-zinc-500 px-2 tracking-widest">ਪ੍ਰਸ਼ਨ (Raavi Punjabi)</label>
                            <Textarea 
                              value={editingQuestion.pa?.question} 
                              onChange={e => setEditingQuestion({...editingQuestion, pa: {...editingQuestion.pa!, question: e.target.value}})}
@@ -443,7 +443,7 @@ function QuestionBankContent() {
                         <div className="grid md:grid-cols-2 gap-6">
                            {[0,1,2,3].map((i) => (
                              <div key={i} className="space-y-2">
-                                <Label className="text-[9px] font-black text-zinc-600 uppercase px-2">ਵਿਕਲਪ {i+1}</Label>
+                                <label className="text-[9px] font-black text-zinc-600 uppercase px-2">ਵਿਕਲਪ {i+1}</label>
                                 <Input 
                                   value={editingQuestion.pa?.options[i] || ''} 
                                   onChange={e => {
@@ -461,15 +461,15 @@ function QuestionBankContent() {
                      <TabsContent value="meta" className="m-0 space-y-10">
                         <div className="grid md:grid-cols-3 gap-8">
                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black text-zinc-500 uppercase px-2">Correct Answer</Label>
+                              <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Correct Answer</label>
                               <Input 
                                 value={editingQuestion.correctAnswer} 
                                 onChange={e => setEditingQuestion({...editingQuestion, correctAnswer: e.target.value})}
-                                className="h-14 bg-emerald-600/10 border-emerald-600/20 text-emerald-500 font-black rounded-2xl"
+                                className="h-14 bg-emerald-600/10 border-emerald-500/20 text-emerald-500 font-black rounded-2xl"
                               />
                            </div>
                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black text-zinc-500 uppercase px-2">Classification</Label>
+                              <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Classification</label>
                               <Select value={editingQuestion.subject} onValueChange={(v: any) => setEditingQuestion({...editingQuestion, subject: v})}>
                                  <SelectTrigger className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
                                  <SelectContent className="bg-zinc-950 border-white/10 text-white">
@@ -478,7 +478,7 @@ function QuestionBankContent() {
                               </Select>
                            </div>
                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black text-zinc-500 uppercase px-2">Complexity</Label>
+                              <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Complexity</label>
                               <Select value={editingQuestion.difficulty} onValueChange={(v: any) => setEditingQuestion({...editingQuestion, difficulty: v})}>
                                  <SelectTrigger className="h-14 bg-zinc-900/50 border-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
                                  <SelectContent className="bg-zinc-950 border-white/10 text-white">
@@ -491,7 +491,7 @@ function QuestionBankContent() {
                         </div>
                         <div className="grid md:grid-cols-2 gap-8">
                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black text-zinc-500 uppercase px-2">Exam Targeting</Label>
+                              <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Exam Targeting</label>
                               <Input 
                                 value={editingQuestion.exam} 
                                 onChange={e => setEditingQuestion({...editingQuestion, exam: e.target.value})}
@@ -499,7 +499,7 @@ function QuestionBankContent() {
                               />
                            </div>
                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black text-zinc-500 uppercase px-2">Year Cycle</Label>
+                              <label className="text-[10px] font-black text-zinc-500 uppercase px-2">Year Cycle</label>
                               <Input 
                                 type="number"
                                 value={editingQuestion.year} 
