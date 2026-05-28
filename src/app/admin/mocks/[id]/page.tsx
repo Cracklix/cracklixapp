@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, use } from "react";
@@ -19,7 +20,11 @@ import {
   FileText,
   Clock,
   Filter,
-  LayoutGrid
+  LayoutGrid,
+  Languages,
+  Sparkles,
+  Eye,
+  List
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +48,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 /**
  * PRODUCTION MOCK COMMAND CENTER
- * Fully functional editor for simulations, linked questions, and access policies.
+ * Enhanced for high-fidelity bilingual question management.
  */
 export default function MockEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -61,6 +66,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
   const [bankLoading, setBankLoading] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
   const [bankSubject, setBankSubject] = useState("All");
+  const [viewMode, setViewMode] = useState<'compact' | 'full'>('full');
 
   useEffect(() => {
     async function load() {
@@ -177,7 +183,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
           </header>
 
           <div className="flex-1 overflow-hidden flex">
-             <Tabs defaultValue="metadata" className="flex-1 flex overflow-hidden">
+             <Tabs defaultValue="questions" className="flex-1 flex overflow-hidden">
                 <aside className="w-72 border-r border-white/5 p-6 flex flex-col gap-2 shrink-0 bg-zinc-950/40">
                    <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em] px-4 mb-6">Operations Matrix</p>
                    <TabsList className="flex flex-col bg-transparent h-auto items-stretch gap-2">
@@ -197,7 +203,7 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                 </aside>
 
                 <div className="flex-1 overflow-y-auto no-scrollbar p-12 bg-[#050816]">
-                   <div className="max-w-5xl mx-auto">
+                   <div className="max-w-6xl mx-auto">
                       <TabsContent value="metadata" className="space-y-12 mt-0 animate-in fade-in slide-in-from-bottom-4">
                          <div className="space-y-1">
                             <h3 className="text-3xl font-black tracking-tighter uppercase">Identity & Duration</h3>
@@ -244,39 +250,122 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                       </TabsContent>
 
                       <TabsContent value="questions" className="space-y-12 mt-0 animate-in fade-in slide-in-from-bottom-4">
-                         <div className="flex justify-between items-end">
+                         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                             <div className="space-y-1">
-                               <h3 className="text-3xl font-black tracking-tighter uppercase">Payload Management</h3>
-                               <p className="text-zinc-500 text-sm font-medium">{questions.length} Artifacts currently linked to this CBT engine.</p>
+                               <h3 className="text-4xl font-black tracking-tighter uppercase">Payload Management</h3>
+                               <p className="text-zinc-500 text-sm font-medium">Verify bilingual integrity and artifact mapping.</p>
                             </div>
-                            <Badge className="bg-emerald-600 text-white font-black text-[10px] uppercase px-6 py-2 rounded-xl shadow-xl">
-                               Payload: {questions.length} Artifacts
-                            </Badge>
+                            <div className="flex items-center gap-4">
+                               <div className="bg-zinc-900 border border-white/5 p-1 rounded-xl flex">
+                                  <Button 
+                                    variant={viewMode === 'compact' ? 'secondary' : 'ghost'} 
+                                    size="sm" 
+                                    className="rounded-lg px-4 h-9 text-[10px] font-bold uppercase"
+                                    onClick={() => setViewMode('compact')}
+                                  >
+                                     <List className="w-3.5 h-3.5 mr-2" /> Compact
+                                  </Button>
+                                  <Button 
+                                    variant={viewMode === 'full' ? 'secondary' : 'ghost'} 
+                                    size="sm" 
+                                    className="rounded-lg px-4 h-9 text-[10px] font-bold uppercase"
+                                    onClick={() => setViewMode('full')}
+                                  >
+                                     <Eye className="w-3.5 h-3.5 mr-2" /> Full Preview
+                                  </Button>
+                               </div>
+                               <Badge className="bg-emerald-600 text-white font-black text-[10px] uppercase px-6 py-2 h-11 rounded-xl shadow-xl">
+                                  Payload: {questions.length} Artifacts
+                               </Badge>
+                            </div>
                          </div>
 
                          <div className="grid lg:grid-cols-12 gap-12">
-                            <div className="lg:col-span-7 space-y-4">
+                            <div className="lg:col-span-8 space-y-6">
                                {questions.length > 0 ? (
                                  questions.map((q, i) => (
-                                   <Card key={q.id} className="rounded-3xl bg-zinc-900/40 border-white/5 p-6 group hover:border-white/10 transition-all">
-                                      <div className="flex items-center justify-between">
-                                         <div className="flex gap-5">
-                                            <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center font-black text-[10px] text-zinc-500 shrink-0">
-                                               {i + 1}
-                                            </div>
-                                            <div>
-                                               <p className="text-sm font-bold text-white line-clamp-1">{q.question_en}</p>
-                                               <div className="flex items-center gap-3 mt-1.5">
-                                                  <Badge variant="outline" className="text-[7px] border-white/10 text-zinc-600 font-black uppercase px-2">{q.subject}</Badge>
-                                                  <span className="text-[8px] text-zinc-700 font-bold uppercase tracking-widest">{q.difficulty}</span>
-                                               </div>
-                                            </div>
-                                         </div>
-                                         <Button variant="ghost" size="icon" className="rounded-xl text-zinc-700 hover:text-red-500 hover:bg-red-500/10" onClick={() => toggleQuestion(q)}>
-                                            <Trash2 size={18} />
-                                         </Button>
-                                      </div>
-                                   </Card>
+                                   viewMode === 'full' ? (
+                                    <Card key={q.id} className="rounded-[40px] bg-zinc-900/60 border-white/5 overflow-hidden group hover:border-primary/30 transition-all duration-300">
+                                       <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                          <div className="flex items-center gap-4">
+                                             <div className="w-10 h-10 rounded-2xl bg-zinc-800 flex items-center justify-center font-black text-xs text-zinc-500 shadow-inner">
+                                                {i + 1}
+                                             </div>
+                                             <Badge variant="outline" className="text-[9px] font-black uppercase text-zinc-500 border-white/10 px-3">{q.subject}</Badge>
+                                             <Badge variant="outline" className={cn("text-[9px] font-black uppercase border-white/10 px-3", q.difficulty === 'hard' ? 'text-red-500' : q.difficulty === 'medium' ? 'text-orange-500' : 'text-emerald-500')}>{q.difficulty}</Badge>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                             <Button variant="ghost" size="icon" className="rounded-xl text-zinc-700 hover:text-red-500 hover:bg-red-500/10" onClick={() => toggleQuestion(q)}>
+                                                <Trash2 size={20} />
+                                             </Button>
+                                          </div>
+                                       </div>
+                                       <div className="p-10 space-y-10">
+                                          <div className="grid md:grid-cols-2 gap-16">
+                                             <div className="space-y-6">
+                                                <div className="flex items-center gap-2">
+                                                   <Languages className="text-blue-500 w-3.5 h-3.5" />
+                                                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">English Payload</span>
+                                                </div>
+                                                <p className="font-bold text-xl text-white leading-relaxed">{q.question_en}</p>
+                                                <div className="grid gap-2.5">
+                                                   {q.options_en.map((opt, idx) => (
+                                                      <div key={idx} className={cn("p-4 rounded-2xl text-sm border transition-all", opt === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/40 border-white/5 text-zinc-500")}>
+                                                         <span className="text-[10px] font-black mr-3 opacity-50">{String.fromCharCode(65+idx)}</span>
+                                                         {opt}
+                                                      </div>
+                                                   ))}
+                                                </div>
+                                             </div>
+                                             <div className="space-y-6 border-l border-white/5 pl-16">
+                                                <div className="flex items-center gap-2">
+                                                   <Languages className="text-orange-500 w-3.5 h-3.5" />
+                                                   <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Punjabi Raavi Signal</span>
+                                                </div>
+                                                <p className="font-medium text-xl text-zinc-300 leading-relaxed">{q.question_pa || "Signal Missing"}</p>
+                                                <div className="grid gap-2.5">
+                                                   {q.options_pa?.map((opt, idx) => (
+                                                      <div key={idx} className="p-4 rounded-2xl text-sm bg-black/40 border border-white/5 text-zinc-400">
+                                                         <span className="text-[10px] font-black mr-3 opacity-50">{idx + 1}</span>
+                                                         {opt}
+                                                      </div>
+                                                   )) || [1,2,3,4].map(x => <div key={x} className="h-12 rounded-2xl border border-dashed border-white/5 bg-transparent" />)}
+                                                </div>
+                                             </div>
+                                          </div>
+                                          
+                                          {(q.explanation_en || q.explanation_pa) && (
+                                             <div className="p-8 rounded-[32px] bg-white/[0.01] border border-white/5 space-y-4">
+                                                <p className="text-[10px] font-black uppercase text-zinc-600 tracking-widest flex items-center gap-2">
+                                                   <Sparkles size={14} className="text-primary animate-pulse" /> Rationalization Engine
+                                                </p>
+                                                {q.explanation_en && <p className="text-sm text-zinc-400 leading-relaxed font-medium">{q.explanation_en}</p>}
+                                                {q.explanation_pa && <p className="text-xs text-zinc-500 leading-relaxed italic border-t border-white/5 pt-4">{q.explanation_pa}</p>}
+                                             </div>
+                                          )}
+                                       </div>
+                                    </Card>
+                                   ) : (
+                                    <Card key={q.id} className="rounded-3xl bg-zinc-900/40 border-white/5 p-6 group hover:border-white/10 transition-all">
+                                       <div className="flex items-center justify-between">
+                                          <div className="flex gap-5">
+                                             <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center font-black text-[10px] text-zinc-500 shrink-0">
+                                                {i + 1}
+                                             </div>
+                                             <div>
+                                                <p className="text-sm font-bold text-white line-clamp-1">{q.question_en}</p>
+                                                <div className="flex items-center gap-3 mt-1.5">
+                                                   <Badge variant="outline" className="text-[7px] border-white/10 text-zinc-600 font-black uppercase px-2">{q.subject}</Badge>
+                                                   <span className="text-[8px] text-zinc-700 font-bold uppercase tracking-widest">{q.difficulty}</span>
+                                                </div>
+                                             </div>
+                                          </div>
+                                          <Button variant="ghost" size="icon" className="rounded-xl text-zinc-700 hover:text-red-500 hover:bg-red-500/10" onClick={() => toggleQuestion(q)}>
+                                             <Trash2 size={18} />
+                                          </Button>
+                                       </div>
+                                    </Card>
+                                   )
                                  ))
                                ) : (
                                  <div className="py-32 text-center rounded-[48px] border-2 border-dashed border-white/5 bg-zinc-950/20">
@@ -287,13 +376,17 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                )}
                             </div>
 
-                            <div className="lg:col-span-5">
-                               <div className="bg-zinc-900/60 rounded-[40px] border border-white/5 overflow-hidden flex flex-col h-[650px] sticky top-12">
-                                  <div className="p-8 border-b border-white/5 space-y-6">
+                            <div className="lg:col-span-4">
+                               <div className="bg-zinc-900/60 rounded-[40px] border border-white/5 overflow-hidden flex flex-col h-[800px] sticky top-8 shadow-2xl">
+                                  <div className="p-8 border-b border-white/5 space-y-6 bg-zinc-950/40">
+                                     <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500">Atomic Bank</h4>
+                                        <Badge variant="outline" className="text-[8px] border-emerald-500/20 text-emerald-500 font-black uppercase">Live Sync</Badge>
+                                     </div>
                                      <div className="relative">
                                         <Search className="absolute left-4 top-3.5 w-4 h-4 text-zinc-600" />
                                         <Input 
-                                          placeholder="Find artifacts..." 
+                                          placeholder="Search artifacts..." 
                                           value={bankSearch}
                                           onChange={e => setBankSearch(e.target.value)}
                                           className="pl-12 h-12 bg-black/40 border-white/5 rounded-2xl text-[10px] font-bold uppercase tracking-widest"
@@ -320,16 +413,20 @@ export default function MockEditorPage({ params }: { params: Promise<{ id: strin
                                          <div 
                                            key={q.id} 
                                            className={cn(
-                                             "p-5 rounded-2xl border transition-all cursor-pointer group",
+                                             "p-5 rounded-3xl border transition-all cursor-pointer group relative overflow-hidden",
                                              isUsed ? "bg-primary/10 border-primary/20" : "bg-black/30 border-white/5 hover:border-white/20"
                                            )}
                                            onClick={() => toggleQuestion(q)}
                                          >
+                                            {isUsed && <div className="absolute top-0 right-0 p-1 bg-primary text-white rounded-bl-xl"><CheckCircle2 size={10} /></div>}
                                             <div className="flex items-center justify-between mb-2">
                                                <Badge variant="outline" className="text-[7px] font-black uppercase border-white/10 text-zinc-600 px-2">{q.subject}</Badge>
-                                               {isUsed ? <CheckCircle2 size={12} className="text-primary" /> : <Plus size={12} className="text-zinc-800 group-hover:text-white" />}
+                                               {!isUsed && <Plus size={12} className="text-zinc-800 group-hover:text-white" />}
                                             </div>
                                             <p className="text-[11px] font-bold text-zinc-400 group-hover:text-zinc-100 line-clamp-2 leading-relaxed">{q.question_en}</p>
+                                            <div className="mt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                               <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">{q.difficulty}</span>
+                                            </div>
                                          </div>
                                        );
                                      })}
