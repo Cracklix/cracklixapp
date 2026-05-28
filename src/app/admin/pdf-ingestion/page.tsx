@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -34,6 +33,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjsLib from 'pdfjs-dist';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -224,41 +224,41 @@ export default function UniversalPdfIngestion() {
     <AdminProtect>
       <div className="flex bg-black min-h-screen">
         <AdminSidebar />
-        <main className="flex-1 p-10 overflow-y-auto no-scrollbar">
+        <main className="flex-1 p-4 md:p-10 overflow-y-auto no-scrollbar">
           <div className="max-w-7xl mx-auto space-y-12">
             <header className="flex justify-between items-end">
                <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-[28px] bg-primary/20 flex items-center justify-center shadow-lg blue-glow">
-                       <Layers className="text-primary w-7 h-7" />
+                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-[20px] md:rounded-[28px] bg-primary/20 flex items-center justify-center shadow-lg blue-glow">
+                       <Layers className="text-primary w-5 h-5 md:w-7 md:h-7" />
                     </div>
-                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Enterprise Ingestion</h1>
+                    <h1 className="font-headline text-3xl md:text-5xl font-black tracking-tighter uppercase leading-none">Enterprise Ingestion</h1>
                   </div>
-                  <p className="text-zinc-500 font-medium ml-1">Chunk-based pipeline for 500+ question documents and multi-subject books.</p>
+                  <p className="text-zinc-500 font-medium ml-1 text-sm md:text-base">Chunk-based pipeline for 500+ question documents and multi-subject books.</p>
                </div>
             </header>
 
             {step === 'idle' && (
               <div className="grid lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-8">
-                  <Card className="rounded-[64px] bg-zinc-900/40 border-white/5 p-24 flex flex-col items-center justify-center text-center border-dashed border-2 relative overflow-hidden group min-h-[600px]">
+                  <Card className="rounded-[40px] md:rounded-[64px] bg-zinc-900/40 border-white/5 p-12 md:p-24 flex flex-col items-center justify-center text-center border-dashed border-2 relative overflow-hidden group min-h-[500px] md:min-h-[600px]">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                    <div className="w-32 h-32 rounded-[48px] bg-primary/10 flex items-center justify-center mb-10 transition-transform group-hover:scale-110">
-                        <FileUp className="text-primary w-14 h-14" />
+                    <div className="w-20 h-20 md:w-32 md:h-32 rounded-[32px] md:rounded-[48px] bg-primary/10 flex items-center justify-center mb-6 md:mb-10 transition-transform group-hover:scale-110">
+                        <FileUp className="text-primary w-10 h-10 md:w-14 md:h-14" />
                     </div>
-                    <h2 className="text-5xl font-black mb-6 uppercase tracking-tighter">Initialize Signal</h2>
-                    <p className="text-zinc-500 max-w-lg mb-16 text-xl leading-relaxed">Upload full-length Punjab mock papers or preparation books. Our engine chunks every page to prevent data loss and ensure 100% extraction.</p>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4 md:mb-6 uppercase tracking-tighter">Initialize Signal</h2>
+                    <p className="text-zinc-500 max-w-lg mb-10 md:mb-16 text-sm md:text-xl leading-relaxed">Upload full-length Punjab mock papers or preparation books. Our engine chunks every page to prevent data loss and ensure 100% extraction.</p>
                     
-                    <div className="flex flex-col items-center gap-8 w-full max-w-lg">
-                        <label className="w-full cursor-pointer p-10 rounded-[32px] bg-zinc-800/40 border border-white/5 flex items-center justify-center gap-6 font-bold hover:bg-zinc-800 transition-all text-lg">
+                    <div className="flex flex-col items-center gap-6 md:gap-8 w-full max-w-lg">
+                        <label className="w-full cursor-pointer p-6 md:p-8 rounded-[24px] md:rounded-[32px] bg-zinc-800/40 border border-white/5 flex items-center justify-center gap-4 md:gap-6 font-bold hover:bg-zinc-800 transition-all text-base md:text-lg">
                           <input type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
-                          <LayoutGrid className="text-zinc-500 w-6 h-6" />
-                          {file ? file.name : "Select Enterprise PDF"}
+                          <LayoutGrid className="text-zinc-500 w-5 h-5 md:w-6 md:h-6" />
+                          <span className="truncate">{file ? file.name : "Select Enterprise PDF"}</span>
                         </label>
                         <Button 
                           disabled={!file || loading} 
                           onClick={executeEnterprisePipeline}
-                          className="w-full h-24 rounded-[32px] bg-primary hover:bg-primary/90 text-3xl font-black shadow-2xl transition-transform active:scale-95 blue-glow"
+                          className="w-full min-h-[80px] h-auto p-6 md:p-8 rounded-[24px] md:rounded-[32px] bg-primary hover:bg-primary/90 text-xl md:text-3xl font-black shadow-2xl transition-transform active:scale-95 blue-glow whitespace-normal break-words leading-tight"
                         >
                           Launch Multi-Page Process
                         </Button>
@@ -267,7 +267,7 @@ export default function UniversalPdfIngestion() {
                 </div>
 
                 <div className="lg:col-span-4 space-y-8">
-                  <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-10 h-full flex flex-col">
+                  <Card className="rounded-[40px] md:rounded-[48px] bg-zinc-900/40 border-white/5 p-10 h-full flex flex-col">
                     <h3 className="text-xs font-black uppercase text-zinc-500 tracking-widest mb-10 flex items-center gap-2">
                        <Clock className="w-4 h-4" /> Ingestion Telemetry
                     </h3>
