@@ -7,6 +7,7 @@ import AdminProtect from '@/components/admin/admin-protect';
 import { generateBilingualBatch } from '@/ai/flows/ai-mock-generator-flow';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { 
   BrainCircuit, 
@@ -454,3 +455,4 @@ export default function NeuralForgePage() {
     </AdminProtect>
   );
 }
+
