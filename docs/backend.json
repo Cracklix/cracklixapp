@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -8,7 +9,7 @@
         "uid": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string" },
-        "role": { "type": "string", "enum": ["student", "admin", "superadmin"] },
+        "role": { "type": "string", "enum": ["student", "admin", "superadmin", "creator"] },
         "xp": { "type": "number" },
         "streak": { "type": "number" },
         "level": { "type": "number" },
@@ -18,6 +19,51 @@
         "createdAt": { "type": "number" }
       },
       "required": ["uid", "name", "email", "role"]
+    },
+    "Product": {
+      "title": "Marketplace Product",
+      "description": "A study resource for sale (PDF, Notes, etc.)",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "downloads": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "Order": {
+      "title": "Marketplace Order",
+      "description": "Record of a product purchase.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productTitle": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "paid", "failed"] },
+        "paymentId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "CreatorEarning": {
+      "title": "Creator Earning Record",
+      "description": "Revenue tracking for creators.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string" },
+        "totalRevenue": { "type": "number" },
+        "withdrawn": { "type": "number" },
+        "pendingBalance": { "type": "number" },
+        "salesCount": { "type": "number" }
+      }
     },
     "DailyTarget": {
       "title": "Daily Target",
@@ -117,6 +163,18 @@
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "Student profiles."
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Study materials for sale."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Purchase records."
+    },
+    "/creatorEarnings/{userId}": {
+      "schema": "CreatorEarning",
+      "description": "Earnings tracking."
     },
     "/dailyTargets/{userId}": {
       "schema": "DailyTarget",

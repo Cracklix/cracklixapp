@@ -15,7 +15,9 @@ import {
   Menu,
   Bell,
   Search,
-  Radio
+  Radio,
+  ShoppingBag,
+  Palette
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -54,11 +56,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-background">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary w-6 h-6 fill-current" />
-        </div>
+      <div className="h-screen w-screen flex items-center justify-center bg-background text-white">
+         <div className="text-center space-y-4">
+           <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 animate-pulse">Establishing Secure Stream</p>
+         </div>
       </div>
     );
   }
@@ -66,9 +68,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/live', icon: Radio, label: 'Live Classes' },
-    { href: '/exams', icon: BookOpen, label: 'Exams' },
+    { href: '/exams', icon: BookOpen, label: 'Mocks' },
+    { href: '/marketplace', icon: ShoppingBag, label: 'Marketplace' },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { href: '/coach', icon: BrainCircuit, label: 'AI Coach' },
+    { href: '/creator', icon: Palette, label: 'Creator Panel' },
   ];
 
   return (
