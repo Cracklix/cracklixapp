@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 /**
  * PRODUCTION CBT ENGINE v17.0 (CRACKLIX ADVANCED)
@@ -136,8 +137,7 @@ export default function AdvancedCBTPlayer() {
 
   const syncToCloud = async () => {
     if (!attempt?.id) return;
-    // Implementation for bulk sync or individual save based on specific needs
-    // For now, we save individual answers on click for maximum reliability
+    // Implementation for bulk sync
   };
 
   const handleOptionSelect = (option: string) => {
@@ -185,7 +185,6 @@ export default function AdvancedCBTPlayer() {
     if (!user || !attempt?.id || !mock) return;
     setIsSubmitting(true);
     try {
-      // Map answers back to array format for legacy analytics compatibility if needed
       const answersMap: Record<number, any> = {};
       questions.forEach((q, idx) => {
         if (answers[q.id]) answersMap[idx] = answers[q.id];
@@ -226,7 +225,6 @@ export default function AdvancedCBTPlayer() {
 
   return (
     <div className="h-screen bg-[#F1F5F9] flex flex-col overflow-hidden font-body select-none">
-       {/* CBT TOP HEADER */}
        <header className="h-[64px] px-4 md:px-8 bg-[#1E293B] text-white flex items-center justify-between shrink-0 z-50 shadow-2xl">
           <div className="flex items-center gap-6">
              <div className="flex items-center gap-3">
@@ -237,7 +235,6 @@ export default function AdvancedCBTPlayer() {
                 </div>
              </div>
              
-             {/* Section Tabs */}
              <div className="hidden lg:flex gap-1 ml-4 overflow-hidden rounded-lg bg-black/20 p-1">
                 {mock?.sections?.map(s => (
                    <button 
@@ -304,7 +301,6 @@ export default function AdvancedCBTPlayer() {
        </header>
 
        <div className="flex-1 flex overflow-hidden">
-          {/* MAIN TEST INTERFACE */}
           <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-white relative">
              <div className="max-w-7xl mx-auto">
                 <AnimatePresence mode="wait">
@@ -329,10 +325,7 @@ export default function AdvancedCBTPlayer() {
                         <div className="w-20 h-20 rounded-full bg-orange-500/10 flex items-center justify-center animate-pulse">
                            <Pause className="text-orange-500 w-8 h-8" />
                         </div>
-                        <div>
-                           <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900">SIMULATION PAUSED</h3>
-                           <p className="text-slate-500 max-w-sm mx-auto mt-2">Your timer and responses are securely locked in the cloud buffer.</p>
-                        </div>
+                        <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900">SIMULATION PAUSED</h3>
                         <Button onClick={togglePause} size="lg" className="h-16 px-12 rounded-2xl bg-primary text-xl font-black blue-glow">RESUME NOW</Button>
                      </div>
                    ) : null}
@@ -340,17 +333,12 @@ export default function AdvancedCBTPlayer() {
              </div>
           </main>
 
-          {/* RIGHT SIDEBAR PALETTE (Testbook Style) */}
           <aside className="w-[360px] bg-slate-50 border-l border-slate-200 hidden lg:flex flex-col shrink-0">
              <div className="p-6 border-b border-slate-200 bg-white flex items-center gap-4">
-                <div className="relative">
-                   <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary/20">
-                      <img src={`https://picsum.photos/seed/${user?.uid}/100`} alt="Candidate" />
-                   </div>
-                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center">
-                      <ShieldCheck size={10} className="text-white" />
-                   </div>
-                </div>
+                <Avatar className="h-12 w-12 border-2 border-primary/20">
+                   <AvatarImage src={`https://picsum.photos/seed/${user?.uid}/100`} alt="Candidate" />
+                   <AvatarFallback className="bg-zinc-800 text-white font-black text-xs">{profile?.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
                 <div>
                    <p className="text-[11px] font-black uppercase text-slate-900 leading-none">{profile?.name}</p>
                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">ID: {user?.uid.substring(0,10)}</p>
@@ -358,7 +346,6 @@ export default function AdvancedCBTPlayer() {
              </div>
 
              <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
-                {/* Stats Summary */}
                 <div className="grid grid-cols-2 gap-3">
                    <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl text-center">
                       <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Answered</p>
@@ -371,11 +358,7 @@ export default function AdvancedCBTPlayer() {
                 </div>
 
                 <div className="space-y-4">
-                   <div className="flex items-center justify-between">
-                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">Item Matrix</h4>
-                      <Badge variant="outline" className="text-[8px] border-slate-200 text-slate-400 uppercase px-2">SECTION A</Badge>
-                   </div>
-                   
+                   <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">Item Matrix</h4>
                    <div className="grid grid-cols-5 gap-2.5">
                       {questions.map((q, i) => {
                         const ans = answers[q.id];
@@ -413,7 +396,6 @@ export default function AdvancedCBTPlayer() {
           </aside>
        </div>
 
-       {/* STICKY BOTTOM ACTIONS */}
        <footer className="h-[80px] px-4 md:px-12 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
           <div className="flex gap-3">
              <Button variant="outline" onClick={handleMarkForReview} className="h-12 px-6 md:px-10 rounded-2xl font-black text-[10px] uppercase tracking-widest border-slate-200 hover:bg-slate-50">MARK FOR REVIEW</Button>
@@ -441,15 +423,11 @@ export default function AdvancedCBTPlayer() {
 
        <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
          <DialogContent className="bg-white text-slate-900 max-w-md rounded-[48px] p-10 overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none"><ShieldCheck size={200} /></div>
             <DialogHeader className="text-center space-y-6 relative z-10">
                <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center mx-auto shadow-inner">
                   <ShieldCheck className="text-emerald-500 w-10 h-10" />
                </div>
-               <div className="space-y-2">
-                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter">Submit Test?</DialogTitle>
-                  <DialogDescription className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Performance Audit Initializing</DialogDescription>
-               </div>
+               <DialogTitle className="text-3xl font-black uppercase tracking-tighter">Submit Test?</DialogTitle>
             </DialogHeader>
 
             <div className="grid grid-cols-2 gap-4 my-10 relative z-10">
