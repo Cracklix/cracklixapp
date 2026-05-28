@@ -23,7 +23,7 @@
     --border: 222 47% 14%;
     --input: 222 47% 14%;
     --ring: 221 83% 53%;
-    --radius: 1rem;
+    --radius: 0.75rem;
   }
 }
 
@@ -35,51 +35,37 @@
     @apply bg-background text-foreground selection:bg-primary/30;
     font-feature-settings: "rlig" 1, "calt" 1;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(221, 83%, 53%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(199, 89%, 60%, 0.03) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(221, 83%, 53%, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(199, 89%, 60%, 0.02) 0px, transparent 50%);
   }
 }
 
-/* Institutional Exam Typography */
+/* Institutional Exam Typography - Enterprise Scaled */
 .question-en {
-  font-size: 30px;
-  line-height: 1.5;
-  @apply font-bold text-zinc-100;
+  font-size: 1.35rem; /* ~22px scaled from 30px */
+  line-height: 1.4;
+  @apply font-bold text-slate-800 tracking-tight;
 }
 
 .question-pa {
-  font-size: 30px;
-  line-height: 1.5;
+  font-size: 1.35rem;
+  line-height: 1.4;
   font-weight: 500;
-  @apply text-zinc-400 italic;
+  @apply text-slate-500 italic font-body;
 }
 
 @media (max-width: 768px) {
   .question-en, .question-pa {
-    font-size: 22px;
+    font-size: 1.15rem;
   }
 }
 
 .cracklix-glass {
-  @apply bg-white/[0.02] backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
+  @apply bg-white/[0.02] backdrop-blur-xl border border-white/5 shadow-[0_4px_24px_0_rgba(0,0,0,0.3)];
 }
 
 .blue-glow {
-  box-shadow: 0 0 30px -5px rgba(37, 99, 235, 0.3);
-}
-
-.cyan-glow {
-  box-shadow: 0 0 30px -5px rgba(56, 189, 248, 0.2);
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+  box-shadow: 0 0 20px -5px rgba(37, 99, 235, 0.25);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -88,4 +74,9 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* 0-Scroll Layout Utilities */
+.cbt-workspace {
+  height: calc(100vh - 140px); /* 65px header + 75px footer */
 }
