@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -89,7 +90,7 @@ export default function MockFactoryPage() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
   const [manualSubject, setManualSubject] = useState("All");
   const [manualSearch, setManualSearch] = useState("");
-  const [usageFilter, setUsageFilter] = useState("All");
+  const [usageFilter, setUsageFilter] = useState("Unused");
 
   // Sectional/Chapter State
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -127,9 +128,9 @@ export default function MockFactoryPage() {
   async function loadBankForPicker() {
     setBankLoading(true);
     try {
-      let q = query(collection(db, "questions"), where("status", "==", "published"), limit(200));
+      let q = query(collection(db, "questions"), where("status", "==", "published"), limit(500));
       if (manualSubject !== "All") {
-        q = query(collection(db, "questions"), where("status", "==", "published"), where("subject", "==", manualSubject), limit(200));
+        q = query(collection(db, "questions"), where("status", "==", "published"), where("subject", "==", manualSubject), limit(500));
       }
       const snap = await getDocs(q);
       setBankQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Question)));
@@ -146,7 +147,6 @@ export default function MockFactoryPage() {
       const data = await getAllMocks();
       setMocks(data);
       
-      // Load stats for each published mock
       const statsMap: any = {};
       for (const m of data) {
         if (m.status === 'published' || m.status === 'live') {
@@ -240,6 +240,7 @@ export default function MockFactoryPage() {
       }
       toast({ title: "Registry Updated", description: `Simulation moved to ${nextStatus.toUpperCase()}.` });
       loadRegistry();
+      loadBankForPicker(); // Refresh usage badges
     } catch (e) {
       toast({ title: "Update Failed", variant: "destructive" });
     }
@@ -266,7 +267,11 @@ export default function MockFactoryPage() {
     }
   }
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: string, isUsed: boolean) => {
+    if (isUsed) {
+      toast({ title: "Artifact Quarantined", description: "This question is already in a live mock.", variant: "destructive" });
+      return;
+    }
     const next = new Set(selectedQuestionIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -275,9 +280,13 @@ export default function MockFactoryPage() {
 
   const selectAllVisible = () => {
     const next = new Set(selectedQuestionIds);
-    filteredBank.forEach(q => next.add(q.id));
+    filteredBank.forEach(q => {
+      if ((q.usageCount || 0) === 0) {
+        next.add(q.id);
+      }
+    });
     setSelectedQuestionIds(next);
-    toast({ title: "Batch Selected", description: `${filteredBank.length} artifacts staged.` });
+    toast({ title: "Batch Staged", description: `${next.size} unused artifacts now in payload.` });
   };
 
   const clearSelection = () => {
@@ -311,8 +320,8 @@ export default function MockFactoryPage() {
 
   const getUsageBadge = (q: Question) => {
     const count = q.usageCount || 0;
-    if (count > 0) return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[8px] uppercase font-black">USED {count}X</Badge>;
-    return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] uppercase font-black">UNUSED</Badge>;
+    if (count > 0) return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[8px] uppercase font-black px-2">USED</Badge>;
+    return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] uppercase font-black px-2">UNUSED</Badge>;
   };
 
   return (
@@ -329,7 +338,7 @@ export default function MockFactoryPage() {
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
                 </div>
-                <p className="text-zinc-500 font-medium ml-1">Forge server-synced CBT environments using AI Blueprints or Manual Selection.</p>
+                <p className="text-zinc-500 font-medium ml-1">Forge server-synced CBT environments with strict duplicate prevention.</p>
               </div>
             </header>
 
@@ -390,13 +399,13 @@ export default function MockFactoryPage() {
                                     </SelectContent>
                                 </Select>
                                 <Select value={usageFilter} onValueChange={setUsageFilter}>
-                                    <SelectTrigger className="w-full md:w-32 h-11 bg-zinc-900 border-white/5 rounded-xl">
+                                    <SelectTrigger className="w-full md:w-36 h-11 bg-zinc-900 border-white/5 rounded-xl">
                                       <SelectValue placeholder="Usage" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-950 text-white">
-                                      <SelectItem value="All">Usage: All</SelectItem>
-                                      <SelectItem value="Unused">Unused Only</SelectItem>
-                                      <SelectItem value="Used">Used Only</SelectItem>
+                                      <SelectItem value="Unused">Filter: Unused</SelectItem>
+                                      <SelectItem value="Used">Filter: Used</SelectItem>
+                                      <SelectItem value="All">Filter: All</SelectItem>
                                     </SelectContent>
                                 </Select>
                              </div>
@@ -404,14 +413,14 @@ export default function MockFactoryPage() {
 
                           <div className="flex items-center justify-between px-4">
                              <div className="flex gap-4">
-                                <Button variant="ghost" size="sm" onClick={selectAllVisible} className="h-8 rounded-lg text-primary font-black text-[9px] uppercase tracking-widest hover:bg-primary/10">
-                                   Select All Visible
+                                <Button variant="ghost" size="sm" onClick={selectAllVisible} className="h-8 rounded-lg text-primary font-black text-[9px] uppercase tracking-widest hover:bg-primary/10 border border-primary/20">
+                                   Select All Unused
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={clearSelection} className="h-8 rounded-lg text-zinc-500 font-black text-[9px] uppercase tracking-widest hover:bg-white/5">
                                    Clear All
                                 </Button>
                              </div>
-                             <p className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.2em]">{filteredBank.length} Results in Current Filter</p>
+                             <p className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.2em]">{filteredBank.length} Signal Artifacts</p>
                           </div>
 
                           <div className="bg-black/40 rounded-[32px] border border-white/5 max-h-[500px] overflow-y-auto no-scrollbar overflow-x-auto">
@@ -419,7 +428,7 @@ export default function MockFactoryPage() {
                                 <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10 text-[9px] font-black uppercase text-zinc-500 tracking-widest">
                                    <tr>
                                       <th className="px-6 py-4">#</th>
-                                      <th className="px-6 py-4">Status</th>
+                                      <th className="px-6 py-4">Usage Guard</th>
                                       <th className="px-6 py-4">Subject</th>
                                       <th className="px-6 py-4">Question Narrative</th>
                                       <th className="px-6 py-4 text-right">Select</th>
@@ -428,34 +437,43 @@ export default function MockFactoryPage() {
                                 <tbody className="divide-y divide-white/5">
                                    {bankLoading ? (
                                       <tr><td colSpan={5} className="p-20 text-center animate-pulse italic text-zinc-600">Scanning Production Bank...</td></tr>
-                                   ) : filteredBank.length > 0 ? filteredBank.map((q, i) => (
-                                      <tr 
-                                        key={q.id} 
-                                        onClick={() => toggleSelect(q.id)}
-                                        className={cn("hover:bg-white/[0.02] cursor-pointer transition-colors group", selectedQuestionIds.has(q.id) && "bg-primary/5")}
-                                      >
-                                         <td className="px-6 py-4 text-xs font-bold text-zinc-600">{i+1}</td>
-                                         <td className="px-6 py-4">
-                                            {getUsageBadge(q)}
-                                         </td>
-                                         <td className="px-6 py-4">
-                                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[8px] font-black uppercase">{q.subject}</Badge>
-                                         </td>
-                                         <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-white line-clamp-1 break-words">{q.question_en}</p>
-                                            <p className="text-[10px] text-zinc-600 font-medium line-clamp-1 italic break-words">{q.question_pa}</p>
-                                         </td>
-                                         <td className="px-6 py-4 text-right">
-                                            <div className={cn(
-                                               "w-6 h-6 rounded-lg border flex items-center justify-center ml-auto transition-all",
-                                               selectedQuestionIds.has(q.id) ? "bg-primary border-primary shadow-lg shadow-primary/20" : "border-white/10"
-                                            )}>
-                                               {selectedQuestionIds.has(q.id) && <Check size={14} className="text-white" strokeWidth={4} />}
-                                            </div>
-                                         </td>
-                                      </tr>
-                                   )) : (
-                                      <tr><td colSpan={5} className="p-20 text-center opacity-30 italic">No artifacts found in this sector.</td></tr>
+                                   ) : filteredBank.length > 0 ? filteredBank.map((q, i) => {
+                                      const isUsed = (q.usageCount || 0) > 0;
+                                      return (
+                                        <tr 
+                                          key={q.id} 
+                                          onClick={() => toggleSelect(q.id, isUsed)}
+                                          className={cn(
+                                            "hover:bg-white/[0.02] cursor-pointer transition-colors group", 
+                                            selectedQuestionIds.has(q.id) && "bg-primary/5",
+                                            isUsed && "opacity-60 grayscale cursor-not-allowed"
+                                          )}
+                                        >
+                                           <td className="px-6 py-4 text-xs font-bold text-zinc-600">{i+1}</td>
+                                           <td className="px-6 py-4">
+                                              {getUsageBadge(q)}
+                                           </td>
+                                           <td className="px-6 py-4">
+                                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[8px] font-black uppercase">{q.subject}</Badge>
+                                           </td>
+                                           <td className="px-6 py-4">
+                                              <p className="text-sm font-bold text-white line-clamp-1 break-words">{q.question_en}</p>
+                                              <p className="text-[10px] text-zinc-600 font-medium line-clamp-1 italic break-words">{q.question_pa}</p>
+                                           </td>
+                                           <td className="px-6 py-4 text-right">
+                                              <div className={cn(
+                                                 "w-6 h-6 rounded-lg border flex items-center justify-center ml-auto transition-all",
+                                                 selectedQuestionIds.has(q.id) ? "bg-primary border-primary shadow-lg shadow-primary/20" : "border-white/10",
+                                                 isUsed && "bg-zinc-800 border-transparent"
+                                              )}>
+                                                 {selectedQuestionIds.has(q.id) && <Check size={14} className="text-white" strokeWidth={4} />}
+                                                 {isUsed && <XCircle size={14} className="text-zinc-600" />}
+                                              </div>
+                                           </td>
+                                        </tr>
+                                      );
+                                   }) : (
+                                      <tr><td colSpan={5} className="p-20 text-center opacity-30 italic">No available artifacts found in this sector.</td></tr>
                                    )}
                                 </tbody>
                              </table>
@@ -467,14 +485,14 @@ export default function MockFactoryPage() {
                                    <ListPlus className="text-white w-5 h-5" />
                                 </div>
                                 <div>
-                                   <p className="text-xs font-black text-primary uppercase">Manual Selection Active</p>
-                                   <p className="text-lg font-black text-white">{selectedQuestionIds.size} Artifacts Staged</p>
+                                   <p className="text-xs font-black text-primary uppercase">Manual Staging Active</p>
+                                   <p className="text-lg font-black text-white">{selectedQuestionIds.size} Unique Artifacts</p>
                                 </div>
                              </div>
                              <div className="flex gap-4 w-full md:w-auto">
                                 <Button variant="outline" onClick={clearSelection} className="h-14 flex-1 md:flex-none px-8 rounded-2xl border-white/10 font-bold hover:bg-destructive/10 hover:text-destructive">Discard</Button>
                                 <Button onClick={handleManualMock} disabled={loading || selectedQuestionIds.size === 0} className="h-14 flex-1 md:flex-none px-10 rounded-2xl bg-primary hover:bg-primary/90 font-black text-sm uppercase tracking-widest blue-glow">
-                                    {loading ? <Loader2 className="animate-spin mr-2" /> : "Initialize Manual Mock"}
+                                    {loading ? <Loader2 className="animate-spin mr-2" /> : "Initialize Unique Mock"}
                                 </Button>
                              </div>
                           </div>
@@ -509,13 +527,13 @@ export default function MockFactoryPage() {
                                       </Select>
                                    </div>
                                    <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-2">
-                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Source Protocol</p>
-                                      <p className="text-sm font-bold text-white uppercase">Atomic Bank + PYQ</p>
+                                      <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Duplicate Guard</p>
+                                      <p className="text-sm font-bold text-emerald-500 uppercase flex items-center gap-2"><Check size={12} /> Active</p>
                                    </div>
                                 </div>
                                 <Button onClick={() => handleGenerate('full')} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl">
                                    {loading ? <Loader2 className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
-                                   Forge Full Mock
+                                   Forge Unique Full Mock
                                 </Button>
                              </TabsContent>
 

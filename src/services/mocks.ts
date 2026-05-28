@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -38,23 +39,24 @@ export async function generateAutoMock(params: {
 }) {
   const bankRef = collection(db, "questions");
   
-  // Build query based on mode
+  // Build query based on mode, prioritising UNUSED questions
   let baseQuery = query(
     bankRef,
     where("status", "==", "published"),
-    limit(params.count * 2) // Fetch a pool to randomize from
+    where("usageCount", "==", 0), // Default to unused for AI auto-gen
+    limit(params.count * 3) 
   );
 
   if (params.type === 'sectional' && params.subject) {
-    baseQuery = query(bankRef, where("status", "==", "published"), where("subject", "==", params.subject), limit(params.count));
+    baseQuery = query(bankRef, where("status", "==", "published"), where("usageCount", "==", 0), where("subject", "==", params.subject), limit(params.count * 2));
   } else if (params.type === 'chapter' && params.topic) {
-    baseQuery = query(bankRef, where("status", "==", "published"), where("topic", "==", params.topic), limit(params.count));
+    baseQuery = query(bankRef, where("status", "==", "published"), where("usageCount", "==", 0), where("topic", "==", params.topic), limit(params.count * 2));
   }
 
   const snap = await getDocs(baseQuery);
   let questionsPool = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  // Difficulty Filter logic (simplified for index safety)
+  // Difficulty Filter logic
   if (params.difficulty !== 'mixed') {
     questionsPool = questionsPool.filter((q: any) => q.difficulty === params.difficulty);
   }
@@ -65,7 +67,7 @@ export async function generateAutoMock(params: {
     .slice(0, params.count)
     .map((q: any) => q.id);
 
-  if (selectedIds.length === 0) throw new Error(`Not enough questions in bank for ${params.topic || params.subject || 'Full Mock'}.`);
+  if (selectedIds.length === 0) throw new Error(`Insufficient UNUSED questions in bank for this blueprint.`);
 
   const mockData = {
     title: params.title,
@@ -158,14 +160,13 @@ export async function publishMock(mockId: string) {
     publishedAt: Date.now()
   });
 
-  // 2. Increment usage metrics for all questions in this mock
+  // 2. Increment usage metrics and update lifecycle status for all questions
   questionIds.forEach((qId: string) => {
     const qRef = doc(db, 'questions', qId);
     batch.update(qRef, {
       usageCount: increment(1),
       lastUsedAt: Date.now(),
-      lastMockId: mockId,
-      usedInMocks: increment(1) // Assuming field as arrayUnion in prod, here simplified for schema
+      lastMockId: mockId
     });
   });
 
@@ -183,7 +184,7 @@ export async function getMockAnalytics(mockId: string) {
   
   if (attempts.length === 0) return null;
 
-  const totalScore = attempts.reduce((acc, curr) => acc + (curr.score || 0), 0);
+  const totalScore = attempts.reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const totalAccuracy = attempts.reduce((acc, curr) => acc + (curr.accuracy || 0), 0);
 
   return {
