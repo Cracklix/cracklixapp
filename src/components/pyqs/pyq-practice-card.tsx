@@ -76,14 +76,16 @@ export default function PYQPracticeCard({ question, mode, index }: PYQPracticeCa
            <div className="text-xl md:text-2xl font-bold leading-relaxed text-zinc-100">
               {question.question_en}
            </div>
-           <div className="text-2xl md:text-3xl font-medium leading-relaxed text-zinc-500 border-l-4 border-orange-500/10 pl-6 italic">
-              {question.question_pa}
-           </div>
+           {question.question_pa && (
+             <div className="text-2xl md:text-3xl font-medium leading-relaxed text-zinc-500 border-l-4 border-orange-500/10 pl-6 italic">
+                {question.question_pa}
+             </div>
+           )}
         </div>
 
         {/* OPTION MATRIX */}
         <div className="grid grid-cols-1 gap-3 pt-6 border-t border-white/[0.03]">
-           {question.options_en.map((opt, i) => {
+           {(question.options_en || []).map((opt, i) => {
               const letter = String.fromCharCode(65 + i);
               const isSelected = selected === letter;
               const isCorrectOpt = letter === question.correctAnswer;
@@ -112,7 +114,9 @@ export default function PYQPracticeCard({ question, mode, index }: PYQPracticeCa
                    </div>
                    <div className="space-y-2 pt-1.5 flex-1">
                       <p className="font-bold text-base leading-none">{opt}</p>
-                      <p className="text-sm font-medium leading-none opacity-50 italic">{question.options_pa[i]}</p>
+                      {question.options_pa?.[i] && (
+                        <p className="text-sm font-medium leading-none opacity-50 italic">{question.options_pa[i]}</p>
+                      )}
                    </div>
                    {selected && isCorrectOpt && <ShieldCheck size={20} className="text-emerald-500 absolute right-6 top-6" />}
                 </button>
