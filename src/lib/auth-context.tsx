@@ -6,13 +6,14 @@ import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
-interface UserProfile {
+export interface UserProfile {
   uid: string;
   email: string;
   name: string;
   xp: number;
   streak: number;
   role: 'student' | 'admin';
+  createdAt: number;
   lastActive?: any;
 }
 
@@ -36,36 +37,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        
+        // Use onSnapshot for real-time profile updates
+        const unsubProfile = onSnapshot(userDocRef, async (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile(docSnap.data() as UserProfile);
+            setLoading(false);
+          } else {
+            // This case handles external signup where doc might not exist yet
+            // but usually handled by the signup page logic itself.
+            setLoading(false);
+          }
+        });
 
-        if (!userDoc.exists()) {
-          const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email || '',
-            name: user.displayName || 'Student',
-            xp: 0,
-            streak: 0,
-            role: 'student',
-          };
-          await setDoc(userDocRef, newProfile);
-          setProfile(newProfile);
-        } else {
-          // Sync profile in real-time
-          const unsubProfile = onSnapshot(userDocRef, (doc) => {
-            if (doc.exists()) {
-              setProfile(doc.data() as UserProfile);
-            }
-          });
-          return () => unsubProfile();
-        }
+        return () => unsubProfile();
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribeAuth();
