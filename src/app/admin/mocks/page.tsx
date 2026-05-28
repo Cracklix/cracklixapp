@@ -8,7 +8,7 @@ import {
   Trash2, Edit3, Copy, PlayCircle, Lock, Unlock, 
   Database, BarChart3, ShieldCheck, CheckCircle2,
   Filter, ChevronRight, MoreVertical, RefreshCw,
-  Clock, Target, AlertCircle
+  Clock, Target, AlertCircle, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +100,7 @@ export default function SimulationFactoryPage() {
                {[
                  { label: "Total Artifacts", val: mocks.length, icon: Database, color: "text-blue-500", bg: "bg-blue-500/10" },
                  { label: "Live Productions", val: mocks.filter(m => m.status === 'published').length, icon: PlayCircle, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                 { label: "Staging Area", val: mocks.filter(m => m.status === 'draft').length, icon: Layers, color: "text-orange-500", bg: "bg-orange-500/10" },
+                 { label: "Staging Area", val: mocks.filter(m => m.status === 'draft').length, icon: LayersIcon, color: "text-orange-500", bg: "bg-orange-500/10" },
                  { label: "Attempt Volume", val: mocks.reduce((acc, m) => acc + (m.attemptCount || 0), 0), icon: BarChart3, color: "text-primary", bg: "bg-primary/10" },
                ].map((kpi, i) => (
                  <div key={i} className="p-6 rounded-[32px] bg-zinc-900/40 border border-white/5 space-y-4 group hover:bg-zinc-900 transition-all">
@@ -248,8 +248,7 @@ export default function SimulationFactoryPage() {
   );
 }
 
-// Simple Layers icon
-function Layers(props: any) {
+function LayersIcon(props: any) {
   return (
     <svg
       {...props}
