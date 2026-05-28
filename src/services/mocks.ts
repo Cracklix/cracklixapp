@@ -15,14 +15,15 @@ import {
   writeBatch,
   setDoc,
   onSnapshot,
-  where
+  where,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { MockTest, Question, AttemptAnswer, ExamAttempt, PassTier } from '@/types';
 
 /**
- * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v17.0)
- * Optimized for sectional navigation, real-time sync, and pause functionality.
+ * PRODUCTION SERVICE: Simulation Factory & CBT Registry (Enterprise Grade v18.0)
+ * Optimized for sectional navigation, real-time sync, and Testbook-style flow.
  */
 
 export async function getAllMocks(): Promise<MockTest[]> {
@@ -54,7 +55,7 @@ export async function publishMock(mockId: string, publish: boolean) {
   const ref = doc(db, 'mocks', mockId);
   return updateDoc(ref, { 
     status: publish ? 'published' : 'draft',
-    publishedAt: publish ? Date.now() : null,
+    publishedAt: Date.now(),
     updatedAt: Date.now() 
   });
 }
@@ -68,7 +69,7 @@ export async function updateMockAccess(mockId: string, accessType: PassTier) {
 }
 
 /**
- * CBT SESSION LIFECYCLE PORT
+ * CBT SESSION LIFECYCLE
  */
 
 export async function getOngoingAttempt(userId: string, mockId: string): Promise<ExamAttempt | null> {
@@ -116,7 +117,6 @@ export async function pauseAttempt(attemptId: string, remainingTime: number) {
 
 export async function saveAnswer(attemptId: string, questionId: string, answer: AttemptAnswer) {
   const ref = doc(db, 'attempts', attemptId);
-  // We store answers keyed by questionId for fast retrieval and merge
   return updateDoc(ref, {
     [`answers.${questionId}`]: {
       ...answer,
@@ -134,14 +134,12 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
     ...analytics
   });
 
-  // Dynamic Progression Port
   const xpGain = Math.max(20, Math.round(analytics.score || 0));
   await updateDoc(doc(db, 'users', userId), {
     xp: increment(xpGain),
     streak: increment(1)
   });
 
-  // State Merit Sync
   await setDoc(doc(db, 'leaderboards', userId), {
     userId,
     xp: increment(xpGain),
@@ -152,7 +150,7 @@ export async function finalizeAttempt(userId: string, attemptId: string, analyti
 }
 
 /**
- * ARTIFACT CALIBRATION (Admin)
+ * ARTIFACTS
  */
 
 export async function getMockQuestions(mockId: string): Promise<Question[]> {
@@ -160,7 +158,6 @@ export async function getMockQuestions(mockId: string): Promise<Question[]> {
   const snap = await getDocs(colRef);
   
   if (snap.empty) {
-    console.warn(`[MockService] Artifact registry empty for ${mockId}`);
     return [];
   }
 

@@ -1,6 +1,6 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v17.0 (Testbook Standard)
+ * Production-grade Architecture Layer v18.0 (Enterprise Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
@@ -74,8 +74,9 @@ export interface ExamSection {
   name: string;
   order: number;
   questionIds: string[];
-  timeLimitMinutes?: number; // Optional sectional timing
+  timeLimitMinutes?: number;
   isLocked?: boolean;
+  hasNegativeMarking?: boolean;
 }
 
 export interface MockTest {
@@ -84,7 +85,7 @@ export interface MockTest {
   title: string;
   exam: string;
   category: 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
-  duration: number; // Total duration in minutes
+  duration: number; 
   totalQuestions: number;
   negativeMarking: number;
   accessType: PassTier;
@@ -93,13 +94,14 @@ export interface MockTest {
   pausable: boolean;
   createdAt: number;
   attemptCount?: number;
+  examMode?: 'PSSSB' | 'CTET' | 'PPSC';
 }
 
 export interface AttemptAnswer {
   questionId: string;
   selectedOption: string | string[] | number | null;
   status: QuestionStatus;
-  timeSpent: number; // Seconds spent on this question
+  timeSpent: number; 
   lastUpdated: number;
 }
 
@@ -111,10 +113,10 @@ export interface ExamAttempt {
   status: 'ongoing' | 'paused' | 'completed';
   startedAt: number;
   completedAt?: number;
-  remainingTime: number; // Seconds remaining
+  remainingTime: number; 
   currentQuestionIndex: number;
   currentSectionId: string;
-  answers: Record<string, AttemptAnswer>; // Keyed by questionId
+  answers: Record<string, AttemptAnswer>; 
   deviceInfo: string;
   suspiciousActivityCount: number;
 }
@@ -130,6 +132,7 @@ export interface TestSeries {
   price: number;
   passRequired: PassTier;
   isActive: boolean;
-  sections: string[]; // List of subject tabs
+  sections: string[]; 
   createdAt: number;
+  languages: string[];
 }
