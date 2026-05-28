@@ -1,0 +1,6 @@
+import Tesseract from "tesseract.js";
+
+export async function extractText(image: File) {
+  const result = await Tesseract.recognize(image, "eng");
+  return result.data.text;
+}
