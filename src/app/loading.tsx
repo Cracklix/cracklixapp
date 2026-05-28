@@ -21,13 +21,18 @@ export default function Loading() {
         <Zap className="text-white w-12 h-12 fill-current" />
       </motion.div>
       
-      <div className="space-y-2 text-center">
+      <div className="space-y-3 text-center">
         <h2 className="text-3xl font-black font-headline tracking-tighter text-white">
           CRACKLIX
         </h2>
-        <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.3em] animate-pulse">
-          Initializing Engine
-        </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">
+            Initializing Engine
+          </p>
+          <p className="text-primary/40 text-[8px] font-bold uppercase tracking-[0.4em]">
+            Infrastructure by Arsh Grewal
+          </p>
+        </div>
       </div>
     </div>
   );

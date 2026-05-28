@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import Navbar from '@/components/navbar';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Check, Zap, Crown, Loader2, Star, ShieldCheck, ShieldAlert, BookOpen, Activity } from 'lucide-react';
+import { Check, Zap, Crown, Loader2, Star, ShieldCheck, ShieldAlert, BookOpen, Activity, Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Script from 'next/script';
 import { motion } from 'framer-motion';
@@ -41,13 +40,11 @@ export default function PassPage() {
 
     setLoading(plan.id);
     try {
-      // 1. Fetch Dynamic Public Key from DB
       const config = await getPublicPaymentConfig();
       if (!config || !config.enabled) {
         throw new Error("Payment system is currently under maintenance.");
       }
 
-      // 2. Create Razorpay Order via API
       const orderRes = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,7 +54,6 @@ export default function PassPage() {
       const order = await orderRes.json();
       if (order.error) throw new Error(order.error);
 
-      // 3. Launch Checkout
       const options = {
         key: config.keyId,
         amount: order.amount,
@@ -121,7 +117,7 @@ export default function PassPage() {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-zinc-900 border border-white/5 shadow-2xl"
           >
-            <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1">NEW</Badge>
+            <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1">ELITE</Badge>
             <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest">Master Punjab Exams with PASS+</span>
           </motion.div>
 
@@ -129,9 +125,13 @@ export default function PassPage() {
             UNLIMITED <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-accent">DOMINANCE.</span>
           </h1>
           
-          <p className="text-xl text-zinc-500 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-zinc-500 max-w-2xl mx-auto leading-relaxed font-medium">
             One PASS to unlock 500+ Mocks, AI Performance Coaching, and Daily State Rankings for all Punjab Government Exams.
           </p>
+          
+          <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-primary/60">
+             <span>Infrastructure by Arsh Grewal</span>
+          </div>
         </div>
 
         {/* Feature Matrix Cards */}
@@ -154,10 +154,10 @@ export default function PassPage() {
         {/* Pricing Grid */}
         <div className="space-y-12">
            <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-white/5 pb-10">
-              <h2 className="text-4xl font-black tracking-tight">Select your access tier</h2>
+              <h2 className="text-4xl font-black tracking-tight uppercase">Select your access tier</h2>
               <div className="flex items-center gap-4 text-xs font-black uppercase tracking-widest text-zinc-500">
                  <span className="flex items-center gap-2"><Check className="text-emerald-500 w-4 h-4" /> Trusted by 15k+</span>
-                 <span className="flex items-center gap-2"><Check className="text-emerald-500 w-4 h-4" /> Secure Payment</span>
+                 <span className="flex items-center gap-2"><Check className="text-emerald-500 w-4 h-4" /> Secure Gateway</span>
               </div>
            </div>
 
@@ -234,10 +234,10 @@ export default function PassPage() {
            )}
         </div>
 
-        {/* Security / FAQ */}
+        {/* Security / Founder Quote */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center border-t border-white/5 pt-20">
            <div className="space-y-8">
-              <h2 className="text-4xl font-black leading-tight tracking-tight">Engineered for<br /><span className="text-zinc-600">Punjab Excellence.</span></h2>
+              <h2 className="text-4xl font-black leading-tight tracking-tighter uppercase">Engineered for<br /><span className="text-zinc-600">Punjab Excellence.</span></h2>
               <div className="space-y-6">
                  <div className="flex gap-6 items-start">
                     <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center shrink-0 border border-white/5">
@@ -250,11 +250,11 @@ export default function PassPage() {
                  </div>
                  <div className="flex gap-6 items-start">
                     <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center shrink-0 border border-white/5">
-                       <ShieldAlert className="text-primary" size={28} />
+                       <Terminal className="text-primary" size={28} />
                     </div>
                     <div>
-                       <h4 className="text-xl font-bold">Instant Activation</h4>
-                       <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">Your preparation environment unlocks the second your payment is verified.</p>
+                       <h4 className="text-xl font-bold">Founder's Commitment</h4>
+                       <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">"PASS+ isn't a bill; it's an investment in your rank. I've curated these tools to give you the exact edge I wish I had." — Arsh Grewal</p>
                     </div>
                  </div>
               </div>
@@ -263,7 +263,7 @@ export default function PassPage() {
            <Card className="rounded-[48px] p-12 cracklix-glass border-white/5 text-center relative overflow-hidden">
               <Star className="text-primary/20 w-32 h-32 absolute -top-10 -right-10 rotate-12" />
               <p className="text-xl text-zinc-400 italic leading-relaxed font-medium relative z-10">
-                "PASS+ is more than a subscription. It's the competitive edge. The AI Tutor alone saved me months of doubt hunting."
+                "CRACKLIX has democratized high-quality prep. The infrastructure built by Arsh Grewal is years ahead of any other state platform."
               </p>
               <div className="mt-8 relative z-10">
                  <p className="text-white font-black uppercase tracking-[0.2em] text-xs">Amrit Singh • Amritsar</p>

@@ -1,13 +1,13 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { subscribeNotifications } from "@/services/notifications";
 import { useAuth } from "@/lib/auth-context";
-import { Bell, Sparkles, Trophy, FileText, Clock } from "lucide-react";
+import { Bell, Sparkles, Trophy, FileText, Clock, ShieldAlert, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export default function NotificationPanel() {
   const { user } = useAuth();
@@ -23,6 +23,7 @@ export default function NotificationPanel() {
     switch (type) {
       case 'achievement': return <Trophy className="w-4 h-4 text-accent" />;
       case 'mock': return <FileText className="w-4 h-4 text-primary" />;
+      case 'founder': return <ShieldAlert className="w-4 h-4 text-primary" />;
       default: return <Sparkles className="w-4 h-4 text-primary" />;
     }
   };
@@ -41,33 +42,65 @@ export default function NotificationPanel() {
         <div className="space-y-4 mt-6">
           <AnimatePresence mode="popLayout">
             {notifications.length > 0 ? (
-              notifications.map((n, i) => (
-                <motion.div
-                  key={n.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="p-4 rounded-2xl bg-secondary/30 border border-white/5 flex gap-4 items-start group hover:bg-secondary/50 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                    {getIcon(n.type)}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-white mb-1">{n.title}</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{n.message}</p>
-                    <div className="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                      <Clock className="w-3 h-3" />
-                      {n.createdAt ? formatDistanceToNow(n.createdAt, { addSuffix: true }) : 'Just now'}
+              notifications.map((n, i) => {
+                const isFounder = n.type === 'founder' || n.fromFounder === true;
+                
+                return (
+                  <motion.div
+                    key={n.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={cn(
+                      "p-4 rounded-2xl border flex gap-4 items-start group transition-all",
+                      isFounder 
+                        ? "bg-primary/10 border-primary/20 shadow-lg shadow-primary/5" 
+                        : "bg-secondary/30 border-white/5 hover:bg-secondary/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform",
+                      isFounder ? "bg-primary text-white" : "bg-zinc-800"
+                    )}>
+                      {getIcon(n.type)}
                     </div>
-                  </div>
-                </motion.div>
-              ))
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-bold text-white">{n.title}</h4>
+                        {isFounder && (
+                          <span className="text-[6px] bg-primary text-white px-1.5 py-0.5 rounded font-black tracking-widest uppercase">FOUNDER</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{n.message}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground uppercase tracking-widest font-bold">
+                          <Clock className="w-3 h-3" />
+                          {n.createdAt ? formatDistanceToNow(n.createdAt, { addSuffix: true }) : 'Just now'}
+                        </div>
+                        {isFounder && (
+                          <p className="text-[8px] font-black text-primary/40 uppercase tracking-widest">— Arsh Grewal</p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
             ) : (
-              <div className="py-12 text-center">
-                <p className="text-sm text-muted-foreground italic">Your inbox is clear for today.</p>
+              <div className="py-12 text-center space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 mx-auto flex items-center justify-center opacity-30">
+                   <Bell className="text-zinc-500 w-5 h-5" />
+                </div>
+                <p className="text-xs text-muted-foreground italic font-medium">Your inbox is clear for today.</p>
               </div>
             )}
           </AnimatePresence>
+        </div>
+        
+        <div className="mt-8 pt-6 border-t border-white/5">
+           <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <Zap className="text-primary w-3 h-3 animate-pulse" />
+              <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Global Signals Sync: 100% Active</p>
+           </div>
         </div>
       </CardContent>
     </Card>

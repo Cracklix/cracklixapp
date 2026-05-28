@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,6 @@ export default function SignupPage() {
     const today = new Date().toISOString().split('T')[0];
     const userRef = doc(db, "users", uid);
     
-    // Normalize and prepare payload
     const profilePayload = {
       uid,
       name: userName.trim() || 'Aspirant',
@@ -38,7 +36,7 @@ export default function SignupPage() {
       role: "student",
       xp: 0,
       streak: 0,
-      coins: 100, // Launch Bonus
+      coins: 100,
       district: "Ludhiana",
       targetExam: "Punjab Police SI",
       referralCode: `CLX-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
@@ -47,12 +45,9 @@ export default function SignupPage() {
       updatedAt: serverTimestamp()
     };
 
-    // 1. Core Profile creation with merge to prevent overwriting if exists
-    // We initiate the write immediately as per guidelines
     setDoc(userRef, profilePayload, { merge: true })
       .catch((err) => console.error("Profile write error:", err));
 
-    // 2. Initialize Operational Sub-collections
     const targetRef = doc(db, "dailyTargets", uid);
     setDoc(targetRef, {
       userId: uid,
@@ -64,15 +59,6 @@ export default function SignupPage() {
       studyMinutesCompleted: 0,
       date: today,
       updatedAt: Date.now()
-    }, { merge: true });
-
-    // 3. AI Usage Initialization
-    const usageRef = doc(db, "aiUsage", `${uid}_${today}`);
-    setDoc(usageRef, {
-      userId: uid,
-      count: 0,
-      date: today,
-      lastUpdated: Date.now()
     }, { merge: true });
   };
 
@@ -86,38 +72,17 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast({ title: "Weak Password", description: "Minimum 6 characters required.", variant: "destructive" });
-      return;
-    }
-    
     setLoading(true);
     try {
-      // Step 1: Create Auth User
       const res = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-      
-      // Step 2: Initialize Firestore Profile (Self-healing merge)
       await initializeUserProfile(res.user.uid, cleanEmail, name);
-      
       toast({ title: "Enrollment Successful", description: "Identity verified. Redirecting to Arena..." });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Signup error:", error);
-      
       if (error.code === 'auth/email-already-in-use') {
-        // Fallback check: If auth user exists but profile was never created, 
-        // we can't "signup" again, they must log in (where auto-repair will kick in)
-        toast({
-          title: "Account Exists",
-          description: "This email is already in our system. Please try logging in instead.",
-          variant: "destructive",
-        });
+        toast({ title: "Account Exists", description: "Please try logging in instead.", variant: "destructive" });
       } else {
-        toast({
-          title: "Enrollment Error",
-          description: error.message || "Protocol failure. Please retry.",
-          variant: "destructive",
-        });
+        toast({ title: "Enrollment Error", description: error.message, variant: "destructive" });
       }
     } finally {
       setLoading(false);
@@ -148,7 +113,7 @@ export default function SignupPage() {
             <Zap className="text-white w-8 h-8 fill-current" />
           </Link>
           <h1 className="font-headline text-4xl font-black tracking-tighter text-white uppercase">Initialize Identity</h1>
-          <p className="text-zinc-500 mt-2 font-medium">Production Protocol v2.5 Synchronized.</p>
+          <p className="text-zinc-500 mt-2 text-xs font-bold uppercase tracking-[0.2em]">Designed & Developed by Arsh Grewal</p>
         </div>
 
         <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
@@ -218,6 +183,10 @@ export default function SignupPage() {
             </p>
           </CardContent>
         </Card>
+        
+        <p className="text-center text-[9px] text-zinc-700 font-black uppercase tracking-[0.4em] mt-10">
+          BUILDING THE FUTURE OF PUNJAB EDTECH
+        </p>
       </motion.div>
     </div>
   );

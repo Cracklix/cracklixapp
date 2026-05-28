@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,10 +13,15 @@ import {
   Zap,
   TrendingUp,
   Globe,
-  Database
+  Database,
+  ShieldCheck,
+  Cpu,
+  RefreshCw,
+  Terminal
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 export default function AdminPage() {
   const [stats, setStats] = useState({
@@ -29,25 +33,21 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Live Users Count
     const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
       setStats(prev => ({ ...prev, users: snap.size }));
     });
 
-    // 2. Live Revenue Calculation
     const unsubPayments = onSnapshot(collection(db, "payments"), (snap) => {
       const total = snap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
       setStats(prev => ({ ...prev, revenue: total }));
     });
 
-    // 3. Live Question Bank Count
     const unsubQuestions = onSnapshot(query(collection(db, "questions"), where("status", "==", "published")), (snap) => {
       setStats(prev => ({ ...prev, questions: snap.size }));
     });
 
-    // 4. Live Active Sessions (Mocking based on activity in last 15 mins)
     const unsubActivity = onSnapshot(query(collection(db, "liveActivity"), where("createdAt", ">", Date.now() - 15 * 60 * 1000)), (snap) => {
-      setStats(prev => ({ ...prev, activeSessions: snap.size + 12 })); // Offset for base traffic
+      setStats(prev => ({ ...prev, activeSessions: snap.size + 12 }));
     });
 
     setLoading(false);
@@ -80,13 +80,13 @@ export default function AdminPage() {
                     <Globe className="w-3 h-3" /> Production Node: Stable
                   </span>
                 </div>
-                <h1 className="font-headline text-5xl font-black tracking-tighter">Command Center</h1>
+                <h1 className="font-headline text-5xl font-black tracking-tighter uppercase">Command Center</h1>
                 <p className="text-zinc-500 mt-2 font-medium">Real-time global oversight for the CRACKLIX ecosystem.</p>
               </div>
               <div className="flex gap-4">
                  <div className="p-4 rounded-3xl bg-zinc-900 border border-white/5 text-right">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Server Latency</p>
-                    <p className="font-mono text-emerald-500 font-bold">24ms</p>
+                    <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">Founder Node</p>
+                    <p className="font-bold text-primary">Arsh Grewal</p>
                  </div>
               </div>
             </header>
@@ -114,8 +114,8 @@ export default function AdminPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-               <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-10 space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+               <Card className="lg:col-span-8 rounded-[48px] bg-zinc-900/40 border-white/5 p-10 space-y-8">
                   <h3 className="text-2xl font-black flex items-center gap-3">
                     <Database className="text-primary w-6 h-6" />
                     Firebase Cluster Health
@@ -138,32 +138,42 @@ export default function AdminPage() {
                   </div>
                </Card>
 
-               <Card className="rounded-[48px] bg-gradient-to-br from-primary/10 via-zinc-950 to-black border-primary/20 p-10 flex flex-col justify-between">
-                  <div className="space-y-4">
-                     <h3 className="text-2xl font-black uppercase tracking-tighter">Live Audit Stream</h3>
-                     <div className="space-y-3">
-                        <p className="text-sm text-zinc-400 leading-relaxed italic">
-                          "System detecting high traffic in #punjab-police community. Pass conversions up by 12% in Ludhiana region."
-                        </p>
-                        <div className="p-4 rounded-2xl bg-black/30 border border-white/5">
-                           <div className="flex justify-between items-center text-[10px] font-black uppercase text-zinc-600 mb-2">
-                              <span>Ingestion Load</span>
-                              <span>Nominal</span>
-                           </div>
-                           <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-primary w-1/3" />
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-                  <div className="pt-8 border-t border-white/5 flex items-center justify-between">
-                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-bold text-emerald-500 uppercase">System Ready</span>
-                     </div>
-                     <Badge className="bg-primary text-white border-none font-black text-[10px]">VERIFIED</Badge>
-                  </div>
-               </Card>
+               <div className="lg:col-span-4 space-y-8">
+                 <Card className="rounded-[48px] bg-gradient-to-br from-primary/10 to-zinc-950 border border-primary/20 p-10 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-5">
+                       <Terminal size={120} />
+                    </div>
+                    <div className="relative z-10 space-y-6">
+                       <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-full border-2 border-primary/40 overflow-hidden shrink-0">
+                             <img src="https://picsum.photos/seed/arsh/100" className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                             <h4 className="font-black text-lg">ARSH GREWAL</h4>
+                             <p className="text-[10px] font-black text-primary uppercase tracking-widest">Platform Founder</p>
+                          </div>
+                       </div>
+                       <div className="space-y-4">
+                          <p className="text-xs text-zinc-400 leading-relaxed italic">
+                             "System integrity is optimal. v4.2 Core is handling concurrent traffic with zero latency spill. Scaling infrastructure for upcoming Police recruitment cycle."
+                          </p>
+                          <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-3">
+                             <div className="flex justify-between items-center text-[9px] font-black uppercase text-zinc-500">
+                                <span>Build Status</span>
+                                <span className="text-emerald-500">Stable</span>
+                             </div>
+                             <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary w-full opacity-80" />
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                    <div className="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+                       <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Sync Rank: Master</span>
+                       <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black">ACTIVE BUILD</Badge>
+                    </div>
+                 </Card>
+               </div>
             </div>
           </div>
         </main>

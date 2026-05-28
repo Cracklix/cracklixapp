@@ -28,7 +28,8 @@ import {
   ShieldCheck,
   Zap,
   ChevronRight,
-  Plus
+  Plus,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,6 +48,8 @@ const CHANNELS = [
   { id: 'clerk-steno', name: 'Clerk / Steno IT', icon: Search, desc: 'Typing & Clerical discussions' },
   { id: 'current-affairs', name: 'Daily News Pulse', icon: Search, desc: 'Analysis & PDF sharing' },
 ];
+
+const FOUNDER_EMAIL = 'arshdeepgrewal1122@gmail.com';
 
 export default function CommunityPage() {
   const { user, profile } = useAuth();
@@ -70,7 +73,6 @@ export default function CommunityPage() {
       setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
       
-      // Auto-scroll to bottom
       setTimeout(() => {
         const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) viewport.scrollTop = viewport.scrollHeight;
@@ -94,13 +96,13 @@ export default function CommunityPage() {
       await addDoc(collection(db, 'community_messages'), {
         channelId: activeChannel.id,
         senderId: user.uid,
+        senderEmail: user.email,
         senderName: profile?.name || 'Aspirant',
         text,
         createdAt: Date.now(),
         role: profile?.role || 'student'
       });
       
-      // Log activity for admin pulse
       await addDoc(collection(db, "liveActivity"), {
         message: `${profile?.name || 'An aspirant'} posted in #${activeChannel.id}`,
         type: 'community',
@@ -169,8 +171,8 @@ export default function CommunityPage() {
                        <Zap className="text-white w-5 h-5 fill-current" />
                     </div>
                     <div>
-                       <p className="text-[10px] font-black text-primary uppercase">Pass Status</p>
-                       <p className="text-xs font-bold text-white">Elite Access</p>
+                       <p className="text-[10px] font-black text-primary uppercase">Infrastructure</p>
+                       <p className="text-xs font-bold text-white">Elite Core v4.2</p>
                     </div>
                  </div>
               </div>
@@ -188,7 +190,7 @@ export default function CommunityPage() {
                     <h2 className="text-xl font-bold tracking-tight">{activeChannel.name}</h2>
                     <div className="flex items-center gap-2">
                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                       <p className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em]">1.2k Aspirants Live • Moderate v2.5</p>
+                       <p className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.2em]">1.2k Aspirants Live • Founded by Arsh Grewal</p>
                     </div>
                  </div>
               </div>
@@ -208,7 +210,8 @@ export default function CommunityPage() {
                  ) : messages.length > 0 ? (
                    messages.map((msg, i) => {
                     const isMe = msg.senderId === user?.uid;
-                    const isAdmin = msg.role === 'admin' || msg.role === 'superadmin';
+                    const isFounder = msg.senderEmail === FOUNDER_EMAIL;
+                    const isAdmin = (msg.role === 'admin' || msg.role === 'superadmin') && !isFounder;
                     
                     return (
                       <motion.div 
@@ -217,15 +220,19 @@ export default function CommunityPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className={cn("flex gap-4", isMe ? "flex-row-reverse" : "flex-row")}
                       >
-                         <Avatar className={cn("w-10 h-10 border shrink-0 shadow-lg", isAdmin ? "border-primary/50" : "border-white/10")}>
+                         <Avatar className={cn("w-10 h-10 border shrink-0 shadow-lg", isFounder ? "border-primary shadow-primary/20 scale-110" : isAdmin ? "border-emerald-500/50" : "border-white/10")}>
                             <AvatarImage src={`https://picsum.photos/seed/${msg.senderId}/100`} />
                             <AvatarFallback className="bg-zinc-800 text-[10px] font-black">{msg.senderName?.charAt(0)}</AvatarFallback>
                          </Avatar>
                          <div className={cn("max-w-[75%] space-y-2", isMe ? "text-right" : "text-left")}>
                             <div className={cn("flex items-center gap-2 px-1", isMe ? "flex-row-reverse" : "flex-row")}>
-                               <p className={cn("text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5", isAdmin ? "text-primary" : "text-zinc-500")}>
+                               <p className={cn(
+                                 "text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5", 
+                                 isFounder ? "text-primary" : isAdmin ? "text-emerald-500" : "text-zinc-500"
+                               )}>
                                  {msg.senderName} 
-                                 {isAdmin && <ShieldCheck size={10} className="fill-current" />}
+                                 {isFounder ? <ShieldAlert size={10} className="fill-current text-primary" /> : isAdmin && <ShieldCheck size={10} className="fill-current" />}
+                                 {isFounder && <span className="text-[6px] bg-primary text-white px-1 py-0.5 rounded ml-1 tracking-[0.2em]">FOUNDER</span>}
                                </p>
                                <span className="text-[9px] text-zinc-700 font-bold uppercase">
                                  {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
@@ -233,11 +240,13 @@ export default function CommunityPage() {
                             </div>
                             <div className={cn(
                               "p-5 rounded-[28px] text-sm leading-relaxed shadow-2xl relative group transition-all",
-                              isMe 
-                                ? "bg-primary text-white rounded-tr-none shadow-primary/10" 
-                                : isAdmin 
-                                  ? "bg-primary/5 border border-primary/20 text-white rounded-tl-none"
-                                  : "bg-white/5 border border-white/5 rounded-tl-none"
+                              isFounder 
+                                ? "bg-primary/10 border border-primary/40 text-white rounded-tl-none shadow-primary/10"
+                                : isMe 
+                                  ? "bg-primary text-white rounded-tr-none shadow-primary/10" 
+                                  : isAdmin 
+                                    ? "bg-emerald-500/5 border border-emerald-500/20 text-white rounded-tl-none"
+                                    : "bg-white/5 border border-white/5 rounded-tl-none"
                             )}>
                                {msg.text}
                                <div className={cn(
@@ -293,7 +302,7 @@ export default function CommunityPage() {
                  <div className="flex items-center gap-4">
                     <span>Identity Verified</span>
                     <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                    <span>Realtime Sync</span>
+                    <span>Founded by Arsh Grewal</span>
                  </div>
                  <button className="hover:text-primary transition-colors flex items-center gap-1.5">
                     <ShieldCheck size={10} /> Community Guidelines

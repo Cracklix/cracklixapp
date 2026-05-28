@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -102,11 +101,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="hidden md:flex bg-zinc-950 border-r border-white/5 flex-col transition-all duration-300"
       >
         <div className="p-6 overflow-y-auto no-scrollbar flex-1">
-          <Link href="/dashboard" className="flex items-center gap-3 mb-10 overflow-hidden">
+          <Link href="/dashboard" className="flex items-center gap-3 mb-10 overflow-hidden group">
             <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center shrink-0 blue-glow">
               <Zap className="text-white w-5 h-5 fill-current" />
             </div>
-            {sidebarOpen && <span className="font-headline text-2xl font-black tracking-tighter">CRACKLIX</span>}
+            {sidebarOpen && (
+              <div className="flex flex-col">
+                <span className="font-headline text-2xl font-black tracking-tighter">CRACKLIX</span>
+                <span className="text-[7px] text-zinc-600 font-black uppercase tracking-[0.4em] leading-none mt-1 group-hover:text-primary transition-colors">Arsh Grewal</span>
+              </div>
+            )}
           </Link>
 
           <nav className="space-y-1">
@@ -145,6 +149,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <LogOut className="w-5 h-5" />
             {sidebarOpen && <span className="font-bold text-sm">Sign Out</span>}
           </button>
+          {sidebarOpen && (
+            <div className="px-4 py-2 border-t border-white/5 mt-4">
+               <p className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-800 text-center">Engineered by Arsh Grewal</p>
+            </div>
+          )}
         </div>
       </motion.aside>
 

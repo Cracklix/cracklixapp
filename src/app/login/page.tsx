@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -26,14 +25,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Auto-Repair Engine: Fixes accounts that exist in Auth but missing in Firestore
   const checkRoleAndRedirect = async (uid: string, userEmail: string) => {
     const userRef = doc(db, "users", uid);
     try {
       const userDoc = await getDoc(userRef);
       
       if (!userDoc.exists()) {
-        console.warn("Broken profile detected for UID:", uid, ". Initiating Auto-Repair...");
         const today = new Date().toISOString().split('T')[0];
         
         await setDoc(userRef, {
@@ -52,7 +49,6 @@ export default function LoginPage() {
           updatedAt: serverTimestamp()
         }, { merge: true });
 
-        // Ensure daily target exists
         await setDoc(doc(db, "dailyTargets", uid), {
           userId: uid,
           questionsGoal: 50,
@@ -66,7 +62,6 @@ export default function LoginPage() {
         }, { merge: true });
       }
 
-      // Re-fetch or use existing data to determine route
       const finalDoc = await getDoc(userRef);
       const data = finalDoc.data();
       
@@ -76,8 +71,7 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      console.error("Profile sync failed:", err);
-      toast({ title: "Sync Error", description: "Could not synchronize identity. Please try again.", variant: "destructive" });
+      toast({ title: "Sync Error", description: "Identity synchronization failed.", variant: "destructive" });
     }
   };
 
@@ -96,9 +90,8 @@ export default function LoginPage() {
       const res = await signInWithEmailAndPassword(auth, cleanEmail, password);
       await checkRoleAndRedirect(res.user.uid, res.user.email!);
     } catch (error: any) {
-      console.error("Login error:", error);
       let msg = "Invalid credentials. Please check your access key.";
-      if (error.code === 'auth/user-not-found') msg = "No account found with this email.";
+      if (error.code === 'auth/user-not-found') msg = "No account found.";
       if (error.code === 'auth/wrong-password') msg = "Incorrect access key.";
       
       toast({
@@ -134,7 +127,7 @@ export default function LoginPage() {
             <Zap className="text-white w-7 h-7 fill-current" />
           </Link>
           <h1 className="font-headline text-3xl font-bold tracking-tight text-white uppercase">CRACKLIX Terminal</h1>
-          <p className="text-zinc-500 mt-2">Access your competitive arena.</p>
+          <p className="text-zinc-500 mt-2 text-xs font-bold uppercase tracking-[0.2em]">Engineered by Arsh Grewal</p>
         </div>
 
         <Card className="rounded-[32px] bg-zinc-900/40 border-white/5 backdrop-blur-xl shadow-2xl">
@@ -202,6 +195,10 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
+        
+        <p className="text-center text-[9px] text-zinc-700 font-black uppercase tracking-[0.4em] mt-10">
+          © 2024 CRACKLIX • AN ARSH GREWAL INITIATIVE
+        </p>
       </motion.div>
     </div>
   );

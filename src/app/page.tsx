@@ -12,7 +12,8 @@ import {
   Flame,
   ShieldCheck,
   Globe,
-  MessageSquare
+  MessageSquare,
+  ShieldAlert
 } from "lucide-react";
 import GlassCard from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +47,10 @@ export default function LandingPage() {
           <div className="w-11 h-11 rounded-[14px] bg-primary flex items-center justify-center blue-glow">
             <Zap className="text-white w-6 h-6 fill-current" />
           </div>
-          <span className="font-headline text-2xl font-black tracking-tighter uppercase">CRACKLIX</span>
+          <div className="flex flex-col">
+            <span className="font-headline text-2xl font-black tracking-tighter uppercase leading-none">CRACKLIX</span>
+            <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.3em] mt-1">by Arsh Grewal</span>
+          </div>
         </div>
         <nav className="hidden lg:flex gap-12 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-500">
           <Link href="#technology" className="hover:text-primary transition-colors">Technology</Link>
@@ -171,6 +175,59 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FOUNDER VISION SECTION */}
+      <section className="container mx-auto max-w-7xl px-6 py-40">
+         <div className="grid lg:grid-cols-2 gap-20 items-center">
+            <div className="space-y-12">
+               <div className="space-y-4">
+                  <Badge variant="outline" className="border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest px-4 py-1.5">Founder's Brief</Badge>
+                  <h2 className="text-5xl font-black tracking-tighter">THE NATIONAL VISION FOR <span className="text-primary">PUNJAB.</span></h2>
+                  <p className="text-xl text-zinc-500 leading-relaxed font-medium">
+                    "Punjab’s talent belongs in the elite ranks of governance. CRACKLIX is more than an app; it's the digital infrastructure I built to ensure every aspirant from Amritsar to Bathinda has access to high-yield intelligence and simulation technology."
+                  </p>
+               </div>
+               <div className="p-10 rounded-[48px] bg-zinc-900/50 border border-white/5 flex gap-8 items-start">
+                  <div className="w-16 h-16 rounded-[24px] bg-primary flex items-center justify-center shrink-0 shadow-2xl">
+                     <ShieldAlert className="text-white w-8 h-8" />
+                  </div>
+                  <div>
+                     <h4 className="text-xl font-bold mb-2">Student-First Philosophy</h4>
+                     <p className="text-sm text-zinc-500 leading-relaxed">
+                        Every feature in the ecosystem—from the AI Coach to the Bilingual Engine—is designed to minimize friction and maximize cognitive retention for competitive exams.
+                     </p>
+                  </div>
+               </div>
+            </div>
+            <div className="relative">
+               <div className="absolute inset-0 bg-primary/5 rounded-[60px] blur-[100px]" />
+               <div className="p-1 px-1 bg-gradient-to-br from-white/10 to-transparent rounded-[60px]">
+                  <div className="bg-[#050816] rounded-[59px] overflow-hidden p-12 space-y-12 border border-white/5">
+                     <div className="flex justify-between items-center">
+                        <div className="w-20 h-20 rounded-full border-4 border-primary/20 overflow-hidden">
+                           <img src="https://picsum.photos/seed/arsh/200" className="w-full h-full object-cover" />
+                        </div>
+                        <Badge className="bg-primary text-white border-none font-black text-[9px] px-3 py-1">VERIFIED FOUNDER</Badge>
+                     </div>
+                     <div className="space-y-2">
+                        <h3 className="text-3xl font-black tracking-tight">ARSH GREWAL</h3>
+                        <p className="text-zinc-500 text-xs font-black uppercase tracking-widest">Architect of CRACKLIX Ecosystem</p>
+                     </div>
+                     <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
+                        <div className="space-y-1">
+                           <p className="text-[10px] font-black text-zinc-600 uppercase">Core Focus</p>
+                           <p className="text-sm font-bold">AI Infrastructure</p>
+                        </div>
+                        <div className="space-y-1">
+                           <p className="text-[10px] font-black text-zinc-600 uppercase">Mission</p>
+                           <p className="text-sm font-bold">State Meritocracy</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+
       {/* FEATURES SECTION */}
       <section id="technology" className="container mx-auto max-w-7xl px-6 py-40 relative">
         <div className="text-center space-y-6 mb-24">
@@ -253,7 +310,10 @@ export default function LandingPage() {
           <div className="col-span-2 space-y-8">
             <div className="flex items-center gap-3">
               <Zap className="text-primary w-8 h-8 fill-current" />
-              <span className="font-headline text-2xl font-black tracking-tighter uppercase">CRACKLIX</span>
+              <div className="flex flex-col">
+                <span className="font-headline text-2xl font-black tracking-tighter uppercase leading-none">CRACKLIX</span>
+                <span className="text-[8px] text-primary font-bold uppercase tracking-[0.4em] mt-1">Infrastructure by Arsh Grewal</span>
+              </div>
             </div>
             <p className="text-zinc-500 max-w-md text-lg leading-relaxed font-medium">The state-of-the-art AI learning ecosystem engineered exclusively for Punjab Government exam excellence.</p>
             <div className="flex gap-4">
@@ -281,8 +341,15 @@ export default function LandingPage() {
             </ul>
           </div>
         </div>
-        <div className="container mx-auto max-w-7xl pt-24 mt-24 border-t border-white/5 text-center text-[10px] font-black uppercase tracking-[0.5em] text-zinc-700">
-          © 2024 CRACKLIX EDTECH ENTERPRISE • ENGINEERED FOR PUNJAB
+        <div className="container mx-auto max-w-7xl pt-24 mt-24 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-700">
+            © 2024 CRACKLIX EDTECH ENTERPRISE • ENGINEERED FOR PUNJAB
+          </div>
+          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+            <span>Founded by Arsh Grewal</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/20" />
+            <span>Built in Punjab</span>
+          </div>
         </div>
       </footer>
     </div>

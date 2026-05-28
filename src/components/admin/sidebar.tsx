@@ -20,7 +20,8 @@ import {
   Settings,
   Rocket,
   FilePlus2,
-  ListFilter
+  ListFilter,
+  Terminal
 } from "lucide-react";
 
 export default function AdminSidebar() {
@@ -46,7 +47,7 @@ export default function AdminSidebar() {
       label: "Asset Factory",
       items: [
         { name: "Atomic Bank", href: "/admin/question-bank", icon: Database },
-        { name: "Moderation Queue", href: "/admin/question-bank?view=drafts", icon: ListFilter },
+        { name: "Moderation Queue", href: "/admin/question-bank?view=draft", icon: ListFilter },
         { name: "Simulation Factory", href: "/admin/mocks", icon: Rocket },
       ]
     },
@@ -70,13 +71,14 @@ export default function AdminSidebar() {
 
   return (
     <div className="w-72 bg-zinc-950 border-r border-white/5 min-h-screen flex flex-col sticky top-0 h-screen overflow-y-auto no-scrollbar pb-10">
-      <div className="p-8 pb-4 flex items-center gap-2 mb-4">
+      <div className="p-8 pb-4 flex items-center gap-2 mb-4 group">
         <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center blue-glow">
           <ShieldCheck className="text-white w-6 h-6" />
         </div>
         <div className="flex flex-col">
           <span className="font-headline text-lg font-bold text-white leading-none">CRACKLIX</span>
-          <span className="text-[10px] text-primary font-black uppercase tracking-widest mt-1 tracking-tighter">Command Center</span>
+          <span className="text-[9px] text-primary font-black uppercase tracking-widest mt-1 tracking-tighter">Command Center</span>
+          <span className="text-[6px] text-zinc-700 font-black uppercase tracking-[0.4em] mt-0.5 group-hover:text-primary/50 transition-colors">Arsh Grewal</span>
         </div>
       </div>
 
@@ -108,7 +110,14 @@ export default function AdminSidebar() {
         ))}
       </div>
 
-      <div className="mt-auto px-8 pt-8">
+      <div className="mt-auto px-8 pt-8 space-y-4">
+        <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 flex flex-col gap-2">
+           <div className="flex items-center gap-2">
+              <Terminal size={12} className="text-primary" />
+              <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Founder Session</span>
+           </div>
+           <p className="text-[10px] font-bold text-zinc-400">Arsh Grewal</p>
+        </div>
         <Link href="/dashboard">
           <div className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest">
             <Zap className="w-4 h-4" />
