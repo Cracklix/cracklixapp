@@ -1,29 +1,28 @@
 /**
  * CRACKLIX Global Type Definitions
- * Production-grade Architecture Layer v30.5 (Institutional Standard)
+ * Production-grade Architecture Layer v32.0 (Institutional Standard)
  */
 
 export type UserRole = 'student' | 'admin' | 'superadmin' | 'creator';
 export type PassTier = 'free' | 'pass_plus' | 'premium' | 'elite';
-export type LanguageMode = 'english' | 'punjabi' | 'bilingual';
+export type LanguageMode = 'english' | 'punjabi' | 'bilingual' | 'hindi';
 export type QuestionStatus = 'NOT_VISITED' | 'VISITED' | 'ANSWERED' | 'MARKED_FOR_REVIEW' | 'ANSWERED_AND_MARKED';
 
-export type Subject = 
-  | 'General Knowledge' 
-  | 'Current Affairs' 
-  | 'Punjab History' 
-  | 'Punjab Culture'
-  | 'Punjabi Language'
-  | 'English Language' 
-  | 'Reasoning' 
-  | 'Quantitative Aptitude' 
-  | 'ICT & Computers' 
-  | 'Child Development & Pedagogy' 
-  | 'Other';
-
-export const SUBJECTS: Subject[] = [
-  'General Knowledge', 'Current Affairs', 'Punjab History', 'Punjab Culture', 'Punjabi Language', 'English Language', 'Reasoning', 'Quantitative Aptitude', 'ICT & Computers', 'Child Development & Pedagogy', 'Other'
+export const EXAM_LIST = [
+  "PSSSB Clerk", "PSSSB IT Clerk", "PSSSB Patwari", "PSSSB Excise Inspector",
+  "Punjab Police SI", "Punjab Police Constable", "Punjab Police Head Constable",
+  "PPSC PCS", "PPSC ADO", "PSPCL JE Electrical", "PSPCL JE Civil", "PSTCL JE",
+  "CTET Paper 1", "CTET Paper 2", "PSTET", "Lab Attendant", "Other..."
 ];
+
+export const SUBJECT_LIST = [
+  "General Knowledge", "Punjab History & Culture", "Current Affairs",
+  "Logical Reasoning", "Quantitative Aptitude", "Punjabi Language",
+  "English Language", "ICT & Computers", "Child Pedagogy", 
+  "Civil Engineering", "Electrical Engineering", "Other..."
+];
+
+export type Subject = typeof SUBJECT_LIST[number];
 
 export interface UserProfile {
   uid: string;
@@ -36,6 +35,8 @@ export interface UserProfile {
   passExpiry: number;
   createdAt: number;
   updatedAt: number;
+  district?: string;
+  targetExam?: string;
   bookmarks?: any[];
 }
 
@@ -50,8 +51,9 @@ export interface Question {
   id: string;
   en: QuestionContent;
   pa?: QuestionContent | null;
+  hi?: QuestionContent | null;
   correctAnswer: string; // "A", "B", "C", "D"
-  subject: Subject;
+  subject: string;
   topic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   marks: number;
@@ -67,17 +69,17 @@ export interface MockTest {
   title: string;
   exam: string;
   subject?: string;
-  category: 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini';
+  category: 'full' | 'sectional' | 'subject' | 'chapter' | 'pyq' | 'mini' | 'quiz';
   duration: number; 
   totalQuestions: number;
-  totalMarks?: number;
+  totalMarks: number;
   negativeMarking: number;
   accessType: PassTier;
   status: 'draft' | 'published' | 'archived';
   languageMode: LanguageMode;
   createdAt: number;
   updatedAt: number;
-  attemptCount?: number;
+  attemptCount: number;
   instructions?: string;
   publishedAt?: number;
   aiGenerated?: boolean;
