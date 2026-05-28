@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
@@ -6,9 +7,11 @@ import Navbar from '@/components/navbar';
 import AppLayout from '@/components/layout/AppLayout';
 import NotificationPanel from '@/components/notification-panel';
 import LiveActivity from '@/components/live-activity';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Target, Trophy, BrainCircuit, ArrowRight, Sparkles, Beaker, Mic, Camera, FileDown } from 'lucide-react';
+import DailyTargets from '@/components/dashboard/daily-targets';
+import StudyTimer from '@/components/practice/study-timer';
 import DailyQuiz from '@/components/daily-quiz';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { BrainCircuit, Sparkles, Beaker, Mic, Camera, FileDown, Target, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -18,7 +21,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-8 pb-24">
+      <div className="max-w-7xl mx-auto space-y-8 pb-24">
         {profile && (
           <HeroCard
             name={profile.name}
@@ -27,9 +30,9 @@ export default function DashboardPage() {
           />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* AI Lab Quick Access */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Left Column */}
+          <div className="lg:col-span-8 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="rounded-[40px] overflow-hidden border-none bg-gradient-to-br from-primary/20 via-accent/10 to-transparent relative group">
                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -44,12 +47,12 @@ export default function DashboardPage() {
                     Next-Gen AI Lab
                   </CardTitle>
                   <CardDescription className="text-muted-foreground mt-2">
-                    OCR, Voice Assistant, and PDF synthesizers.
+                    OCR, Voice Assistant, and focus engines.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 pt-0">
                   <Link href="/ai-lab">
-                    <Button className="rounded-2xl h-12 px-6 bg-primary hover:bg-primary/90 text-white font-bold group">
+                    <Button className="rounded-2xl h-12 px-6 bg-primary hover:bg-primary/90 text-white font-black group">
                       Open Lab
                       <Beaker className="ml-2 w-4 h-4" />
                     </Button>
@@ -59,18 +62,18 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-2 gap-4">
                  {[
-                   { icon: Camera, label: "OCR", href: "/ai-lab" },
+                   { icon: Camera, label: "OCR Scan", href: "/ai-lab" },
                    { icon: Mic, label: "Voice", href: "/ai-lab" },
-                   { icon: FileDown, label: "PDF", href: "/ai-lab" },
+                   { icon: BookOpen, label: "Mistakes", href: "/coach" },
                    { icon: Target, label: "Planner", href: "/ai" },
                  ].map((tool, i) => (
                    <Link key={i} href={tool.href}>
                      <motion.div 
                        whileHover={{ scale: 1.05 }}
-                       className="h-full p-4 rounded-3xl bg-secondary/50 border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-secondary transition-colors"
+                       className="h-full p-4 rounded-3xl bg-zinc-900/50 border border-white/5 flex flex-col items-center justify-center gap-3 hover:bg-zinc-900 transition-colors"
                      >
                         <tool.icon className="w-6 h-6 text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-widest">{tool.label}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-center">{tool.label}</span>
                      </motion.div>
                    </Link>
                  ))}
@@ -79,45 +82,24 @@ export default function DashboardPage() {
 
             <DailyQuiz />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="rounded-[32px] bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
-                <CardHeader className="p-8 pb-4">
-                  <CardTitle className="flex items-center gap-2 text-xl font-bold">
-                    <Target className="w-5 h-5 text-primary" />
-                    Daily Goal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <p className="text-muted-foreground">
-                    You're on fire! Complete <span className="text-white font-bold">2 full-length mocks</span> today to hit your target.
-                  </p>
-                  <div className="mt-6 h-2 w-full bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full w-1/3 bg-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-[32px] bg-card/60 backdrop-blur-md border-white/5 overflow-hidden">
-                <CardHeader className="p-8 pb-4">
-                  <CardTitle className="flex items-center gap-2 text-xl font-bold">
-                    <Trophy className="w-5 h-5 text-accent" />
-                    Punjab State Rank
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-white">#152</span>
-                    <span className="text-accent text-sm font-bold">↑ 12 positions</span>
-                  </div>
-                  <p className="text-muted-foreground mt-4 text-sm">
-                    Top 1% in General Awareness and Punjabi Literature.
-                  </p>
-                </CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <DailyTargets />
+              <Card className="rounded-[40px] cracklix-glass border-white/5 flex flex-col items-center justify-center p-8 text-center bg-accent/5">
+                <div className="w-16 h-16 rounded-[28px] bg-accent/10 flex items-center justify-center mb-6">
+                  <BookOpen className="text-accent w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">Mistake Notebook</h3>
+                <p className="text-sm text-zinc-500 mb-8 max-w-[200px]">Review questions you got wrong to ensure zero-gap mastery.</p>
+                <Button variant="outline" className="w-full rounded-2xl h-12 border-accent/20 text-accent font-bold">
+                  Review 12 Mistakes
+                </Button>
               </Card>
             </div>
           </div>
 
-          <div className="space-y-8">
+          {/* Right Sidebar */}
+          <div className="lg:col-span-4 space-y-8">
+            <StudyTimer />
             <NotificationPanel />
             <LiveActivity />
           </div>

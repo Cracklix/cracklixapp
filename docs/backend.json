@@ -20,66 +20,54 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
-    "LiveClass": {
-      "title": "Live Class",
-      "description": "A live or recorded instructional session.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "teacherId": { "type": "string" },
-        "teacherName": { "type": "string" },
-        "exam": { "type": "string" },
-        "thumbnail": { "type": "string" },
-        "description": { "type": "string" },
-        "live": { "type": "boolean" },
-        "meetingId": { "type": "string" },
-        "scheduledAt": { "type": "number" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "ClassChat": {
-      "title": "Class Chat",
-      "description": "Messages sent during a live class.",
-      "type": "object",
-      "properties": {
-        "classId": { "type": "string" },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "message": { "type": "string" },
-        "createdAt": { "type": "number" }
-      }
-    },
-    "Attendance": {
-      "title": "Attendance Record",
-      "description": "Logs of user participation in live sessions.",
+    "DailyTarget": {
+      "title": "Daily Target",
+      "description": "Daily study and practice goals for a student.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "classId": { "type": "string" },
-        "joinedAt": { "type": "number" }
+        "questionsGoal": { "type": "number" },
+        "questionsCompleted": { "type": "number" },
+        "mockGoal": { "type": "number" },
+        "mockCompleted": { "type": "number" },
+        "studyMinutesGoal": { "type": "number" },
+        "studyMinutesCompleted": { "type": "number" },
+        "date": { "type": "string" }
       }
     },
-    "AdminRecord": {
-      "title": "Admin Record",
-      "description": "Permissions and status for admin accounts.",
+    "MistakeEntry": {
+      "title": "Mistake Entry",
+      "description": "A question incorrectly answered by the student for revision.",
       "type": "object",
       "properties": {
-        "email": { "type": "string" },
-        "role": { "type": "string" },
-        "permissions": { "type": "array", "items": { "type": "string" } },
-        "active": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "questionId": { "type": "string" },
+        "questionText": { "type": "string" },
+        "correctAnswer": { "type": "string" },
+        "userAnswer": { "type": "string" },
+        "topic": { "type": "string" },
+        "subject": { "type": "string" },
+        "savedAt": { "type": "number" }
+      }
+    },
+    "StudySession": {
+      "title": "Study Session",
+      "description": "A tracked study period using the focus timer.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "type": { "type": "string", "enum": ["pomodoro", "focus"] },
         "createdAt": { "type": "number" }
       }
     },
-    "CMSContent": {
-      "title": "CMS Content",
-      "description": "Platform-wide articles and announcements.",
+    "RevisionPlan": {
+      "title": "Revision Plan",
+      "description": "AI generated revision schedule.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "content": { "type": "string" },
-        "category": { "type": "string" },
-        "published": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "plan": { "type": "string" },
         "createdAt": { "type": "number" }
       }
     }
@@ -92,57 +80,21 @@
       "schema": "UserProfile",
       "description": "Student profiles."
     },
-    "/liveClasses/{classId}": {
-      "schema": "LiveClass",
-      "description": "Live session registry."
+    "/dailyTargets/{userId}": {
+      "schema": "DailyTarget",
+      "description": "Daily goals tracking."
     },
-    "/classChats/{id}": {
-      "schema": "ClassChat",
-      "description": "Class-specific chat messages."
+    "/mistakeNotebook/{id}": {
+      "schema": "MistakeEntry",
+      "description": "Repository of wrong answers for revision."
     },
-    "/attendance/{id}": {
-      "schema": "Attendance",
-      "description": "Session participation logs."
+    "/studySessions/{id}": {
+      "schema": "StudySession",
+      "description": "Tracked study hours."
     },
-    "/admins/{id}": {
-      "schema": "AdminRecord",
-      "description": "Administrative account registry."
-    },
-    "/cms/{id}": {
-      "schema": "CMSContent",
-      "description": "Content management repository."
-    },
-    "/auditLogs/{id}": {
-      "schema": "AuditLog",
-      "description": "Admin activity history."
-    },
-    "/featureFlags/{id}": {
-      "schema": "FeatureFlag",
-      "description": "Platform feature controls."
-    },
-    "/notifications/{id}": {
-      "schema": "Notification",
-      "description": "User-specific alerts."
-    },
-    "/liveActivity/{id}": {
-      "schema": "LiveActivity",
-      "description": "Global activity feed."
-    },
-    "/currentAffairs/{id}": {
-      "schema": "CurrentAffair",
-      "description": "Article feed."
-    },
-    "/mocks/{id}": {
-      "schema": "MockTest",
-      "description": "Exam simulations."
-    },
-    "/attempts/{id}": {
-      "schema": "Attempt",
-      "description": "Historical performance logs."
-    },
-    "/payments/{id}": {
-      "schema": "Payment",
-      "description": "Financial records."
+    "/revisionPlans/{userId}": {
+      "schema": "RevisionPlan",
+      "description": "Personalized revision strategies."
     }
   }
 }
