@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Clock,
   LayoutGrid,
-  XCircle
+  XCircle,
+  RotateCcw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -82,7 +83,13 @@ export default function NeuralForgeV2() {
     if (controllerRef.current) {
       controllerRef.current.abort();
     }
-    window.location.reload();
+    window.location.reload(); // Atomic reset of all re-render states
+  };
+
+  const clearMemory = () => {
+    setMessages([]);
+    setInput("");
+    toast({ title: "Signal Memory Purged" });
   };
 
   const handleSend = async () => {
@@ -100,7 +107,6 @@ export default function NeuralForgeV2() {
     };
 
     setMessages(prev => [...prev, userMsg]);
-    const promptText = input;
     setInput("");
     setLoading(true);
 
@@ -116,7 +122,7 @@ export default function NeuralForgeV2() {
 
     try {
       const totalCount = config.count;
-      const batchSize = 5;
+      const batchSize = 5; // Production standard batching
       const batches = Math.ceil(totalCount / batchSize);
       let allArtifacts: any[] = [];
 
@@ -143,10 +149,10 @@ export default function NeuralForgeV2() {
           ));
         }
 
-        // Throttling for Quota Stability
+        // Mandatory Cool-down between batches to prevent quota spam
         if (i < batches - 1) {
           await new Promise(resolve => {
-            const timer = setTimeout(resolve, 2500);
+            const timer = setTimeout(resolve, 3000);
             signal.addEventListener('abort', () => clearTimeout(timer));
           });
         }
@@ -162,7 +168,7 @@ export default function NeuralForgeV2() {
       if (error.name === 'AbortError') return;
       
       setMessages(prev => prev.map(m => 
-        m.id === aiMsgId ? { ...m, text: `Forge Breach: ${error.message}. Process halted.`, status: 'error' } : m
+        m.id === aiMsgId ? { ...m, text: `Forge Breach: ${error.message}. Process halted to prevent loop.`, status: 'error' } : m
       ));
       toast({ title: "Synthesis Failed", description: error.message, variant: "destructive" });
     } finally {
@@ -239,10 +245,16 @@ export default function NeuralForgeV2() {
 
              <div className="flex items-center gap-3">
                 {loading && (
-                   <Button variant="destructive" size="sm" onClick={stopAI} className="h-8 rounded-lg text-[9px] font-black uppercase">
+                   <Button variant="destructive" size="sm" onClick={stopAI} className="h-8 rounded-lg text-[9px] font-black uppercase blue-glow">
                       <XCircle size={14} className="mr-2" /> Stop AI
                    </Button>
                 )}
+                
+                <Button variant="ghost" size="icon" onClick={clearMemory} className="h-8 w-8 rounded-lg text-zinc-500 hover:text-white" title="Clear Buffer">
+                   <RotateCcw size={16} />
+                </Button>
+
+                <div className="h-4 w-px bg-white/10 mx-2" />
 
                 <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
                    <SelectTrigger className="w-[180px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
@@ -268,7 +280,7 @@ export default function NeuralForgeV2() {
                      type="number" 
                      className="bg-transparent border-none text-[9px] font-black w-8 outline-none" 
                      value={config.count}
-                     onChange={e => setConfig({...config, count: Math.min(20, parseInt(e.target.value) || 1)})}
+                     onChange={e => setConfig({...config, count: Math.min(10, parseInt(e.target.value) || 1)})}
                    />
                 </div>
              </div>
@@ -385,7 +397,7 @@ export default function NeuralForgeV2() {
                       </div>
                       <div className="flex gap-4 items-end p-4">
                         <Textarea 
-                          placeholder="Command the Forge... (e.g. Generate bilingual MCQs for Patwari cycle)"
+                          placeholder="Command the Forge... (e.g. Generate hardest Punjab GK questions)"
                           className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium p-2 no-scrollbar resize-none min-h-[50px] max-h-[120px]"
                           value={input}
                           onChange={e => setInput(e.target.value)}

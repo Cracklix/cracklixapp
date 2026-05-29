@@ -3,7 +3,7 @@
 /**
  * CRACKLIX NEURAL FORGE v12 Core
  * Advanced instruction-driven synthesis with strict JSON payload enforcement.
- * Set max_tokens to prevent infinite generation loops.
+ * Hardened max_tokens to prevent infinite generation loops.
  */
 
 import { openai } from '@/lib/openai';
@@ -72,7 +72,7 @@ Respond ONLY with a valid JSON object matching the schema.`;
         { role: "user", content: JSON.stringify(input) }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 2048,
+      max_tokens: 2048, // Safety ceiling to prevent loop-induced costs
       temperature: 0.7
     });
 
