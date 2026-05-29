@@ -95,3 +95,37 @@ export const EXAM_CONFIG = {
   "BANK": ["Reasoning Ability", "Quantitative Aptitude", "English Language", "Banking Awareness", "Computer Knowledge"],
   "CUSTOM": ["General Knowledge", "Other"]
 };
+
+export const EXAM_LIST = [
+  "PSSSB Clerk (General)",
+  "PSSSB Clerk IT",
+  "PSSSB Clerk Accounts",
+  "PSSSB Excise Inspector",
+  "PSSSB Senior Assistant",
+  "PSSSB Patwari",
+  "Punjab Police SI",
+  "Punjab Police Constable",
+  "PPSC PCS",
+  "PSTET Paper 1",
+  "PSTET Paper 2",
+  "SSC CGL",
+  "SSC CHSL",
+  "Banking IBPS PO",
+  "Banking SBI Clerk",
+  "Other..."
+];
+
+export const SUBJECT_LIST = [
+  "Punjab GK",
+  "Quantitative Aptitude",
+  "Reasoning Ability",
+  "English Language",
+  "Punjabi Language",
+  "Computer/ICT",
+  "General Awareness",
+  "Current Affairs",
+  "Child Development",
+  "Agriculture",
+  "Sikh History",
+  "Other..."
+];

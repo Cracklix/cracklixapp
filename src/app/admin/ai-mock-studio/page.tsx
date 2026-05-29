@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -61,7 +60,7 @@ export default function NeuralForgeV2() {
     subject: "Punjab GK",
     customSubject: "",
     difficulty: "medium",
-    count: 20,
+    count: 10,
     timer: 60,
     accessType: "pass_plus",
   });
@@ -386,7 +385,7 @@ export default function NeuralForgeV2() {
                    <div className="absolute inset-0 bg-primary/5 blur-xl group-focus-within:bg-primary/10 transition-all rounded-3xl" />
                    <div className="relative flex flex-col bg-[#111218] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden">
                       <div className="flex gap-4 p-4 items-center bg-white/[0.02] border-b border-white/5">
-                         <div className="flex-1 space-y-1">
+                         <div className="flex-1 space-y-1.5">
                             <label className="text-[9px] font-black uppercase text-zinc-500 px-1 tracking-widest">Mock Identity</label>
                             <Input 
                               placeholder="e.g. Excise Inspector #42" 
