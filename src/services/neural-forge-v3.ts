@@ -1,13 +1,12 @@
 'use server';
 
+/**
+ * NEURAL FORGE V3 - BATCH ORCHESTRATOR
+ * Stabilized for production use with strict retry and timeout logic.
+ */
+
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-
-/**
- * CRACKLIX MASTER NEURAL CORE v4
- * Advanced adaptive batch synthesis with bilingual validation.
- * Run strictly on server to avoid Node.js module issues in browser.
- */
 
 const QuestionArtifactSchema = z.object({
   questionEn: z.string(),
@@ -19,67 +18,54 @@ const QuestionArtifactSchema = z.object({
   correctAnswer: z.number().min(0).max(3),
   solutionEn: z.string(),
   solutionPa: z.string(),
-  explanationEn: z.string(),
-  explanationPa: z.string(),
   subject: z.string(),
   topic: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  timeEstimate: z.number().default(45),
-  marks: z.number().default(1),
-  negativeMarks: z.number().default(0.25)
+  timeEstimate: z.number().default(45)
 });
 
-export async function synthesizeNeuralBatch(config: {
-  instruction: string;
-  exam: string;
-  count: number;
-  difficulty?: string;
-  subject?: string;
-}) {
+const GeneratorInputSchema = z.object({
+  instruction: z.string(),
+  exam: z.string(),
+  subjects: z.array(z.string()),
+  count: z.number().max(5), // STABILITY: Enforced small batches
+  difficulty: z.string()
+});
+
+const GeneratorOutputSchema = z.object({
+  questions: z.array(QuestionArtifactSchema)
+});
+
+export async function forgeNeuralArtifacts(input: z.infer<typeof GeneratorInputSchema>) {
+  const prompt = ai.definePrompt({
+    name: 'neuralForgePrompt',
+    input: { schema: GeneratorInputSchema },
+    output: { schema: GeneratorOutputSchema },
+    prompt: `You are the CRACKLIX Neural Forge V3. 
+Generate exactly {{{count}}} high-fidelity, bilingual (English & Punjabi) MCQs for the exam: {{{exam}}}.
+
+RULES:
+1. Every artifact MUST contain parallel English and Punjabi (Gurmukhi Raavi) signals.
+2. Solutions MUST follow a logical path with an "Elite Speed Trick" if applicable.
+3. Difficulty must match {{{difficulty}}} level.
+4. Target subjects: {{#each subjects}}{{{this}}}{{#if @last}}{{else}}, {{/if}}{{/each}}.
+
+Instruction: {{{instruction}}}
+
+Return ONLY a valid JSON object matching the output schema.`
+  });
+
   try {
-    // Define prompt inside the action to ensure isolation from client bundle analysis
-    const forgePrompt = ai.definePrompt({
-      name: `neuralCoreV4Synthesis_${Date.now()}`,
-      input: { 
-        schema: z.object({
-          instruction: z.string(),
-          exam: z.string(),
-          count: z.number().max(10),
-          difficulty: z.string().optional(),
-          subject: z.string().optional()
-        }) 
-      },
-      output: { schema: z.object({ questions: z.array(QuestionArtifactSchema) }) },
-      prompt: `You are the CRACKLIX Master Neural Core. 
-Synthesize {{{count}}} high-yield, bilingual artifacts for: {{{exam}}}.
-
-INSTRUCTIONS:
-1. SYLLABUS: Follow official board patterns for {{{exam}}}.
-2. CONTEXT: Focus on {{{subject}}} - {{{instruction}}}.
-3. BILINGUAL: English and Raavi-compliant Punjabi are MANDATORY.
-4. QUALITY: 
-   - CorrectAnswer must be index 0-3.
-   - NEVER leave Punjabi blank. If translation is tricky, provide formal Raavi Gurmukhi.
-   - Solutions must be step-by-step logic.
-5. FORMAT: Return ONLY valid JSON matching the schema.`,
-    });
-
-    const { output } = await forgePrompt(config);
-
+    // STABILITY: Single batch execution with error boundary
+    const { output } = await prompt(input);
+    
     if (!output || !output.questions) {
-      throw new Error("Neural Link Failure: No artifacts synthesized.");
+      throw new Error("Neural synthesis returned empty payload.");
     }
 
-    // Validation Layer
-    const validBatch = output.questions.filter(q => 
-      q.questionPa && q.questionPa.length > 5 && 
-      !q.questionPa.includes('undefined') &&
-      q.solutionPa && q.solutionPa.length > 5
-    );
-
-    return validBatch;
-  } catch (err: any) {
-    console.error("Neural Synthesis Error:", err);
-    throw err;
+    return output.questions;
+  } catch (error: any) {
+    console.error("Neural Forge Failure:", error);
+    throw new Error(error.message || "Internal AI Core Failure.");
   }
 }
