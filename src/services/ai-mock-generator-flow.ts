@@ -1,42 +1,62 @@
+
 'use client';
 
 import { generateStrictBilingualArtifacts } from '@/ai/flows/ai-mock-generator-flow';
 
 /**
  * PRODUCTION BRIDGE: Neural Forge v12
- * Maps UI configuration to Genkit Server Actions and normalizes artifact schema.
+ * Implements a Safe Retry System with MAX_RETRIES = 2 and AbortSignal support.
  */
 export async function forgeNeuralArtifacts(params: {
   exam: string;
   count: number;
   difficulty: string;
   topic: string;
-}) {
-  try {
-    const questions = await generateStrictBilingualArtifacts({
-      instruction: `Generate ${params.count} high-yield MCQs for the ${params.exam} exam cycle. Focus specifically on the topic of ${params.topic}. Ensure Raavi-compliant Punjabi and standard board-level difficulty.`,
-      exam: params.exam,
-      subjects: [params.topic],
-      count: params.count,
-      difficulty: params.difficulty
-    });
+}, signal?: AbortSignal) {
+  let retryCount = 0;
+  const MAX_RETRIES = 2;
 
-    // Normalize Flow Schema to AI Studio UI Schema
-    return {
-      questions: questions.map(q => ({
-        questionEnglish: q.questionEn,
-        questionPunjabi: q.questionPa,
-        optionsEnglish: q.options.map(o => o.en),
-        optionsPunjabi: q.options.map(o => o.pa),
-        correctAnswer: q.options[q.correctAnswer].en,
-        explanationEnglish: q.solutionEn,
-        explanationPunjabi: q.solutionPa,
-        subject: q.subject || params.topic,
-        difficulty: q.difficulty || params.difficulty
-      }))
-    };
-  } catch (error) {
-    console.error("Forge Bridge Failure:", error);
-    throw error;
+  async function execute(): Promise<any> {
+    try {
+      if (signal?.aborted) throw new Error("Operation aborted by user");
+
+      const questions = await generateStrictBilingualArtifacts({
+        instruction: `Generate ${params.count} high-yield MCQs for the ${params.exam} exam cycle. Focus specifically on the topic of ${params.topic}. Ensure Raavi-compliant Punjabi and standard board-level difficulty.`,
+        exam: params.exam,
+        subjects: [params.topic],
+        count: params.count,
+        difficulty: params.difficulty
+      });
+
+      // Map OpenAI Artifacts to UI Schema
+      return {
+        questions: questions.map(q => ({
+          questionEnglish: q.questionEn,
+          questionPunjabi: q.questionPa,
+          optionsEnglish: q.options.map(o => o.en),
+          optionsPunjabi: q.options.map(o => o.pa),
+          correctAnswer: q.options[q.correctAnswer].en,
+          explanationEnglish: q.solutionEn,
+          explanationPunjabi: q.solutionPa,
+          subject: q.subject || params.topic,
+          difficulty: q.difficulty || params.difficulty
+        }))
+      };
+    } catch (error: any) {
+      console.error(`Neural Forge Attempt ${retryCount} failed:`, error);
+
+      const isRetryable = error?.status === 429 || error?.status === 503 || error?.message?.includes("RESOURCE_EXHAUSTED");
+
+      if (isRetryable && retryCount < MAX_RETRIES) {
+        retryCount++;
+        // Safe Backoff
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        return execute();
+      }
+      
+      throw error;
+    }
   }
+
+  return execute();
 }

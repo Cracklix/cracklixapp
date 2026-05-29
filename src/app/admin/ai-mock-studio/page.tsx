@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -23,7 +24,8 @@ import {
   MessageSquare,
   ChevronRight,
   Clock,
-  LayoutGrid
+  LayoutGrid,
+  XCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,6 +53,7 @@ export default function NeuralForgeV2() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const controllerRef = useRef<AbortController | null>(null);
 
   // Configuration State
   const [config, setConfig] = useState({
@@ -74,8 +77,20 @@ export default function NeuralForgeV2() {
     }
   }, [messages, loading]);
 
+  // Emergency Kill Switch
+  const stopAI = () => {
+    if (controllerRef.current) {
+      controllerRef.current.abort();
+    }
+    window.location.reload();
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
+
+    // Initialize Abort Controller for safety
+    controllerRef.current = new AbortController();
+    const signal = controllerRef.current.signal;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -106,6 +121,8 @@ export default function NeuralForgeV2() {
       let allArtifacts: any[] = [];
 
       for (let i = 0; i < batches; i++) {
+        if (signal.aborted) break;
+
         const currentBatch = Math.min(batchSize, totalCount - i * batchSize);
         
         setMessages(prev => prev.map(m => 
@@ -117,7 +134,7 @@ export default function NeuralForgeV2() {
           count: currentBatch,
           difficulty: config.difficulty,
           topic: config.subject === "Other..." ? config.customSubject : config.subject,
-        });
+        }, signal);
 
         if (result.questions) {
           allArtifacts = [...allArtifacts, ...result.questions];
@@ -126,23 +143,31 @@ export default function NeuralForgeV2() {
           ));
         }
 
-        // Throttling for Free-Tier Quota Stability
+        // Throttling for Quota Stability
         if (i < batches - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2500));
+          await new Promise(resolve => {
+            const timer = setTimeout(resolve, 2500);
+            signal.addEventListener('abort', () => clearTimeout(timer));
+          });
         }
       }
 
-      setMessages(prev => prev.map(m => 
-        m.id === aiMsgId ? { ...m, text: "Synthesis complete. Bilingual artifacts are stabilized and ready for deployment.", status: 'done' } : m
-      ));
+      if (!signal.aborted) {
+        setMessages(prev => prev.map(m => 
+          m.id === aiMsgId ? { ...m, text: "Synthesis complete. Bilingual artifacts are stabilized.", status: 'done' } : m
+        ));
+      }
 
     } catch (error: any) {
+      if (error.name === 'AbortError') return;
+      
       setMessages(prev => prev.map(m => 
-        m.id === aiMsgId ? { ...m, text: `Forge Breach: ${error.message}. Please retry with a shorter count.`, status: 'error' } : m
+        m.id === aiMsgId ? { ...m, text: `Forge Breach: ${error.message}. Process halted.`, status: 'error' } : m
       ));
       toast({ title: "Synthesis Failed", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
+      controllerRef.current = null;
     }
   };
 
@@ -184,16 +209,6 @@ export default function NeuralForgeV2() {
           order: idx,
           createdAt: Date.now()
         });
-
-        const bankRef = doc(collection(db, "questions"));
-        batch.set(bankRef, {
-          questionEn: q.questionEnglish,
-          questionPa: q.questionPunjabi,
-          subject: q.subject || config.subject,
-          difficulty: q.difficulty,
-          status: "published",
-          createdAt: Date.now()
-        });
       });
 
       await batch.commit();
@@ -218,11 +233,17 @@ export default function NeuralForgeV2() {
                 </div>
                 <div>
                    <h1 className="text-sm font-black uppercase tracking-tighter">Neural Forge v12.5</h1>
-                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Institutional Generator</p>
+                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Safe Mode: ACTIVE</p>
                 </div>
              </div>
 
              <div className="flex items-center gap-3">
+                {loading && (
+                   <Button variant="destructive" size="sm" onClick={stopAI} className="h-8 rounded-lg text-[9px] font-black uppercase">
+                      <XCircle size={14} className="mr-2" /> Stop AI
+                   </Button>
+                )}
+
                 <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
                    <SelectTrigger className="w-[180px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
                       <SelectValue />
@@ -241,24 +262,13 @@ export default function NeuralForgeV2() {
                    </SelectContent>
                 </Select>
 
-                <Select value={config.difficulty} onValueChange={v => setConfig({...config, difficulty: v})}>
-                   <SelectTrigger className="w-[100px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
-                      <SelectValue />
-                   </SelectTrigger>
-                   <SelectContent className="bg-zinc-950 text-white border-white/10">
-                      <SelectItem value="easy">Easy</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="hard">Hard</SelectItem>
-                   </SelectContent>
-                </Select>
-
                 <div className="flex items-center bg-zinc-900 border border-white/5 h-8 rounded-lg px-3 gap-2">
                    <span className="text-[8px] font-black text-zinc-600 uppercase">Count:</span>
                    <input 
                      type="number" 
                      className="bg-transparent border-none text-[9px] font-black w-8 outline-none" 
                      value={config.count}
-                     onChange={e => setConfig({...config, count: parseInt(e.target.value) || 1})}
+                     onChange={e => setConfig({...config, count: Math.min(20, parseInt(e.target.value) || 1)})}
                    />
                 </div>
              </div>
@@ -273,7 +283,7 @@ export default function NeuralForgeV2() {
                      </div>
                      <div>
                         <h2 className="text-2xl font-black uppercase tracking-tighter">Forge Standby</h2>
-                        <p className="text-[10px] font-bold uppercase tracking-widest mt-1">Select logic signals and command the synthesis</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mt-1">Safe Retry & Abort Logic Engaged</p>
                      </div>
                   </div>
                 )}
@@ -337,9 +347,6 @@ export default function NeuralForgeV2() {
                                        <Badge variant="outline" className="text-[7px] border-white/10 text-zinc-600 font-black uppercase">{q.subject}</Badge>
                                     </Card>
                                   ))}
-                                  {m.artifacts.length > 3 && (
-                                    <p className="text-[9px] text-center font-bold text-zinc-700 uppercase">+{m.artifacts.length - 3} more artifacts generated</p>
-                                  )}
                                </div>
                             </div>
                           )}
@@ -352,35 +359,6 @@ export default function NeuralForgeV2() {
 
           <footer className="p-6 bg-zinc-950 border-t border-white/5 shrink-0">
              <div className="max-w-4xl mx-auto space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(config.exam === "Other..." || config.subject === "Other...") && (
-                    <div className="flex gap-4 col-span-full animate-in slide-in-from-top-2">
-                       {config.exam === "Other..." && (
-                         <div className="flex-1 space-y-1">
-                            <label className="text-[9px] font-black uppercase text-zinc-600 px-1 tracking-widest">Manual Board</label>
-                            <Input 
-                              placeholder="Board Identity" 
-                              value={config.customExam}
-                              onChange={e => setConfig({...config, customExam: e.target.value})}
-                              className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-bold"
-                            />
-                         </div>
-                       )}
-                       {config.subject === "Other..." && (
-                         <div className="flex-1 space-y-1">
-                            <label className="text-[9px] font-black uppercase text-zinc-600 px-1 tracking-widest">Manual Subject</label>
-                            <Input 
-                              placeholder="Subject Identity" 
-                              value={config.customSubject}
-                              onChange={e => setConfig({...config, customSubject: e.target.value})}
-                              className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-bold"
-                            />
-                         </div>
-                       )}
-                    </div>
-                  )}
-                </div>
-
                 <div className="relative group">
                    <div className="absolute inset-0 bg-primary/5 blur-xl group-focus-within:bg-primary/10 transition-all rounded-3xl" />
                    <div className="relative flex flex-col bg-[#111218] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden">
@@ -407,11 +385,10 @@ export default function NeuralForgeV2() {
                       </div>
                       <div className="flex gap-4 items-end p-4">
                         <Textarea 
-                          placeholder="Command the Forge... (e.g. Generate hardest bilingual MCQs for PSSSB Patwari cycle)"
+                          placeholder="Command the Forge... (e.g. Generate bilingual MCQs for Patwari cycle)"
                           className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium p-2 no-scrollbar resize-none min-h-[50px] max-h-[120px]"
                           value={input}
                           onChange={e => setInput(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
                         />
                         <Button 
                           onClick={handleSend}
@@ -422,14 +399,6 @@ export default function NeuralForgeV2() {
                         </Button>
                       </div>
                    </div>
-                </div>
-
-                <div className="flex justify-center gap-6 text-[8px] font-black text-zinc-700 uppercase tracking-[0.4em]">
-                   <span>Fault Tolerant AI</span>
-                   <span>•</span>
-                   <span>Raavi Compliant</span>
-                   <span>•</span>
-                   <span>Batch Sync v12.5</span>
                 </div>
              </div>
           </footer>
