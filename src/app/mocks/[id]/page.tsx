@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback, use } from "react";
@@ -20,15 +19,13 @@ import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
   ArrowLeft, 
-  Menu,
   Globe,
   Monitor,
   ChevronRight,
   Pause,
   Play,
   CheckCircle2,
-  Lock,
-  RotateCcw
+  Lock
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MockTest, Question, AttemptAnswer, ExamAttempt, LanguageMode } from "@/types";

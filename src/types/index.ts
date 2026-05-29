@@ -21,6 +21,8 @@ export interface Question {
   correctAnswer: number; // 0, 1, 2, 3
   solutionEn: string;
   solutionPa: string;
+  explanationEn: string;
+  explanationPa: string;
   subject: string;
   topic: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -29,6 +31,9 @@ export interface Question {
   negativeMarks: number;
   status: 'draft' | 'published';
   createdAt: number;
+  tags?: string[];
+  pyq?: boolean;
+  source?: string;
 }
 
 export interface MockTest {
@@ -46,6 +51,8 @@ export interface MockTest {
   createdAt: number;
   updatedAt: number;
   attemptCount: number;
+  questionIds?: string[];
+  sections?: any[];
 }
 
 export interface AttemptAnswer {

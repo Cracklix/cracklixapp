@@ -1,173 +1,259 @@
 "use client";
 
-import { useState } from "react";
-import AdminSidebar from "@/components/admin/sidebar";
-import AdminProtect from "@/components/admin/admin-protect";
+import { useState, useRef, useEffect } from 'react';
+import AdminSidebar from '@/components/admin/sidebar';
+import AdminProtect from '@/components/admin/admin-protect';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
 import { 
+  Zap, 
   Sparkles, 
-  BrainCircuit, 
-  Database, 
-  FileUp, 
+  Send, 
+  Bot, 
+  User, 
   Loader2, 
-  Zap,
+  Database, 
+  Rocket, 
+  FileUp, 
+  Search,
+  Layers,
+  ChevronRight,
   ShieldCheck,
-  PlusCircle,
-  History,
-  FileText
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { createMock } from "@/services/mocks";
-import { SUBJECT_LIST, EXAM_LIST } from "@/types";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { motion } from "framer-motion";
+  History
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { executeForgeBatch, publishMockFromArtifacts } from '@/services/neural-forge-v3';
+import { EXAM_LIST } from '@/types';
 
 /**
- * PRODUCTION SIMULATION FACTORY v32.0
- * Features: Build from Bank, Manual Injection, and Direct Live Publish.
+ * PRODUCTION NEURAL FORGE V3
+ * Conversational Mock Synthesis Hub.
  */
-export default function MockGeneratorPage() {
+export default function NeuralForgeV3Page() {
   const { toast } = useToast();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
-  const [formData, setFormData] = useState({
+  const [messages, setMessages] = useState<any[]>([]);
+  const [input, setInput] = useState("");
+  const [artifacts, setArtifacts] = useState<any[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const [config, setConfig] = useState({
+    exam: EXAM_LIST[0],
+    totalCount: 10,
     title: "",
-    exam: "PSSSB Clerk (General)",
-    customExam: "",
-    subject: "General Knowledge",
-    customSubject: "",
-    category: "full" as const,
     duration: 60,
     negativeMarking: 0.25,
-    accessType: "pass_plus" as const,
-    languageMode: "bilingual" as const
+    accessType: 'pass_plus'
   });
 
-  async function handleManualCreate() {
-    if (!formData.title) return toast({ title: "Mock Title Required", variant: "destructive" });
+  useEffect(() => {
+    if (scrollRef.current) {
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      }
+    }
+  }, [messages, loading]);
+
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+
+    const userMsg = { role: 'user', text: input, id: Date.now() };
+    setMessages(prev => [...prev, userMsg]);
+    const instruction = input;
+    setInput("");
     setLoading(true);
+
+    const aiMsgId = Date.now() + 1;
+    setMessages(prev => [...prev, { role: 'ai', text: "Initializing Neural Forge...", status: 'thinking', id: aiMsgId }]);
+
     try {
-      const finalExam = formData.exam === "Other..." ? formData.customExam : formData.exam;
-      const mockId = await createMock({
-        ...formData,
-        exam: finalExam,
-        totalQuestions: 0,
-        status: 'draft'
+      const results = await executeForgeBatch({ ...config, instruction }, (progress) => {
+        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: progress } : m));
       });
-      router.push(`/admin/mocks/${mockId}`);
-      toast({ title: "Simulation Container Initialized" });
+
+      setArtifacts(prev => [...prev, ...results]);
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { 
+        ...m, 
+        text: `Synthesis stabilized. Generated ${results.length} artifacts based on latest exam patterns.`, 
+        status: 'done' 
+      } : m));
+
+    } catch (error: any) {
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `Forge Breach: ${error.message}`, status: 'error' } : m));
+      toast({ title: "Synthesis Failed", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const publishToArena = async () => {
+    if (artifacts.length === 0) return;
+    setLoading(true);
+    try {
+      const mockId = await publishMockFromArtifacts(artifacts, config);
+      toast({ title: "Simulation LIVE", description: "Mock pushed to Live Arena." });
+      setArtifacts([]);
+      setMessages(prev => [...prev, { role: 'ai', text: "Mock successfully published. Identity ID: " + mockId, id: Date.now() }]);
+    } catch (err: any) {
+      toast({ title: "Publish Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AdminProtect>
-      <div className="flex bg-[#05070a] min-h-screen text-white">
+      <div className="flex bg-[#05060f] h-screen text-white overflow-hidden">
         <AdminSidebar />
-        <main className="flex-1 p-8 overflow-y-auto no-scrollbar">
-          <div className="max-w-6xl mx-auto space-y-10">
-            <header className="flex justify-between items-end border-b border-white/5 pb-8">
-              <div className="space-y-1">
-                <h1 className="font-headline text-3xl font-black tracking-tighter uppercase leading-none">Simulation Factory</h1>
-                <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-[0.3em] ml-1">Forge Production-Grade Assessments</p>
-              </div>
-            </header>
+        
+        <main className="flex-1 flex flex-col relative">
+          <header className="h-16 border-b border-white/5 bg-zinc-950/50 backdrop-blur-xl px-8 flex items-center justify-between shrink-0 z-50">
+             <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center blue-glow">
+                   <Zap className="text-primary w-6 h-6" />
+                </div>
+                <div>
+                   <h1 className="text-sm font-black uppercase tracking-tighter">Neural Forge v3.0</h1>
+                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Enterprise Ingestion OS</p>
+                </div>
+             </div>
 
-            <Tabs defaultValue="create" className="space-y-8">
-              <TabsList className="bg-zinc-900 border-white/5 p-1 rounded-2xl h-14 w-fit shadow-xl">
-                <TabsTrigger value="create" className="rounded-xl px-8 font-bold data-[state=active]:bg-primary text-[10px] uppercase tracking-widest">
-                  <PlusCircle className="w-4 h-4 mr-2" /> Manual Build
-                </TabsTrigger>
-                <TabsTrigger value="bank" className="rounded-xl px-8 font-bold data-[state=active]:bg-primary text-[10px] uppercase tracking-widest">
-                  <Database className="w-4 h-4 mr-2" /> From Global Bank
-                </TabsTrigger>
-                <TabsTrigger value="pyq" className="rounded-xl px-8 font-bold data-[state=active]:bg-orange-600 text-[10px] uppercase tracking-widest">
-                  <History className="w-4 h-4 mr-2" /> PYQ Quiz Engine
-                </TabsTrigger>
-              </TabsList>
+             <div className="flex items-center gap-3">
+                <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
+                   <SelectTrigger className="w-[180px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
+                      <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent className="bg-zinc-950 text-white border-white/10">
+                      {EXAM_LIST.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                   </SelectContent>
+                </Select>
 
-              <TabsContent value="create" className="animate-in fade-in slide-in-from-bottom-2">
-                <Card className="rounded-[48px] bg-zinc-900/40 border-white/5 p-12 max-w-4xl mx-auto shadow-2xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-16 opacity-5 pointer-events-none"><BrainCircuit size={300} /></div>
-                   <div className="space-y-10 relative z-10">
-                      <div className="grid grid-cols-1 gap-8">
-                         <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase text-zinc-500 tracking-[0.3em] px-2">Simulation Identity</label>
-                            <Input placeholder="e.g. JE Civil Full Mock #01" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="h-14 bg-black/40 border-white/5 rounded-2xl px-6 font-black text-xl" />
+                <div className="flex items-center bg-zinc-900 border border-white/5 h-8 rounded-lg px-3 gap-2">
+                   <span className="text-[8px] font-black text-zinc-600 uppercase">Artifacts:</span>
+                   <input 
+                     type="number" 
+                     className="bg-transparent border-none text-[9px] font-black w-8 outline-none" 
+                     value={config.totalCount}
+                     onChange={e => setConfig({...config, totalCount: parseInt(e.target.value) || 1})}
+                   />
+                </div>
+             </div>
+          </header>
+
+          <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+             <div className="max-w-4xl mx-auto space-y-8 pb-20">
+                {messages.length === 0 && (
+                  <div className="h-[50vh] flex flex-col items-center justify-center text-center space-y-8">
+                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-20 h-20 rounded-[32px] bg-primary flex items-center justify-center blue-glow">
+                        <Sparkles size={32} />
+                     </motion.div>
+                     <div className="space-y-2">
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Forge Ready</h2>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Provide instructions to synthesize recruitment-ready artifacts.</p>
+                     </div>
+                  </div>
+                )}
+
+                <AnimatePresence mode="popLayout">
+                  {messages.map((m) => (
+                    <motion.div 
+                      key={m.id} 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn("flex gap-5 max-w-5xl", m.role === 'user' ? "flex-row-reverse ml-auto" : "flex-row")}
+                    >
+                       <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg", m.role === 'user' ? "bg-zinc-800" : "bg-primary blue-glow")}>
+                          {m.role === 'user' ? <User size={18} /> : <Bot size={18} />}
+                       </div>
+                       
+                       <div className={cn("p-5 rounded-[28px] text-sm leading-relaxed border shadow-2xl", m.role === 'user' ? "bg-zinc-900/50 border-white/5 rounded-tr-none" : "bg-zinc-950 border-primary/20 rounded-tl-none")}>
+                          {m.status === 'thinking' ? (
+                            <div className="flex items-center gap-3 text-primary animate-pulse">
+                               <Loader2 className="w-4 h-4 animate-spin" />
+                               <span className="text-[10px] font-black uppercase tracking-widest">{m.text}</span>
+                            </div>
+                          ) : (
+                            <p className={cn(m.status === 'error' ? "text-red-400 font-mono text-xs" : "text-zinc-100")}>{m.text}</p>
+                          )}
+                       </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+             </div>
+          </ScrollArea>
+
+          {artifacts.length > 0 && (
+            <div className="px-6 py-4 bg-zinc-950 border-t border-white/5 flex items-center justify-between animate-in slide-in-from-bottom-2">
+               <div className="flex items-center gap-4">
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-none px-3 py-1 font-black uppercase text-[10px]">{artifacts.length} ARTIFACTS STABILIZED</Badge>
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Global Bank Sync: Ready</p>
+               </div>
+               <Button onClick={publishToArena} disabled={loading} className="h-10 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[10px] font-black uppercase blue-glow shadow-xl">
+                  <Rocket size={14} className="mr-2" /> ⚡ LIVE PUBLISH
+               </Button>
+            </div>
+          )}
+
+          <footer className="p-6 bg-zinc-950/50 backdrop-blur-xl border-t border-white/5 shrink-0">
+             <div className="max-w-4xl mx-auto">
+                <div className="relative group">
+                   <div className="absolute inset-0 bg-primary/5 blur-xl group-focus-within:bg-primary/10 transition-all rounded-3xl" />
+                   <div className="relative flex flex-col bg-[#111218] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden">
+                      <div className="flex gap-4 p-3 items-center bg-white/[0.02] border-b border-white/5">
+                         <div className="flex-1">
+                            <Input 
+                              placeholder="Mock Title (e.g. Excise Inspector Sunday Marathon)" 
+                              value={config.title}
+                              onChange={e => setConfig({...config, title: e.target.value})}
+                              className="h-8 bg-transparent border-none focus-visible:ring-0 text-[10px] font-black uppercase"
+                            />
                          </div>
-                         
-                         <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                               <label className="text-[9px] font-black uppercase text-zinc-500 tracking-[0.3em] px-2">Board / Exam Mapping</label>
-                               <Select value={formData.exam} onValueChange={(v: any) => setFormData({...formData, exam: v})}>
-                                  <SelectTrigger className="h-12 bg-black/40 border-white/5 rounded-xl font-bold"><SelectValue /></SelectTrigger>
-                                  <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-80">
-                                     {EXAM_LIST.map(ex => <SelectItem key={ex} value={ex}>{ex}</SelectItem>)}
-                                  </SelectContent>
-                               </Select>
-                               {formData.exam === "Other..." && (
-                                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="pt-2">
-                                    <Input placeholder="Enter Custom Exam" value={formData.customExam} onChange={e => setFormData({...formData, customExam: e.target.value})} className="h-10 bg-primary/5 border-primary/20 rounded-xl" />
-                                 </motion.div>
-                               )}
-                            </div>
-                            <div className="space-y-2">
-                               <label className="text-[9px] font-black uppercase text-zinc-500 tracking-[0.3em] px-2">Category</label>
-                               <Select value={formData.category} onValueChange={(v: any) => setFormData({...formData, category: v})}>
-                                  <SelectTrigger className="h-12 bg-black/40 border-white/5 rounded-xl font-bold uppercase text-[10px]"><SelectValue /></SelectTrigger>
-                                  <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                     <SelectItem value="full">Full Length Simulation</SelectItem>
-                                     <SelectItem value="sectional">Sectional Performance</SelectItem>
-                                     <SelectItem value="chapter">Topic Mastery</SelectItem>
-                                     <SelectItem value="pyq">Official Board PYQ</SelectItem>
-                                  </SelectContent>
-                               </Select>
-                            </div>
-                         </div>
-
-                         <div className="grid md:grid-cols-3 gap-6">
-                            <div className="space-y-2">
-                               <label className="text-[9px] font-black uppercase text-zinc-500 tracking-[0.3em] px-2">Duration (Min)</label>
-                               <Input type="number" value={formData.duration} onChange={e => setFormData({...formData, duration: Number(e.target.value)})} className="h-12 bg-black/40 border-white/5 rounded-xl px-6 font-black text-blue-500" />
-                            </div>
-                            <div className="space-y-2">
-                               <label className="text-[9px] font-black uppercase text-zinc-500 tracking-[0.3em] px-2">Negative Penalty</label>
-                               <Input type="number" step="0.25" value={formData.negativeMarking} onChange={e => setFormData({...formData, negativeMarking: Number(e.target.value)})} className="h-12 bg-black/40 border-white/5 rounded-xl px-6 font-black text-red-500" />
-                            </div>
-                            <div className="space-y-2">
-                               <label className="text-[9px] font-black uppercase text-zinc-500 tracking-[0.3em] px-2">Tier Level</label>
-                               <Select value={formData.accessType} onValueChange={(v: any) => setFormData({...formData, accessType: v})}>
-                                  <SelectTrigger className="h-12 bg-black/40 border-white/5 rounded-xl font-bold uppercase text-[10px]"><SelectValue /></SelectTrigger>
-                                  <SelectContent className="bg-zinc-950 text-white border-white/10">
-                                     <SelectItem value="free">FREE ACCESS</SelectItem>
-                                     <SelectItem value="pass_plus">PASS+ ENROLLED</SelectItem>
-                                     <SelectItem value="premium">PREMIUM ONLY</SelectItem>
-                                  </SelectContent>
-                               </Select>
-                            </div>
+                         <div className="h-6 w-px bg-white/5" />
+                         <div className="px-4">
+                            <label className="text-[8px] font-black text-zinc-500 uppercase block">Duration (M)</label>
+                            <input 
+                               type="number" 
+                               value={config.duration}
+                               onChange={e => setConfig({...config, duration: parseInt(e.target.value) || 60})}
+                               className="bg-transparent border-none text-[10px] font-black w-10 text-center outline-none"
+                            />
                          </div>
                       </div>
-
-                      <Button onClick={handleManualCreate} disabled={loading} className="w-full h-20 rounded-[32px] bg-primary hover:bg-primary/90 text-2xl font-black blue-glow shadow-2xl transition-all active:scale-95">
-                         {loading ? <Loader2 className="animate-spin mr-3" /> : <ShieldCheck className="mr-3 w-7 h-7" />}
-                         INITIALIZE CONTAINER
-                      </Button>
+                      <div className="flex gap-4 items-end p-4">
+                        <Textarea 
+                          placeholder="Command the Forge... (e.g. Generate 20 tricky Punjabi grammar artifacts for PSSSB Patwari cycle)"
+                          className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium p-2 no-scrollbar resize-none min-h-[50px] max-h-[120px]"
+                          value={input}
+                          onChange={e => setInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+                        />
+                        <Button 
+                          onClick={handleSend}
+                          disabled={loading || !input.trim()}
+                          className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 blue-glow shadow-xl shrink-0"
+                        >
+                           {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Send size={20} />}
+                        </Button>
+                      </div>
                    </div>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="bank" className="py-24 text-center opacity-30">
-                 <Database size={60} className="mx-auto mb-6 text-zinc-700" />
-                 <p className="text-[10px] font-black uppercase tracking-[0.5em]">Synchronizing Subject Signals...</p>
-              </TabsContent>
-            </Tabs>
-          </div>
+                </div>
+                <div className="mt-4 flex justify-center gap-6 text-[8px] font-black text-zinc-700 uppercase tracking-[0.4em]">
+                   <span>Fault Tolerant AI</span>
+                   <span>•</span>
+                   <span>Raavi Compliant</span>
+                   <span>•</span>
+                   <span>Batch Sync v3.0</span>
+                </div>
+             </div>
+          </footer>
         </main>
       </div>
     </AdminProtect>

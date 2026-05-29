@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, use } from 'react';
@@ -17,9 +16,7 @@ import {
   Share2,
   CheckCircle2,
   BrainCircuit,
-  LayoutGrid,
   Zap,
-  Info,
   ChevronRight,
   Flame,
   Clock
@@ -219,7 +216,7 @@ export default function PerformanceAuditV45({ params }: { params: Promise<{ id: 
                                       isCorrectOpt ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500 font-bold" : (isUserChoice && !isCorrect ? "bg-red-500/10 border-red-500/30 text-red-500" : "bg-black/20 border-white/5 text-zinc-600")
                                     )}>
                                        <div className={cn(
-                                         "w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10px]",
+                                         "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 border transition-all shadow-inner",
                                          isCorrectOpt ? "bg-emerald-500 text-white" : (isUserChoice && !isCorrect ? "bg-red-500 text-white" : "bg-zinc-800 text-zinc-600")
                                        )}>{String.fromCharCode(65+idx)}</div>
                                        <div>
@@ -239,8 +236,8 @@ export default function PerformanceAuditV45({ params }: { params: Promise<{ id: 
                                    <h4 className="text-base font-black uppercase tracking-tighter">Academic Rationalization</h4>
                                 </div>
                                 <div className="space-y-3 text-sm leading-relaxed">
-                                   <p className="text-zinc-300">{q.solutionEn}</p>
-                                   <p className="text-zinc-500 italic border-t border-white/5 pt-3">{q.solutionPa}</p>
+                                   <p className="text-zinc-300">{q.explanationEn}</p>
+                                   <p className="text-zinc-500 italic border-t border-white/5 pt-3">{q.explanationPa}</p>
                                 </div>
                              </div>
                           </div>
