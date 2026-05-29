@@ -1,29 +1,52 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 20% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 20% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 222 47% 12%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 222 47% 12%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 199 89% 60%;
-    --accent-foreground: 222 47% 6%;
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 222 47% 14%;
-    --input: 222 47% 14%;
-    --ring: 221 83% 53%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
     --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 40% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 40% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
   }
 }
 
@@ -32,51 +55,42 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground selection:bg-primary/30;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(221, 83%, 53%, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(199, 89%, 60%, 0.02) 0px, transparent 50%);
+    @apply bg-background text-foreground font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
   }
 }
 
-/* Institutional Exam Typography - Enterprise Scaled */
-.question-en {
-  font-size: 1.35rem; /* ~22px scaled from 30px */
-  line-height: 1.4;
-  @apply font-bold text-slate-800 tracking-tight;
+/* Optimized scrollbar for performance */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/40;
 }
 
-.question-pa {
-  font-size: 1.35rem;
-  line-height: 1.4;
-  font-weight: 500;
-  @apply text-slate-500 italic font-body;
+/* Light-weight UI fixes */
+.glass-panel {
+  @apply bg-card/80 border border-border/50;
+  /* Removed expensive backdrop-blur-md */
 }
 
-@media (max-width: 768px) {
-  .question-en, .question-pa {
-    font-size: 1.15rem;
-  }
+.neo-shadow {
+  @apply shadow-sm; /* Reduced from shadow-xl */
 }
 
-.cracklix-glass {
-  @apply bg-white/[0.02] backdrop-blur-xl border border-white/5 shadow-[0_4px_24px_0_rgba(0,0,0,0.3)];
-}
-
-.blue-glow {
-  box-shadow: 0 0 20px -5px rgba(37, 99, 235, 0.25);
-}
-
+/* 0-scroll desktop exam player utilities */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/* 0-Scroll Layout Utilities */
-.cbt-workspace {
-  height: calc(100vh - 140px); /* 65px header + 75px footer */
 }
