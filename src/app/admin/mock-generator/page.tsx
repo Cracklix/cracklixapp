@@ -16,12 +16,11 @@ import {
   Loader2, 
   Database, 
   Rocket, 
-  FileUp, 
-  Search,
-  Layers,
-  ChevronRight,
+  Settings,
   ShieldCheck,
-  History
+  Cpu,
+  History,
+  AlertCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,13 +29,13 @@ import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { executeForgeBatch, publishMockFromArtifacts } from '@/services/neural-forge-v3';
-import { EXAM_LIST } from '@/types';
+import { EXAM_LIST, SUBJECT_LIST } from '@/types';
 
 /**
- * PRODUCTION NEURAL FORGE V3
- * Conversational Mock Synthesis Hub.
+ * CRACKLIX MASTER NEURAL CORE v4
+ * Unified AI Synthesis Command Center.
  */
-export default function NeuralForgeV3Page() {
+export default function NeuralCoreStudio() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
@@ -46,6 +45,7 @@ export default function NeuralForgeV3Page() {
 
   const [config, setConfig] = useState({
     exam: EXAM_LIST[0],
+    subject: SUBJECT_LIST[0],
     totalCount: 10,
     title: "",
     duration: 60,
@@ -72,7 +72,7 @@ export default function NeuralForgeV3Page() {
     setLoading(true);
 
     const aiMsgId = Date.now() + 1;
-    setMessages(prev => [...prev, { role: 'ai', text: "Initializing Neural Forge...", status: 'thinking', id: aiMsgId }]);
+    setMessages(prev => [...prev, { role: 'ai', text: "Initializing Neural Core v4...", status: 'thinking', id: aiMsgId }]);
 
     try {
       const results = await executeForgeBatch({ ...config, instruction }, (progress) => {
@@ -82,13 +82,13 @@ export default function NeuralForgeV3Page() {
       setArtifacts(prev => [...prev, ...results]);
       setMessages(prev => prev.map(m => m.id === aiMsgId ? { 
         ...m, 
-        text: `Synthesis stabilized. Generated ${results.length} artifacts based on latest exam patterns.`, 
+        text: `Synthesis Stabilized. Validated ${results.length} artifacts according to board patterns.`, 
         status: 'done' 
       } : m));
 
     } catch (error: any) {
-      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `Forge Breach: ${error.message}`, status: 'error' } : m));
-      toast({ title: "Synthesis Failed", variant: "destructive" });
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `Neural Fracture: ${error.message}. Shifting to fallback node...`, status: 'error' } : m));
+      toast({ title: "Core Disruption", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -99,11 +99,11 @@ export default function NeuralForgeV3Page() {
     setLoading(true);
     try {
       const mockId = await publishMockFromArtifacts(artifacts, config);
-      toast({ title: "Simulation LIVE", description: "Mock pushed to Live Arena." });
+      toast({ title: "Simulation Deployed", description: "Pushed to student Live Arena." });
       setArtifacts([]);
-      setMessages(prev => [...prev, { role: 'ai', text: "Mock successfully published. Identity ID: " + mockId, id: Date.now() }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "Mock successfully stabilized. identity ID: " + mockId, id: Date.now() }]);
     } catch (err: any) {
-      toast({ title: "Publish Error", description: err.message, variant: "destructive" });
+      toast({ title: "Publish Breach", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -118,11 +118,11 @@ export default function NeuralForgeV3Page() {
           <header className="h-16 border-b border-white/5 bg-zinc-950/50 backdrop-blur-xl px-8 flex items-center justify-between shrink-0 z-50">
              <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center blue-glow">
-                   <Zap className="text-primary w-6 h-6" />
+                   <Cpu className="text-primary w-6 h-6" />
                 </div>
                 <div>
-                   <h1 className="text-sm font-black uppercase tracking-tighter">Neural Forge v3.0</h1>
-                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Enterprise Ingestion OS</p>
+                   <h1 className="text-sm font-black uppercase tracking-tighter">Neural Core v4.0</h1>
+                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Master Punjab Exam Engine</p>
                 </div>
              </div>
 
@@ -131,13 +131,22 @@ export default function NeuralForgeV3Page() {
                    <SelectTrigger className="w-[180px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
                       <SelectValue />
                    </SelectTrigger>
-                   <SelectContent className="bg-zinc-950 text-white border-white/10">
+                   <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-[400px]">
                       {EXAM_LIST.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                    </SelectContent>
                 </Select>
 
+                <Select value={config.subject} onValueChange={v => setConfig({...config, subject: v})}>
+                   <SelectTrigger className="w-[150px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
+                      <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-[400px]">
+                      {SUBJECT_LIST.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                   </SelectContent>
+                </Select>
+
                 <div className="flex items-center bg-zinc-900 border border-white/5 h-8 rounded-lg px-3 gap-2">
-                   <span className="text-[8px] font-black text-zinc-600 uppercase">Artifacts:</span>
+                   <span className="text-[8px] font-black text-zinc-600 uppercase">Batch:</span>
                    <input 
                      type="number" 
                      className="bg-transparent border-none text-[9px] font-black w-8 outline-none" 
@@ -151,13 +160,13 @@ export default function NeuralForgeV3Page() {
           <ScrollArea className="flex-1 p-6" ref={scrollRef}>
              <div className="max-w-4xl mx-auto space-y-8 pb-20">
                 {messages.length === 0 && (
-                  <div className="h-[50vh] flex flex-col items-center justify-center text-center space-y-8">
-                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-20 h-20 rounded-[32px] bg-primary flex items-center justify-center blue-glow">
+                  <div className="h-[50vh] flex flex-col items-center justify-center text-center space-y-8 opacity-20">
+                     <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-[32px] bg-primary flex items-center justify-center blue-glow">
                         <Sparkles size={32} />
                      </motion.div>
                      <div className="space-y-2">
-                        <h2 className="text-2xl font-black uppercase tracking-tighter">Forge Ready</h2>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Provide instructions to synthesize recruitment-ready artifacts.</p>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Core Ready</h2>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Input instructions to begin institutional artifact synthesis.</p>
                      </div>
                   </div>
                 )}
@@ -191,13 +200,13 @@ export default function NeuralForgeV3Page() {
           </ScrollArea>
 
           {artifacts.length > 0 && (
-            <div className="px-6 py-4 bg-zinc-950 border-t border-white/5 flex items-center justify-between animate-in slide-in-from-bottom-2">
+            <div className="px-8 py-4 bg-zinc-950 border-t border-white/5 flex items-center justify-between animate-in slide-in-from-bottom-2">
                <div className="flex items-center gap-4">
                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none px-3 py-1 font-black uppercase text-[10px]">{artifacts.length} ARTIFACTS STABILIZED</Badge>
-                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Global Bank Sync: Ready</p>
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Master Bank Sync: Ready</p>
                </div>
                <Button onClick={publishToArena} disabled={loading} className="h-10 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[10px] font-black uppercase blue-glow shadow-xl">
-                  <Rocket size={14} className="mr-2" /> ⚡ LIVE PUBLISH
+                  <Rocket size={14} className="mr-2" /> ⚡ DEPLOY LIVE
                </Button>
             </div>
           )}
@@ -210,7 +219,7 @@ export default function NeuralForgeV3Page() {
                       <div className="flex gap-4 p-3 items-center bg-white/[0.02] border-b border-white/5">
                          <div className="flex-1">
                             <Input 
-                              placeholder="Mock Title (e.g. Excise Inspector Sunday Marathon)" 
+                              placeholder="Mock Title (e.g. Master Cadre Punjabi Sunday Marathon)" 
                               value={config.title}
                               onChange={e => setConfig({...config, title: e.target.value})}
                               className="h-8 bg-transparent border-none focus-visible:ring-0 text-[10px] font-black uppercase"
@@ -218,7 +227,7 @@ export default function NeuralForgeV3Page() {
                          </div>
                          <div className="h-6 w-px bg-white/5" />
                          <div className="px-4">
-                            <label className="text-[8px] font-black text-zinc-500 uppercase block">Duration (M)</label>
+                            <label className="text-[8px] font-black text-zinc-500 uppercase block">Timer (M)</label>
                             <input 
                                type="number" 
                                value={config.duration}
@@ -229,7 +238,7 @@ export default function NeuralForgeV3Page() {
                       </div>
                       <div className="flex gap-4 items-end p-4">
                         <Textarea 
-                          placeholder="Command the Forge... (e.g. Generate 20 tricky Punjabi grammar artifacts for PSSSB Patwari cycle)"
+                          placeholder="Command the Core... (e.g. Generate 20 tricky PSTET Child Pedagogy artifacts based on Kohlberg's theory)"
                           className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium p-2 no-scrollbar resize-none min-h-[50px] max-h-[120px]"
                           value={input}
                           onChange={e => setInput(e.target.value)}
@@ -246,11 +255,11 @@ export default function NeuralForgeV3Page() {
                    </div>
                 </div>
                 <div className="mt-4 flex justify-center gap-6 text-[8px] font-black text-zinc-700 uppercase tracking-[0.4em]">
-                   <span>Fault Tolerant AI</span>
+                   <span>Syllabus Aware AI</span>
                    <span>•</span>
-                   <span>Raavi Compliant</span>
+                   <span>Raavi Normalization</span>
                    <span>•</span>
-                   <span>Batch Sync v3.0</span>
+                   <span>Core v4.0</span>
                 </div>
              </div>
           </footer>

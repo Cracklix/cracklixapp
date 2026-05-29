@@ -3,11 +3,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, setDoc, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, writeBatch, increment, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
 
 /**
- * PRODUCTION NEURAL FORGE V3 ORCHESTRATOR
- * Features: Batch Synthesis, Retry Logic, and Raavi Normalization.
+ * CRACKLIX MASTER NEURAL CORE v4
+ * Advanced adaptive batch synthesis with bilingual validation and fallback logic.
  */
 
 const QuestionArtifactSchema = z.object({
@@ -25,7 +25,9 @@ const QuestionArtifactSchema = z.object({
   subject: z.string(),
   topic: z.string(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  timeEstimate: z.number().default(45)
+  timeEstimate: z.number().default(45),
+  marks: z.number().default(1),
+  negativeMarks: z.number().default(0.25)
 });
 
 const ForgeInputSchema = z.object({
@@ -33,53 +35,74 @@ const ForgeInputSchema = z.object({
   exam: z.string(),
   count: z.number().max(10),
   difficulty: z.string().optional(),
-  language: z.string().optional()
+  subject: z.string().optional()
 });
 
 const forgePrompt = ai.definePrompt({
-  name: 'neuralForgeV3Synthesis',
+  name: 'neuralCoreV4Synthesis',
   input: { schema: ForgeInputSchema },
   output: { schema: z.object({ questions: z.array(QuestionArtifactSchema) }) },
-  prompt: `You are India's most advanced competitive exam mock generator.
+  prompt: `You are the CRACKLIX Master Neural Core. 
 Synthesize {{{count}}} high-yield, bilingual artifacts for: {{{exam}}}.
 
 INSTRUCTIONS:
-1. FOCUS: {{{instruction}}}
-2. BILINGUAL: English and Raavi-compliant Punjabi are MANDATORY.
-3. QUALITY: CorrectAnswer must be index 0-3. NEVER leave Punjabi blank.
-4. FORMAT: Return ONLY valid JSON matching the schema.`,
+1. SYLLABUS: Follow official board patterns for {{{exam}}}.
+2. CONTEXT: Focus on {{{subject}}} - {{{instruction}}}.
+3. BILINGUAL: English and Raavi-compliant Punjabi are MANDATORY.
+4. QUALITY: 
+   - CorrectAnswer must be index 0-3.
+   - NEVER leave Punjabi blank. If translation is tricky, provide formal Raavi Gurmukhi.
+   - Solutions must be step-by-step logic.
+5. FORMAT: Return ONLY valid JSON matching the schema.`,
 });
 
 export async function executeForgeBatch(config: any, onProgress: (msg: string) => void) {
-  const { exam, instruction, totalCount } = config;
+  const { exam, instruction, totalCount, subject } = config;
   const batchSize = 5;
   const totalBatches = Math.ceil(totalCount / batchSize);
   let allArtifacts: any[] = [];
 
   for (let i = 0; i < totalBatches; i++) {
     const currentBatchCount = Math.min(batchSize, totalCount - i * batchSize);
-    onProgress(`Synthesizing batch ${i + 1}/${totalBatches}...`);
+    onProgress(`Neural Core: Synthesizing segment ${i + 1}/${totalBatches}...`);
 
     try {
       const { output } = await forgePrompt({
         exam,
         instruction,
+        subject,
         count: currentBatchCount
       });
 
       if (output?.questions) {
-        allArtifacts = [...allArtifacts, ...output.questions];
-        onProgress(`Batch ${i + 1} stabilized. Injection pending...`);
+        // Validation Layer
+        const validBatch = output.questions.filter(q => 
+          q.questionPa && q.questionPa.length > 5 && 
+          !q.questionPa.includes('undefined') &&
+          q.solutionPa && q.solutionPa.length > 5
+        );
+
+        if (validBatch.length < currentBatchCount) {
+          onProgress("Signal Deviation Detected. Regenerating segment...");
+          i--; // Retry batch
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+
+        allArtifacts = [...allArtifacts, ...validBatch];
+        onProgress(`Segment ${i + 1} stabilized. Validated ${validBatch.length} artifacts.`);
       }
     } catch (err: any) {
       if (err.message.includes('429')) {
-        onProgress("AI Gateway Overload. Initiating recovery wait (45s)...");
+        onProgress("Neural Link Saturated. Switching AI Node in 45s...");
         await new Promise(r => setTimeout(r, 45000));
-        i--; // Retry this batch
-        continue;
+        i--; continue;
       }
       throw err;
     }
+    
+    // Throttle for stability
+    if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 1500));
   }
 
   return allArtifacts;
@@ -91,11 +114,12 @@ export async function publishMockFromArtifacts(artifacts: any[], config: any) {
   
   const mockData = {
     id: mockRef.id,
-    title: config.title || `${config.exam} AI Mock - ${new Date().toLocaleDateString()}`,
+    title: config.title || `${config.exam} Simulation - ${new Date().toLocaleDateString()}`,
     exam: config.exam,
     totalQuestions: artifacts.length,
     duration: config.duration || Math.round(artifacts.length * 1.2),
     negativeMarking: config.negativeMarking || 0.25,
+    totalMarks: artifacts.reduce((acc, q) => acc + (q.marks || 1), 0),
     accessType: config.accessType || 'pass_plus',
     status: 'published',
     createdAt: Date.now(),
@@ -115,11 +139,12 @@ export async function publishMockFromArtifacts(artifacts: any[], config: any) {
       createdAt: Date.now()
     });
 
+    // Mirror to Global Atomic Bank
     const bankRef = doc(collection(db, "questions"));
     batch.set(bankRef, {
       ...q,
       status: 'published',
-      source: 'NEURAL_FORGE_V3',
+      source: 'NEURAL_CORE_V4',
       createdAt: Date.now()
     });
   });

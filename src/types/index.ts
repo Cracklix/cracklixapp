@@ -86,11 +86,23 @@ export interface ExamAttempt {
 }
 
 export const EXAM_LIST = [
-  "PSSSB Clerk (General)", "PSSSB Patwari", "PSSSB Excise Inspector", 
-  "Punjab Police SI", "Punjab Police Constable", "PPSC PCS", "CTET", "PSTET", "SSC CGL", "Other..."
+  "PSSSB Clerk", "PSSSB Clerk IT", "PSSSB Clerk Accounts", "PSSSB Excise Inspector", 
+  "PSSSB Senior Assistant", "PSSSB Patwari", "PSSSB Lab Attendant", "PSSSB Jail Warder",
+  "PSSSB Fireman", "Veterinary Inspector", "Naib Tehsildar", "Steno Typist", "DEO",
+  "PSTET Paper 1", "PSTET Paper 2", "CTET Paper 1", "CTET Paper 2", "ETT Cadre",
+  "Master Cadre Punjabi", "Master Cadre English", "Master Cadre Math", "Master Cadre Science", "Master Cadre SST",
+  "Punjab Police Constable", "Punjab Police SI", "Intelligence Assistant",
+  "PSTCL JE Civil", "PSTCL JE Electrical", "PSTCL ALM", "PSTCL Clerk",
+  "PSPCL ALM", "PSPCL JE", "PSPCL Revenue Accountant", "PSPCL Clerk",
+  "IBPS PO/Clerk", "SBI PO/Clerk", "RBI Assistant",
+  "SSC CGL", "SSC CHSL", "SSC MTS", "SSC GD",
+  "Railway NTPC", "Railway Group D", "Other..."
 ];
 
 export const SUBJECT_LIST = [
-  "General Knowledge", "Punjab GK", "Logical Reasoning", "Quantitative Aptitude", 
-  "English Language", "Punjabi Language", "Computer / ICT", "General Science", "Other..."
+  "General Knowledge", "Punjab GK", "Child Development & Pedagogy", "Logical Reasoning", 
+  "Quantitative Aptitude", "English Language", "Punjabi Language", "Hindi Language",
+  "Computer / ICT", "General Science", "EVS", "Social Science", "Teaching Aptitude",
+  "Electrical Engineering", "Electrical Machines", "Power Systems", "Transmission & Distribution",
+  "Other..."
 ];
