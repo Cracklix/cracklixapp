@@ -16,7 +16,7 @@ import {
   Loader2, 
   Database, 
   Rocket, 
-  Settings,
+  Settings, 
   ShieldCheck,
   Cpu,
   History,
@@ -28,12 +28,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { executeForgeBatch, publishMockFromArtifacts } from '@/services/neural-forge-v3';
+import { synthesizeNeuralBatch } from '@/services/neural-forge-v3';
 import { EXAM_LIST, SUBJECT_LIST } from '@/types';
+import { collection, doc, writeBatch } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 /**
  * CRACKLIX MASTER NEURAL CORE v4
  * Unified AI Synthesis Command Center.
+ * Batching and Firestore logic moved to client to satisfy project rules.
  */
 export default function NeuralCoreStudio() {
   const { toast } = useToast();
@@ -75,14 +78,41 @@ export default function NeuralCoreStudio() {
     setMessages(prev => [...prev, { role: 'ai', text: "Initializing Neural Core v4...", status: 'thinking', id: aiMsgId }]);
 
     try {
-      const results = await executeForgeBatch({ ...config, instruction }, (progress) => {
-        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: progress } : m));
-      });
+      const totalCount = config.totalCount;
+      const batchSize = 5;
+      const totalBatches = Math.ceil(totalCount / batchSize);
+      let allResults: any[] = [];
 
-      setArtifacts(prev => [...prev, ...results]);
+      for (let i = 0; i < totalBatches; i++) {
+        const currentBatchCount = Math.min(batchSize, totalCount - i * batchSize);
+        
+        setMessages(prev => prev.map(m => 
+          m.id === aiMsgId ? { ...m, text: `Neural Core: Synthesizing segment ${i + 1}/${totalBatches}...` } : m
+        ));
+
+        const batchResults = await synthesizeNeuralBatch({
+          exam: config.exam,
+          instruction,
+          subject: config.subject,
+          count: currentBatchCount
+        });
+
+        allResults = [...allResults, ...batchResults];
+        setArtifacts(prev => [...prev, ...batchResults]);
+
+        setMessages(prev => prev.map(m => 
+          m.id === aiMsgId ? { ...m, text: `Segment ${i + 1} stabilized. Validated ${batchResults.length} artifacts.` } : m
+        ));
+
+        // Delay for API stability
+        if (i < totalBatches - 1) {
+          await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+
       setMessages(prev => prev.map(m => m.id === aiMsgId ? { 
         ...m, 
-        text: `Synthesis Stabilized. Validated ${results.length} artifacts according to board patterns.`, 
+        text: `Synthesis Stabilized. Validated ${allResults.length} artifacts according to board patterns.`, 
         status: 'done' 
       } : m));
 
@@ -98,10 +128,51 @@ export default function NeuralCoreStudio() {
     if (artifacts.length === 0) return;
     setLoading(true);
     try {
-      const mockId = await publishMockFromArtifacts(artifacts, config);
+      const batch = writeBatch(db);
+      const mockRef = doc(collection(db, "mocks"));
+      
+      const mockData = {
+        id: mockRef.id,
+        title: config.title || `${config.exam} Simulation - ${new Date().toLocaleDateString()}`,
+        exam: config.exam,
+        totalQuestions: artifacts.length,
+        duration: config.duration || Math.round(artifacts.length * 1.2),
+        negativeMarking: config.negativeMarking || 0.25,
+        totalMarks: artifacts.reduce((acc, q) => acc + (q.marks || 1), 0),
+        accessType: config.accessType || 'pass_plus',
+        status: 'published',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        attemptCount: 0,
+        languageMode: 'bilingual'
+      };
+
+      batch.set(mockRef, mockData);
+
+      artifacts.forEach((q, idx) => {
+        const qRef = doc(db, "mocks", mockRef.id, "questions", `q_${idx}`);
+        batch.set(qRef, {
+          ...q,
+          id: qRef.id,
+          order: idx,
+          createdAt: Date.now()
+        });
+
+        // Mirror to Global Atomic Bank
+        const bankRef = doc(collection(db, "questions"));
+        batch.set(bankRef, {
+          ...q,
+          status: 'published',
+          source: 'NEURAL_CORE_V4',
+          createdAt: Date.now()
+        });
+      });
+
+      await batch.commit();
+
       toast({ title: "Simulation Deployed", description: "Pushed to student Live Arena." });
       setArtifacts([]);
-      setMessages(prev => [...prev, { role: 'ai', text: "Mock successfully stabilized. identity ID: " + mockId, id: Date.now() }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "Mock successfully stabilized. identity ID: " + mockRef.id, id: Date.now() }]);
     } catch (err: any) {
       toast({ title: "Publish Breach", description: err.message, variant: "destructive" });
     } finally {
