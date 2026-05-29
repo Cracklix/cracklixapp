@@ -83,19 +83,6 @@ export interface ExamAttempt {
   topicPerformance?: Record<string, { total: number; correct: number }>;
 }
 
-export const EXAM_CONFIG = {
-  "PSSSB": ["Punjab GK", "Punjabi Language", "English Language", "Reasoning", "Mathematics", "Computer/ICT", "Agriculture", "Current Affairs"],
-  "PSTET": ["Child Development", "Punjabi", "English", "Math", "EVS", "Social Science", "Science"],
-  "CTET": ["Child Development", "Punjabi", "English", "Math", "EVS", "Social Science", "Science"],
-  "MASTER CADRE": ["Punjabi", "English", "Hindi", "Math", "Science", "Social Science"],
-  "ETT CADER": ["Punjabi", "English", "Hindi", "Math", "Science", "SST"],
-  "PSTCL": ["Electrical Engineering", "General Knowledge", "Reasoning", "English"],
-  "PSPCL": ["Electrical Engineering", "General Knowledge", "Reasoning", "English", "Static GK"],
-  "SSC": ["General Intelligence", "Quantitative Aptitude", "English Comprehension", "General Awareness"],
-  "BANK": ["Reasoning Ability", "Quantitative Aptitude", "English Language", "Banking Awareness", "Computer Knowledge"],
-  "CUSTOM": ["General Knowledge", "Other"]
-};
-
 export const EXAM_LIST = [
   "PSSSB Clerk (General)",
   "PSSSB Clerk IT",
