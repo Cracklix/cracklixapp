@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link href="/signup">
-                <Button className="h-20 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-xl font-black shadow-2xl group transition-all duration-300">
+                <Button className="h-20 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-xl font-black shadow-2xl group transition-all duration-3000ms">
                   INITIALIZE ACCOUNT <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-20 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-1000">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-20 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-[3000ms]">
               <div className="flex flex-col items-center gap-2">
                 <ShieldCheck className="w-8 h-8 text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-widest">PSSSB Ready</span>
