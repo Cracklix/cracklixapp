@@ -116,19 +116,22 @@ export const EXAM_LIST = [
   "PSTCL JE Civil",
   "PSTCL JE Electrical",
   "PSTCL ALM",
-  "PSPCL JE",
+  "PSTCL Clerk",
   "PSPCL Assistant Lineman",
+  "PSPCL JE",
   "PSPCL Revenue Accountant",
   "PSPCL Clerk",
   // NATIONAL
   "SSC CGL",
   "SSC CHSL",
-  "SSC MTS/GD",
-  "Railway NTPC/Group D",
-  "Banking IBPS PO/Clerk",
-  "Banking SBI Clerk",
+  "SSC MTS",
+  "SSC GD",
+  "Railway NTPC",
+  "Railway Group D",
+  "Banking IBPS",
+  "Banking SBI",
   "State PCS (PPSC)",
-  "Other..."
+  "CUSTOM"
 ];
 
 export const SUBJECT_LIST = [
@@ -144,19 +147,26 @@ export const SUBJECT_LIST = [
   "Child Development & Pedagogy",
   "Agriculture",
   "Electrical Engineering",
+  "Electrical Machines",
   "Power Systems",
+  "Transmission & Distribution",
   "Sikh History",
   "Teaching Aptitude",
   "Environmental Studies",
+  "Mathematics",
+  "Science",
+  "Social Science",
+  "Pedagogy",
+  "SST",
   "Other..."
 ];
 
-export const EXAM_CONFIG = {
+export const EXAM_CONFIG: Record<string, string[]> = {
   "PSSSB Clerk (General)": ["Punjabi Language (Part A)", "General Awareness", "Reasoning Ability", "Quantitative Aptitude", "Computer/ICT", "English Language", "Punjabi Grammar (Part B)"],
   "Punjab Police SI": ["General Awareness", "Quantitative Aptitude", "Reasoning Ability", "English Language", "Punjabi Language", "Computer/ICT"],
-  "PSTCL JE Electrical": ["Electrical Engineering", "General Knowledge", "Reasoning", "Punjabi"],
-  "PSTET Paper 1": ["Child Development & Pedagogy", "Punjabi", "English", "Mathematics", "Environmental Studies"],
-  "PSTET Paper 2": ["Child Development & Pedagogy", "Punjabi", "English", "Mathematics", "Science", "Social Science"],
-  "Master Cadre (Punjabi)": ["Punjabi", "Pedagogy"],
-  "Other...": SUBJECT_LIST
+  "PSTCL JE Electrical": ["Electrical Engineering", "General Awareness", "Reasoning Ability", "Punjabi Language (Part A)"],
+  "PSTET Paper 1": ["Child Development & Pedagogy", "Punjabi Language (Part A)", "English Language", "Mathematics", "Environmental Studies"],
+  "PSTET Paper 2": ["Child Development & Pedagogy", "Punjabi Language (Part A)", "English Language", "Science", "Social Science"],
+  "Master Cadre (Punjabi)": ["Punjabi Language (Part A)", "Pedagogy"],
+  "CUSTOM": SUBJECT_LIST
 };

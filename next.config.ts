@@ -19,7 +19,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['genkit', 'openai', 'razorpay', '@genkit-ai/google-genai'],
+  // Ensure Node.js specific modules are not bundled for the client
+  serverExternalPackages: [
+    'genkit', 
+    'openai', 
+    'razorpay', 
+    '@genkit-ai/google-genai',
+    'wav'
+  ],
 };
 
 export default nextConfig;

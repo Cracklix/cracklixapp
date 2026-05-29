@@ -10,17 +10,31 @@ import LiveActivity from '@/components/live-activity';
 import DailyTargets from '@/components/dashboard/daily-targets';
 import DailyQuiz from '@/components/daily-quiz';
 import ReadinessPredictor from '@/components/dashboard/readiness-predictor';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, ChevronRight, MessageCircle, Zap, Briefcase, BookOpen, Layers } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Trophy, ChevronRight, Zap, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AppErrorBoundary } from '@/components/error-boundary';
 import { DEFAULT_SERIES } from '@/services/test-series';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const { t } = useI18n();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || loading) {
+    return (
+      <div className="h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <AppLayout>
@@ -63,7 +77,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-10">
             
-            {/* Exam Categories - Testbook Style Entry */}
+            {/* Exam Categories */}
             <div className="space-y-6">
                <div className="flex items-center justify-between px-2">
                   <h2 className="text-2xl font-black uppercase tracking-tighter">Target Recruitment</h2>
@@ -111,7 +125,7 @@ export default function DashboardPage() {
                     <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1">Unlock 500+ Official Mocks</p>
                   </div>
                   <div className="space-y-3 relative z-10">
-                     <p className="text-sm font-medium text-white/90">Get unlimited access to PSSSB, Police, and PPSC Test Series for one year.</p>
+                     <p className="text-sm font-medium text-white/90">Unlimited access to PSSSB, Police, and PPSC Test Series for one year.</p>
                      <Link href="/pass">
                        <Button className="w-full h-12 rounded-xl bg-white text-black font-black uppercase tracking-widest shadow-xl">ACTIVATE PASS+</Button>
                      </Link>
