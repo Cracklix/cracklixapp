@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from "react";
@@ -15,9 +14,14 @@ export default function AdminProtect({ children }: { children: React.ReactNode }
   const { user, profile, loading } = useAuth();
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !loading) {
       if (!user) {
         router.push("/login");
       } else if (!checkIsAdmin(user, profile)) {
@@ -26,9 +30,9 @@ export default function AdminProtect({ children }: { children: React.ReactNode }
         setAuthorized(true);
       }
     }
-  }, [user, profile, loading, router]);
+  }, [user, profile, loading, router, mounted]);
 
-  if (loading || !authorized) {
+  if (!mounted || loading || !authorized) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
         <div className="relative">

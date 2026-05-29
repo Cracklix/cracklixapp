@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -20,6 +19,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Ensure the dev server is accessible via the workstation proxy
+  serverExternalPackages: ['genkit', 'openai', 'razorpay'],
 };
 
 export default nextConfig;
