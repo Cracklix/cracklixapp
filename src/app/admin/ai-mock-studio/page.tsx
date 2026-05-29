@@ -13,21 +13,24 @@ import {
   Target, 
   RefreshCw, 
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { EXAM_LIST, SUBJECT_LIST } from '@/types';
+import { EXAM_LIST, SUBJECT_LIST, EXAM_CONFIG } from '@/types';
 import { forgeNeuralArtifacts } from '@/services/neural-forge-v3';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import AdminSidebar from '@/components/admin/sidebar';
+import AdminProtect from '@/components/admin/admin-protect';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -37,21 +40,36 @@ interface Message {
 }
 
 export default function AiMockStudio() {
+  const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedExam, setSelectedExam] = useState(EXAM_LIST[0]);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_LIST[0]);
   const [targetCount, setTargetCount] = useState(10);
+  const [mockTitle, setMockIdentity] = useState('');
+  const [duration, setDuration] = useState(60);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // STABILITY FIX: Ensure smooth scroll doesn't trigger layout thrashing
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (messages.length > 0) {
       scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [messages.length]);
+
+  // Sync subjects when exam changes
+  useEffect(() => {
+    const subjects = EXAM_CONFIG[selectedExam as keyof typeof EXAM_CONFIG] || SUBJECT_LIST;
+    if (!subjects.includes(selectedSubject)) {
+      setSelectedSubject(subjects[0]);
+    }
+  }, [selectedExam]);
 
   const handleStop = () => {
     window.location.reload();
@@ -73,16 +91,17 @@ export default function AiMockStudio() {
     setMessages(prev => [...prev, assistantMsg]);
 
     try {
-      // BATCH SYSTEM: Processing 10 questions in chunks of 5
-      const batches = Math.ceil(targetCount / 5);
+      // BATCH SYSTEM: Processing in chunks of 5 for stability
+      const batchSize = 5;
+      const batches = Math.ceil(targetCount / batchSize);
       let allResults: any[] = [];
 
       for (let i = 0; i < batches; i++) {
-        const countForBatch = Math.min(5, targetCount - (i * 5));
+        const countForBatch = Math.min(batchSize, targetCount - (i * batchSize));
         
         setMessages(prev => {
           const last = [...prev];
-          last[last.length - 1].content = `Synthesizing Batch ${i + 1}/${batches}...`;
+          last[last.length - 1].content = `Synthesizing Batch ${i + 1}/${batches}... (${allResults.length} artifacts cached)`;
           return last;
         });
 
@@ -103,7 +122,7 @@ export default function AiMockStudio() {
           return last;
         });
 
-        // SAFETY COOLDOWN: Prevent 429
+        // SAFETY COOLDOWN: Mandatory 2s delay between AI batches
         if (i < batches - 1) {
           await new Promise(resolve => setTimeout(resolve, 2500));
         }
@@ -112,7 +131,7 @@ export default function AiMockStudio() {
       setMessages(prev => {
         const last = [...prev];
         last[last.length - 1].status = 'done';
-        last[last.length - 1].content = `Successfully generated ${allResults.length} high-fidelity artifacts for ${selectedExam}.`;
+        last[last.length - 1].content = `Synthesis complete. Successfully forged ${allResults.length} high-fidelity artifacts for ${selectedExam}.`;
         return last;
       });
 
@@ -120,12 +139,12 @@ export default function AiMockStudio() {
       setMessages(prev => {
         const last = [...prev];
         last[last.length - 1].status = 'error';
-        last[last.length - 1].content = `Generation Breach: ${error.message || 'AI Core Overload'}.`;
+        last[last.length - 1].content = `Generation Interrupted: ${error.message || 'AI Core saturated'}. Try a smaller batch.`;
         return last;
       });
       toast({
         title: "Synthesis Error",
-        description: "AI Quota exceeded. Please try again in a few seconds.",
+        description: error.message || "Quota reached. Please wait 60 seconds.",
         variant: "destructive"
       });
     } finally {
@@ -136,201 +155,239 @@ export default function AiMockStudio() {
   const publishToArena = async (artifacts: any[]) => {
     try {
       const mockData = {
-        title: `${selectedExam} AI Mock - ${new Date().toLocaleDateString()}`,
+        title: mockTitle || `${selectedExam} Neural Mock - ${new Date().toLocaleDateString()}`,
         exam: selectedExam,
         category: 'full',
-        duration: targetCount * 1.5,
+        duration: duration,
         totalQuestions: artifacts.length,
         status: 'published',
+        accessType: 'pass_plus',
+        languageMode: 'en_pa',
         createdAt: Date.now(),
-        questions: artifacts
+        questions: artifacts.map((art, idx) => ({
+          ...art,
+          id: `q_${idx}_${Date.now()}`,
+          order: idx
+        }))
       };
 
       await addDoc(collection(db, 'mocks'), mockData);
-      toast({ title: "Live Published", description: "Mock is now available for students." });
+      toast({ title: "LIVE PUBLISHED", description: "Simulation is now available for all students." });
     } catch (e) {
       toast({ title: "Publish Failed", variant: "destructive" });
     }
   };
 
+  if (!mounted) return null;
+
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-[#050505] text-white">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-[#0a0a0a]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
-            <Bot className="w-6 h-6 text-blue-400" />
-          </div>
-          <div>
-            <h1 className="font-headline text-lg font-bold tracking-tight">NEURAL FORGE V3</h1>
-            <p className="text-xs text-zinc-500 font-medium">Conversational Artifact Synthesis</p>
-          </div>
-        </div>
+    <AdminProtect>
+      <div className="flex bg-[#020202] min-h-screen text-white">
+        <AdminSidebar />
+        <main className="flex-1 flex flex-col h-screen overflow-hidden">
+          {/* Header */}
+          <header className="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-zinc-950/50 backdrop-blur-xl shrink-0 z-30">
+            <div className="flex items-center gap-4">
+              <div className="w-9 h-9 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
+                <Bot className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <h1 className="text-sm font-black uppercase tracking-widest">Neural Forge Studio</h1>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.2em] mt-0.5">Syllabus-Aware Synthesis Engine</p>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <select 
-            value={selectedExam} 
-            onChange={(e) => setSelectedExam(e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
-          >
-            {EXAM_LIST.map(exam => <option key={exam} value={exam}>{exam}</option>)}
-          </select>
-          <select 
-            value={selectedSubject} 
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
-          >
-            {SUBJECT_LIST.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-          </select>
-          <Input 
-            type="number" 
-            value={targetCount}
-            onChange={(e) => setTargetCount(Number(e.target.value))}
-            className="w-16 h-8 bg-zinc-900 border-zinc-800 text-xs"
-            min={1}
-            max={50}
-          />
-        </div>
-      </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-lg border border-white/5">
+                <select 
+                  value={selectedExam} 
+                  onChange={(e) => setSelectedExam(e.target.value)}
+                  className="bg-transparent border-none text-[9px] font-black uppercase px-3 focus:ring-0 outline-none"
+                >
+                  {EXAM_LIST.map(exam => <option key={exam} value={exam}>{exam}</option>)}
+                </select>
+                <select 
+                  value={selectedSubject} 
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  className="bg-transparent border-none text-[9px] font-black uppercase px-3 border-l border-white/5 focus:ring-0 outline-none"
+                >
+                  {(EXAM_CONFIG[selectedExam as keyof typeof EXAM_CONFIG] || SUBJECT_LIST).map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 bg-zinc-900/50 p-1 px-3 rounded-lg border border-white/5">
+                <span className="text-[8px] font-black text-zinc-600 uppercase">Artifacts</span>
+                <input 
+                  type="number" 
+                  value={targetCount}
+                  onChange={(e) => setTargetCount(Number(e.target.value))}
+                  className="w-10 bg-transparent border-none text-[10px] font-black text-center focus:ring-0 outline-none"
+                  min={1}
+                  max={50}
+                />
+              </div>
+            </div>
+          </header>
 
-      {/* Chat Space */}
-      <ScrollArea className="flex-1 p-4 lg:p-8">
-        <div className="max-w-4xl mx-auto space-y-6 pb-24">
-          <AnimatePresence mode="popLayout">
-            {messages.length === 0 && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center py-20 text-center space-y-4"
-              >
-                <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center mb-4">
-                  <Play className="w-8 h-8 text-blue-500 animate-pulse" />
-                </div>
-                <h2 className="text-2xl font-headline font-bold">What are we building today?</h2>
-                <p className="text-zinc-500 max-w-sm">Command the forge to generate high-fidelity, bilingual Punjab exam MCQs with detailed logic.</p>
-              </motion.div>
-            )}
-
-            {messages.map((msg, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className={cn(
-                  "flex gap-4 p-4 rounded-2xl",
-                  msg.role === 'user' ? "bg-zinc-900/50 ml-12" : "bg-blue-600/5 mr-12 border border-blue-500/10"
+          {/* Chat Space */}
+          <ScrollArea className="flex-1 p-6 lg:p-10 no-scrollbar">
+            <div className="max-w-4xl mx-auto space-y-8 pb-32">
+              <AnimatePresence mode="popLayout">
+                {messages.length === 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center justify-center py-32 text-center space-y-6"
+                  >
+                    <div className="w-20 h-20 rounded-full bg-blue-600/10 flex items-center justify-center shadow-2xl relative">
+                       <div className="absolute inset-0 bg-blue-600/20 blur-[50px] animate-pulse rounded-full" />
+                       <Bot className="w-10 h-10 text-blue-500 relative z-10" />
+                    </div>
+                    <div className="space-y-2">
+                       <h2 className="text-3xl font-black uppercase tracking-tighter">Command the Forge</h2>
+                       <p className="text-zinc-500 max-w-sm mx-auto text-sm font-medium leading-relaxed italic">
+                         "Synthesize 20 hard MCQs on Punjab Rivers for SI exam..."
+                       </p>
+                    </div>
+                  </motion.div>
                 )}
-              >
-                <div className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                  msg.role === 'user' ? "bg-zinc-800" : "bg-blue-600"
-                )}>
-                  {msg.role === 'user' ? <Target className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                </div>
-                
-                <div className="flex-1 space-y-4">
-                  <div className="prose prose-invert max-w-none text-sm leading-relaxed">
-                    {msg.content}
-                    {msg.status === 'thinking' && (
-                      <span className="ml-2 inline-flex gap-1">
-                        <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" />
-                      </span>
+
+                {messages.map((msg, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "flex gap-6 p-6 rounded-3xl transition-all",
+                      msg.role === 'user' ? "bg-white/[0.03] ml-12" : "bg-blue-600/5 mr-12 border border-blue-500/10"
                     )}
-                  </div>
-
-                  {msg.artifacts && msg.artifacts.length > 0 && (
-                    <div className="grid grid-cols-1 gap-3 mt-4">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400">
-                          {msg.artifacts.length} Artifacts Synthesized
-                        </Badge>
-                        {msg.status === 'done' && (
-                          <Button 
-                            size="sm" 
-                            variant="default"
-                            className="h-7 text-[10px] bg-blue-600 hover:bg-blue-500"
-                            onClick={() => publishToArena(msg.artifacts!)}
-                          >
-                            <Play className="w-3 h-3 mr-1" /> ⚡ LIVE PUBLISH
-                          </Button>
+                  >
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
+                      msg.role === 'user' ? "bg-zinc-800 text-zinc-500" : "bg-blue-600 text-white"
+                    )}>
+                      {msg.role === 'user' ? <Target className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+                    </div>
+                    
+                    <div className="flex-1 space-y-6">
+                      <div className="prose prose-invert max-w-none text-sm leading-relaxed font-medium">
+                        {msg.content}
+                        {msg.status === 'thinking' && (
+                          <span className="ml-2 inline-flex gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
+                          </span>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        {msg.artifacts.slice(-3).map((art, aIdx) => (
-                          <div key={aIdx} className="p-3 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px]">
-                            <p className="font-bold text-blue-400 mb-1">Q. {art.questionEn}</p>
-                            <p className="text-zinc-400 italic">{art.questionPa}</p>
+
+                      {msg.artifacts && msg.artifacts.length > 0 && (
+                        <div className="space-y-6 pt-4 border-t border-white/5">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[9px] font-black uppercase border-blue-500/30 text-blue-400 bg-blue-500/5 px-3 py-1">
+                              {msg.artifacts.length} Artifacts Synthesized
+                            </Badge>
+                            {msg.status === 'done' && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => publishToArena(msg.artifacts!)}
+                                className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[9px] font-black uppercase tracking-widest blue-glow"
+                              >
+                                <Play className="w-3 h-3 mr-2" /> ⚡ LIVE PUBLISH
+                              </Button>
+                            )}
                           </div>
-                        ))}
-                        {msg.artifacts.length > 3 && (
-                          <p className="text-center text-[10px] text-zinc-600">+{msg.artifacts.length - 3} more questions in bank...</p>
-                        )}
-                      </div>
+                          <div className="grid gap-3">
+                            {msg.artifacts.slice(-3).map((art, aIdx) => (
+                              <Card key={aIdx} className="p-4 bg-black/40 border-white/5 rounded-2xl">
+                                <p className="text-[10px] font-black text-blue-500 uppercase mb-2">Artifact #{aIdx + 1}</p>
+                                <p className="font-bold text-sm leading-relaxed">{art.questionEn}</p>
+                                <p className="text-zinc-500 italic text-xs mt-2 font-medium">{art.questionPa}</p>
+                              </Card>
+                            ))}
+                            {msg.artifacts.length > 3 && (
+                              <p className="text-center text-[9px] font-black text-zinc-700 uppercase tracking-widest pt-2">
+                                +{msg.artifacts.length - 3} more artifacts in cache buffer
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div ref={scrollRef} className="h-4" />
+            </div>
+          </ScrollArea>
 
-                  {msg.status === 'error' && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-900/10 border border-red-500/20 text-red-400 text-xs">
-                      <AlertCircle className="w-4 h-4" />
-                      <span>{msg.content}</span>
-                    </div>
-                  )}
+          {/* Prompt Dock */}
+          <div className="p-6 bg-zinc-950/80 backdrop-blur-2xl border-t border-white/5 shrink-0">
+            <div className="max-w-4xl mx-auto space-y-4">
+              <div className="flex gap-4">
+                 <div className="flex-1 space-y-1">
+                    <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-4">Simulation Identity</span>
+                    <Input 
+                      placeholder="e.g. Daily Express #42"
+                      value={mockTitle}
+                      onChange={e => setMockIdentity(e.target.value)}
+                      className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-6 font-bold text-xs"
+                    />
+                 </div>
+                 <div className="w-32 space-y-1">
+                    <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-4">Timer (Min)</span>
+                    <Input 
+                      type="number"
+                      value={duration}
+                      onChange={e => setDuration(Number(e.target.value))}
+                      className="h-12 bg-white/[0.03] border-white/5 rounded-2xl px-6 text-center font-black text-xs"
+                    />
+                 </div>
+              </div>
+
+              <div className="relative">
+                <Input
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Command the forge... (e.g. Generate 20 MCQs for PSSSB Clerk)"
+                  className="bg-white/[0.05] border-white/5 h-16 pl-6 pr-24 rounded-3xl font-bold text-sm focus:ring-blue-500/20"
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                  disabled={isGenerating}
+                />
+                <div className="absolute right-2 top-2 flex gap-1">
+                   {isGenerating ? (
+                     <Button 
+                       onClick={handleStop}
+                       variant="ghost" 
+                       className="h-12 w-12 rounded-2xl text-red-500 hover:bg-red-500/10"
+                     >
+                       <XCircle className="w-6 h-6" />
+                     </Button>
+                   ) : (
+                     <Button 
+                       onClick={handleGenerate}
+                       disabled={!prompt.trim()}
+                       className="h-12 w-12 rounded-2xl bg-blue-600 hover:bg-blue-500"
+                     >
+                       <Send className="w-5 h-5" />
+                     </Button>
+                   )}
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          <div ref={scrollRef} className="h-4" />
-        </div>
-      </ScrollArea>
-
-      {/* Input Bar */}
-      <div className="p-4 bg-[#0a0a0a] border-t border-zinc-800">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <div className="relative flex-1">
-            <Input
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Command the forge..."
-              className="bg-zinc-900 border-zinc-800 h-12 pl-4 pr-12 focus-visible:ring-blue-500"
-              onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-              disabled={isGenerating}
-            />
-            {isGenerating ? (
-              <Button 
-                onClick={handleStop}
-                variant="ghost" 
-                size="icon" 
-                className="absolute right-2 top-1.5 h-9 w-9 text-red-500 hover:bg-red-500/10"
-              >
-                <XCircle className="w-5 h-5" />
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleGenerate}
-                disabled={!prompt.trim()}
-                variant="ghost" 
-                size="icon" 
-                className="absolute right-2 top-1.5 h-9 w-9 text-blue-500 hover:bg-blue-500/10"
-              >
-                <Send className="w-5 h-5" />
-              </Button>
-            )}
+              </div>
+              
+              <div className="flex items-center justify-center gap-6 pt-2">
+                 <div className="flex items-center gap-1.5 opacity-40">
+                    <ShieldCheck size={10} className="text-emerald-500" />
+                    <span className="text-[8px] font-black uppercase tracking-widest">Syllabus Mapping Active</span>
+                 </div>
+                 <div className="flex items-center gap-1.5 opacity-40">
+                    <RefreshCw size={10} className="text-blue-500" />
+                    <span className="text-[8px] font-black uppercase tracking-widest">Batching v3: Stable</span>
+                 </div>
+              </div>
+            </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-12 w-12 border-zinc-800 hover:bg-zinc-900"
-            onClick={() => setMessages([])}
-          >
-            <Trash2 className="w-5 h-5" />
-          </Button>
-        </div>
-        <p className="text-[10px] text-center text-zinc-600 mt-2">
-          Neural Forge respects board syllabus and bilingual standards. Verify all high-stakes artifacts before publishing.
-        </p>
+        </main>
       </div>
-    </div>
+    </AdminProtect>
   );
 }

@@ -67,18 +67,18 @@ export default function DashboardPage() {
               <Badge className="bg-primary/10 text-primary border-primary/20 px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-[0.4em] shadow-sm animate-pulse">
                 Punjab's #1 AI Exam Ecosystem
               </Badge>
-              <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9]">
+              <h1 className="text-6xl md:text-[90px] font-black tracking-tighter uppercase leading-[0.85]">
                 Dominate the <br />
                 <span className="text-primary italic">Recruitment.</span>
               </h1>
-              <p className="text-xl text-zinc-500 max-w-2xl mx-auto font-medium leading-relaxed">
+              <p className="text-xl text-zinc-500 max-w-2xl mx-auto font-medium leading-relaxed mt-4">
                 The elite preparation workstation for PSSSB, Police, and PPSC. Real CBT simulations with bilingual AI Mentorship.
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link href="/signup">
-                <Button className="h-20 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-xl font-black blue-glow shadow-2xl group">
+                <Button className="h-20 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-xl font-black blue-glow shadow-2xl group transition-all duration-300">
                   INITIALIZE ACCOUNT <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-20 opacity-40 grayscale group-hover:grayscale-0 transition-all">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-20 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700">
               <div className="flex flex-col items-center gap-2">
                 <ShieldCheck className="w-8 h-8 text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-widest">PSSSB Ready</span>

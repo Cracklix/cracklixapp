@@ -3,6 +3,7 @@
 /**
  * NEURAL FORGE V3 - BATCH ORCHESTRATOR
  * Stabilized for production use with strict retry and timeout logic.
+ * Corrected for Genkit 1.x syntax.
  */
 
 import { ai } from '@/ai/genkit';
@@ -37,35 +38,56 @@ const GeneratorOutputSchema = z.object({
 });
 
 export async function forgeNeuralArtifacts(input: z.infer<typeof GeneratorInputSchema>) {
+  // Define prompt locally to ensure server-side registration on each execution
   const prompt = ai.definePrompt({
     name: 'neuralForgePrompt',
     input: { schema: GeneratorInputSchema },
     output: { schema: GeneratorOutputSchema },
-    prompt: `You are the CRACKLIX Neural Forge V3. 
+    prompt: `You are the CRACKLIX Neural Forge V3, an expert exam architect.
 Generate exactly {{{count}}} high-fidelity, bilingual (English & Punjabi) MCQs for the exam: {{{exam}}}.
 
-RULES:
+STRICT RULES:
 1. Every artifact MUST contain parallel English and Punjabi (Gurmukhi Raavi) signals.
-2. Solutions MUST follow a logical path with an "Elite Speed Trick" if applicable.
-3. Difficulty must match {{{difficulty}}} level.
-4. Target subjects: {{#each subjects}}{{{this}}}{{#if @last}}{{else}}, {{/if}}{{/each}}.
+2. Punjabi (questionPa) MUST be Raavi-compliant Gurmukhi.
+3. If Punjabi is unavailable, do NOT leave it blank; translate the English text faithfully.
+4. Solutions MUST follow a logical path with an "Elite Speed Trick" if applicable.
+5. Difficulty: {{{difficulty}}}.
+6. Target subjects: {{#each subjects}}{{{this}}}{{#if @last}}{{else}}, {{/if}}{{/each}}.
 
 Instruction: {{{instruction}}}
 
 Return ONLY a valid JSON object matching the output schema.`
   });
 
-  try {
-    // STABILITY: Single batch execution with error boundary
-    const { output } = await prompt(input);
-    
-    if (!output || !output.questions) {
-      throw new Error("Neural synthesis returned empty payload.");
-    }
+  let retries = 0;
+  const MAX_RETRIES = 2;
 
-    return output.questions;
-  } catch (error: any) {
-    console.error("Neural Forge Failure:", error);
-    throw new Error(error.message || "Internal AI Core Failure.");
+  while (retries <= MAX_RETRIES) {
+    try {
+      // Genkit 1.x prompt execution
+      const { output } = await prompt(input);
+      
+      if (!output || !output.questions || output.questions.length === 0) {
+        throw new Error("Neural synthesis returned empty payload.");
+      }
+
+      return output.questions;
+
+    } catch (error: any) {
+      console.error(`Neural Forge Attempt ${retries} failed:`, error.message);
+      
+      const isRetryable = error.message?.includes("429") || error.message?.includes("quota") || error.message?.includes("Resource exhausted");
+      
+      if (isRetryable && retries < MAX_RETRIES) {
+        retries++;
+        // Backoff: 3 seconds
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        continue;
+      }
+      
+      throw new Error(error.message || "AI Core Failure. Please wait 30 seconds and retry.");
+    }
   }
+  
+  throw new Error("AI Core saturated. Please try a smaller batch or wait 1 minute.");
 }

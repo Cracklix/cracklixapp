@@ -84,35 +84,79 @@ export interface ExamAttempt {
 }
 
 export const EXAM_LIST = [
+  // PSSSB
   "PSSSB Clerk (General)",
   "PSSSB Clerk IT",
   "PSSSB Clerk Accounts",
   "PSSSB Excise Inspector",
   "PSSSB Senior Assistant",
   "PSSSB Patwari",
+  "PSSSB Lab Attendant",
+  "PSSSB Jail Warder",
+  "PSSSB Fireman",
+  "PSSSB Veterinary Inspector",
+  "PSSSB Naib Tehsildar",
+  "PSSSB Steno Typist",
+  "PSSSB Data Entry Operator",
+  // POLICE
   "Punjab Police SI",
   "Punjab Police Constable",
-  "PPSC PCS",
+  "Punjab Police Intelligence Assistant",
+  // EDUCATION
   "PSTET Paper 1",
   "PSTET Paper 2",
+  "CTET Paper 1",
+  "CTET Paper 2",
+  "ETT Cadre",
+  "Master Cadre (Punjabi)",
+  "Master Cadre (English)",
+  "Master Cadre (Math/Science)",
+  "Lecturer Cadre",
+  // ELECTRICAL
+  "PSTCL JE Civil",
+  "PSTCL JE Electrical",
+  "PSTCL ALM",
+  "PSPCL JE",
+  "PSPCL Assistant Lineman",
+  "PSPCL Revenue Accountant",
+  "PSPCL Clerk",
+  // NATIONAL
   "SSC CGL",
   "SSC CHSL",
-  "Banking IBPS PO",
+  "SSC MTS/GD",
+  "Railway NTPC/Group D",
+  "Banking IBPS PO/Clerk",
   "Banking SBI Clerk",
+  "State PCS (PPSC)",
   "Other..."
 ];
 
 export const SUBJECT_LIST = [
-  "Punjab GK",
+  "Punjab GK & History",
   "Quantitative Aptitude",
   "Reasoning Ability",
   "English Language",
-  "Punjabi Language",
+  "Punjabi Language (Part A)",
+  "Punjabi Grammar (Part B)",
   "Computer/ICT",
   "General Awareness",
   "Current Affairs",
-  "Child Development",
+  "Child Development & Pedagogy",
   "Agriculture",
+  "Electrical Engineering",
+  "Power Systems",
   "Sikh History",
+  "Teaching Aptitude",
+  "Environmental Studies",
   "Other..."
 ];
+
+export const EXAM_CONFIG = {
+  "PSSSB Clerk (General)": ["Punjabi Language (Part A)", "General Awareness", "Reasoning Ability", "Quantitative Aptitude", "Computer/ICT", "English Language", "Punjabi Grammar (Part B)"],
+  "Punjab Police SI": ["General Awareness", "Quantitative Aptitude", "Reasoning Ability", "English Language", "Punjabi Language", "Computer/ICT"],
+  "PSTCL JE Electrical": ["Electrical Engineering", "General Knowledge", "Reasoning", "Punjabi"],
+  "PSTET Paper 1": ["Child Development & Pedagogy", "Punjabi", "English", "Mathematics", "Environmental Studies"],
+  "PSTET Paper 2": ["Child Development & Pedagogy", "Punjabi", "English", "Mathematics", "Science", "Social Science"],
+  "Master Cadre (Punjabi)": ["Punjabi", "Pedagogy"],
+  "Other...": SUBJECT_LIST
+};
