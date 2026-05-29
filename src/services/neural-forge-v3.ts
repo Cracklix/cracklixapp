@@ -1,7 +1,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 /**
  * CRACKLIX MASTER NEURAL CORE v4
@@ -29,19 +29,28 @@ const QuestionArtifactSchema = z.object({
   negativeMarks: z.number().default(0.25)
 });
 
-const ForgeInputSchema = z.object({
-  instruction: z.string(),
-  exam: z.string(),
-  count: z.number().max(10),
-  difficulty: z.string().optional(),
-  subject: z.string().optional()
-});
-
-const forgePrompt = ai.definePrompt({
-  name: 'neuralCoreV4Synthesis',
-  input: { schema: ForgeInputSchema },
-  output: { schema: z.object({ questions: z.array(QuestionArtifactSchema) }) },
-  prompt: `You are the CRACKLIX Master Neural Core. 
+export async function synthesizeNeuralBatch(config: {
+  instruction: string;
+  exam: string;
+  count: number;
+  difficulty?: string;
+  subject?: string;
+}) {
+  try {
+    // Define prompt inside the action to ensure isolation from client bundle analysis
+    const forgePrompt = ai.definePrompt({
+      name: `neuralCoreV4Synthesis_${Date.now()}`,
+      input: { 
+        schema: z.object({
+          instruction: z.string(),
+          exam: z.string(),
+          count: z.number().max(10),
+          difficulty: z.string().optional(),
+          subject: z.string().optional()
+        }) 
+      },
+      output: { schema: z.object({ questions: z.array(QuestionArtifactSchema) }) },
+      prompt: `You are the CRACKLIX Master Neural Core. 
 Synthesize {{{count}}} high-yield, bilingual artifacts for: {{{exam}}}.
 
 INSTRUCTIONS:
@@ -53,16 +62,8 @@ INSTRUCTIONS:
    - NEVER leave Punjabi blank. If translation is tricky, provide formal Raavi Gurmukhi.
    - Solutions must be step-by-step logic.
 5. FORMAT: Return ONLY valid JSON matching the schema.`,
-});
+    });
 
-export async function synthesizeNeuralBatch(config: {
-  instruction: string;
-  exam: string;
-  count: number;
-  difficulty?: string;
-  subject?: string;
-}) {
-  try {
     const { output } = await forgePrompt(config);
 
     if (!output || !output.questions) {
