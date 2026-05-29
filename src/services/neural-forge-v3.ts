@@ -4,6 +4,7 @@
  * NEURAL FORGE V3 - BATCH ORCHESTRATOR
  * Stabilized for production use with strict retry and timeout logic.
  * Corrected for Genkit 1.x syntax.
+ * Isolate Node.js modules from client-side bundle.
  */
 
 import { ai } from '@/ai/genkit';
@@ -29,7 +30,7 @@ const GeneratorInputSchema = z.object({
   instruction: z.string(),
   exam: z.string(),
   subjects: z.array(z.string()),
-  count: z.number().max(5), // STABILITY: Enforced small batches
+  count: z.number().max(5), 
   difficulty: z.string()
 });
 
@@ -37,13 +38,11 @@ const GeneratorOutputSchema = z.object({
   questions: z.array(QuestionArtifactSchema)
 });
 
-export async function forgeNeuralArtifacts(input: z.infer<typeof GeneratorInputSchema>) {
-  // Define prompt locally to ensure server-side registration on each execution
-  const prompt = ai.definePrompt({
-    name: 'neuralForgePrompt',
-    input: { schema: GeneratorInputSchema },
-    output: { schema: GeneratorOutputSchema },
-    prompt: `You are the CRACKLIX Neural Forge V3, an expert exam architect.
+const neuralForgePrompt = ai.definePrompt({
+  name: 'neuralForgePromptV3',
+  input: { schema: GeneratorInputSchema },
+  output: { schema: GeneratorOutputSchema },
+  prompt: `You are the CRACKLIX Neural Forge V3, an expert exam architect.
 Generate exactly {{{count}}} high-fidelity, bilingual (English & Punjabi) MCQs for the exam: {{{exam}}}.
 
 STRICT RULES:
@@ -57,15 +56,15 @@ STRICT RULES:
 Instruction: {{{instruction}}}
 
 Return ONLY a valid JSON object matching the output schema.`
-  });
+});
 
+export async function forgeNeuralArtifacts(input: z.infer<typeof GeneratorInputSchema>) {
   let retries = 0;
   const MAX_RETRIES = 2;
 
   while (retries <= MAX_RETRIES) {
     try {
-      // Genkit 1.x prompt execution
-      const { output } = await prompt(input);
+      const { output } = await neuralForgePrompt(input);
       
       if (!output || !output.questions || output.questions.length === 0) {
         throw new Error("Neural synthesis returned empty payload.");
@@ -76,11 +75,14 @@ Return ONLY a valid JSON object matching the output schema.`
     } catch (error: any) {
       console.error(`Neural Forge Attempt ${retries} failed:`, error.message);
       
-      const isRetryable = error.message?.includes("429") || error.message?.includes("quota") || error.message?.includes("Resource exhausted");
+      const isRetryable = 
+        error.message?.includes("429") || 
+        error.message?.includes("quota") || 
+        error.message?.includes("Resource exhausted") ||
+        error.status === 429;
       
       if (isRetryable && retries < MAX_RETRIES) {
         retries++;
-        // Backoff: 3 seconds
         await new Promise(resolve => setTimeout(resolve, 3000));
         continue;
       }

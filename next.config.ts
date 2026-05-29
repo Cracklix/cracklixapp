@@ -19,8 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Ensure the dev server is accessible via the workstation proxy
-  serverExternalPackages: ['genkit', 'openai', 'razorpay'],
+  serverExternalPackages: ['genkit', 'openai', 'razorpay', '@genkit-ai/google-genai'],
 };
 
 export default nextConfig;

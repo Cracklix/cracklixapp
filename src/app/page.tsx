@@ -43,7 +43,7 @@ export default function DashboardPage() {
         <header className="fixed top-0 w-full z-[100] bg-black/50 backdrop-blur-xl border-b border-white/5">
           <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center blue-glow">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
                 <Zap className="text-white w-5 h-5 fill-current" />
               </div>
               <span className="font-headline text-2xl font-black tracking-tighter uppercase">CRACKLIX</span>
@@ -53,7 +53,7 @@ export default function DashboardPage() {
                 <Button variant="ghost" className="text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-white">Access Terminal</Button>
               </Link>
               <Link href="/signup">
-                <Button className="h-11 px-8 rounded-xl bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest shadow-xl blue-glow">
+                <Button className="h-11 px-8 rounded-xl bg-primary hover:bg-primary/90 font-black text-xs uppercase tracking-widest shadow-xl">
                   Enlist Now
                 </Button>
               </Link>
@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link href="/signup">
-                <Button className="h-20 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-xl font-black blue-glow shadow-2xl group transition-all duration-300">
+                <Button className="h-20 px-12 rounded-3xl bg-primary hover:bg-primary/90 text-xl font-black shadow-2xl group transition-all duration-300">
                   INITIALIZE ACCOUNT <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-20 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-20 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-1000">
               <div className="flex flex-col items-center gap-2">
                 <ShieldCheck className="w-8 h-8 text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-widest">PSSSB Ready</span>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                       <h3 className="text-4xl font-black tracking-tighter">#842</h3>
                       <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase">↑ Rising</Badge>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg blue-glow">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
                       <Trophy className="text-white w-6 h-6" />
                     </div>
                   </div>
