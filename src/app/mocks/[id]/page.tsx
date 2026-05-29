@@ -39,7 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 /**
  * PRODUCTION CBT ENGINE v45.0
- * Optimized for Institutional "0-Scroll" Experience.
+ * Institutional 0-Scroll Experience.
  */
 export default function CBTEngineV45({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -101,7 +101,6 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
       });
     }, 1000);
 
-    // 10s Heartbeat sync
     const syncInterval = setInterval(() => {
       saveAnswer(attempt.id, 'meta_sync', {
         remainingTime: timeRemaining,
@@ -121,7 +120,6 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
         setAttempt({ id } as any);
       }
       setPhase('exam');
-      if (mock.languageMode) setActiveLang(mock.languageMode);
     } catch (e) {
       setPhase('gateway');
     }
@@ -172,7 +170,7 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
     return (
       <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
          <Loader2 className="w-12 h-12 animate-spin text-primary" />
-         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Syncing Simulation Signal...</p>
+         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Establishing Session Mirror...</p>
       </div>
     );
   }
@@ -182,15 +180,15 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
       <div className="min-h-screen bg-[#05070a] text-white flex flex-col">
          <header className="h-16 bg-zinc-950 border-b border-white/5 flex items-center px-8 justify-between">
             <Button variant="ghost" onClick={() => router.push('/exams')} className="text-zinc-500 hover:text-white font-bold text-xs">
-               <ArrowLeft size={16} className="mr-2" /> EXIT ARENA
+               <ArrowLeft size={16} className="mr-2" /> EXIT TERMINAL
             </Button>
-            <h1 className="font-black text-sm uppercase tracking-widest">{mock?.title}</h1>
+            <h1 className="font-black text-sm uppercase tracking-widest truncate max-w-lg">{mock?.title}</h1>
          </header>
          <main className="flex-1 flex items-center justify-center p-8">
             <Card className="max-w-3xl w-full rounded-[48px] bg-zinc-950 border border-white/5 p-12 space-y-10 shadow-2xl relative overflow-hidden">
                <div className="absolute top-0 right-0 p-12 opacity-5"><Monitor size={200} /></div>
                <div className="text-center space-y-4 relative z-10">
-                  <Badge className="bg-primary/20 text-primary border-none px-4 py-1 font-black uppercase text-[10px]">Protocol Baseline</Badge>
+                  <Badge className="bg-primary/20 text-primary border-none px-4 py-1 font-black uppercase text-[10px]">Entrance Protocol</Badge>
                   <h2 className="text-4xl font-black uppercase tracking-tighter">Instructions & Scheme</h2>
                </div>
                <div className="grid md:grid-cols-2 gap-8 relative z-10 text-sm">
@@ -203,19 +201,8 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
                      <p className="text-xl font-bold">-{mock?.negativeMarking} Per Wrong</p>
                   </div>
                </div>
-               <div className="pt-10 border-t border-white/5 flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1 space-y-2">
-                    <p className="text-[9px] font-black uppercase text-zinc-500 px-2">Primary Language</p>
-                    <Select value={activeLang} onValueChange={(v: any) => setActiveLang(v)}>
-                       <SelectTrigger className="h-14 bg-zinc-900 border-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
-                       <SelectContent className="bg-zinc-950 text-white border-white/10">
-                          <SelectItem value="english">English</SelectItem>
-                          <SelectItem value="punjabi">Punjabi</SelectItem>
-                          <SelectItem value="bilingual">Bilingual (EN+PA)</SelectItem>
-                       </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={handleStartExam} className="h-14 mt-auto rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-sm uppercase tracking-widest blue-glow px-10">
+               <div className="pt-10 border-t border-white/5">
+                  <Button onClick={handleStartExam} className="w-full h-16 rounded-[28px] bg-primary hover:bg-primary/90 text-white font-black text-sm uppercase tracking-widest blue-glow">
                      BEGIN ASSESSMENT <ChevronRight size={18} className="ml-2" />
                   </Button>
                </div>
@@ -251,21 +238,21 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
                 <Timer duration={timeRemaining / 60} onFinish={handleSubmitFinal} paused={isPaused} />
              </div>
 
-             <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg">SUBMIT TEST</Button>
+             <Button onClick={() => setSubmitConfirmOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 h-9 px-6 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg">SUBMIT</Button>
           </div>
        </header>
 
        <div className="flex-1 flex overflow-hidden">
-          {/* Main Area - Fixed Height for 0-Scroll */}
+          {/* Main Workspace - Optimized for 0-Scroll */}
           <main className="flex-1 overflow-y-auto p-6 bg-slate-50 relative no-scrollbar">
              <div className="max-w-4xl mx-auto space-y-6 pb-20">
                 <AnimatePresence mode="wait">
                    {isPaused ? (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-6 text-center">
                          <div className="w-20 h-20 rounded-[32px] bg-blue-600 flex items-center justify-center shadow-2xl"><Pause size={40} className="text-white" fill="currentColor" /></div>
-                         <h3 className="text-3xl font-black uppercase tracking-tighter">Session Suspended</h3>
-                         <p className="text-slate-500 font-medium max-w-xs">Your progress is cloud-synced. Click resume to continue your attempt.</p>
-                         <Button onClick={() => setIsPaused(false)} className="h-16 px-12 rounded-3xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase tracking-widest shadow-xl">RESUME ASSESSMENT</Button>
+                         <h3 className="text-3xl font-black uppercase tracking-tighter">Session Paused</h3>
+                         <p className="text-slate-500 font-medium max-w-xs">Your progress is cloud-synced. Click resume to continue.</p>
+                         <Button onClick={() => setIsPaused(false)} className="h-16 px-12 rounded-3xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase tracking-widest shadow-xl">RESUME TEST</Button>
                       </motion.div>
                    ) : (
                      <motion.div key={current} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -282,20 +269,18 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
              </div>
           </main>
 
-          {/* Right Palette */}
           <aside className="w-[340px] bg-white border-l border-slate-200 hidden lg:flex flex-col shrink-0">
              <PaletteDrawer 
                questions={questions} 
                current={current} 
                answers={answers} 
                setCurrent={setCurrent} 
-               mockTitle={mock?.title || "Exam"}
                activeLanguage={activeLang}
              />
           </aside>
        </div>
 
-       {/* Footer Action Bar */}
+       {/* Institutional Action Bar */}
        <footer className="h-[75px] px-8 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 z-50">
           <div className="flex gap-3">
              <Button variant="outline" onClick={markForReview} className="rounded-xl h-11 px-8 border-slate-200 font-black text-[10px] uppercase text-blue-600 hover:bg-blue-50">MARK FOR REVIEW</Button>
@@ -314,8 +299,8 @@ export default function CBTEngineV45({ params }: { params: Promise<{ id: string 
             <DialogHeader className="text-center space-y-6">
                <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center mx-auto"><CheckCircle2 className="text-emerald-600 w-10 h-10" /></div>
                <div className="space-y-2">
-                 <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Terminate Session?</DialogTitle>
-                 <DialogDescription className="text-slate-500">Submitting will calculate your final State Rank and percentile analytics across all participants.</DialogDescription>
+                 <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Finish Attempt?</DialogTitle>
+                 <DialogDescription className="text-slate-500">Submitting will calculate your final merit and percentile analytics across Punjab.</DialogDescription>
                </div>
             </DialogHeader>
             <DialogFooter className="gap-3 sm:flex-row pt-6">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -10,41 +11,30 @@ import { Card } from '@/components/ui/card';
 import { 
   BrainCircuit, 
   Send, 
-  Plus, 
   Bot, 
   User, 
   Loader2, 
-  Rocket, 
-  Database,
+  Zap,
   Sparkles,
   CheckCircle2,
   Trash2,
   Languages,
-  ArrowRight,
+  Database,
   ShieldCheck,
-  History,
-  FileUp,
-  Zap,
-  LayoutGrid,
-  Clock,
-  Filter,
-  BarChart3,
-  Flame,
-  Lock,
   MessageSquare,
   ChevronRight,
-  X
+  Clock,
+  LayoutGrid
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { EXAM_LIST, SUBJECT_LIST } from '@/types';
 import { forgeNeuralArtifacts } from '@/services/ai-mock-generator-flow';
-import { addDoc, collection, doc, writeBatch, updateDoc, increment } from 'firebase/firestore';
+import { addDoc, collection, doc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface ChatMessage {
@@ -137,7 +127,7 @@ export default function NeuralForgeV2() {
           ));
         }
 
-        // Mandatory Rate-Limit Buffer
+        // Throttling for Free-Tier Quota Stability
         if (i < batches - 1) {
           await new Promise(resolve => setTimeout(resolve, 2500));
         }
@@ -162,8 +152,8 @@ export default function NeuralForgeV2() {
     setLoading(true);
     try {
       const batch = writeBatch(db);
-      
       const mockRef = doc(collection(db, "mocks"));
+      
       batch.set(mockRef, {
         id: mockRef.id,
         title: config.title || `${config.exam} AI Session - ${new Date().toLocaleDateString()}`,
@@ -179,8 +169,6 @@ export default function NeuralForgeV2() {
 
       artifacts.forEach((q, idx) => {
         const qRef = doc(db, "mocks", mockRef.id, "questions", `q_${idx}`);
-        const correctAnswerIndex = q.optionsEnglish.indexOf(q.correctAnswer);
-        
         batch.set(qRef, {
           id: qRef.id,
           questionEn: q.questionEnglish,
@@ -189,7 +177,7 @@ export default function NeuralForgeV2() {
             en,
             pa: q.optionsPunjabi[i] || en
           })),
-          correctAnswer: correctAnswerIndex >= 0 ? correctAnswerIndex : 0,
+          correctAnswer: q.optionsEnglish.indexOf(q.correctAnswer),
           solutionEn: q.explanationEnglish,
           solutionPa: q.explanationPunjabi,
           subject: q.subject || config.subject,
@@ -210,7 +198,7 @@ export default function NeuralForgeV2() {
       });
 
       await batch.commit();
-      toast({ title: "Live Arena Synchronized", description: "Mock published successfully." });
+      toast({ title: "Simulation Deployed", description: "Mock pushed to Live Arena." });
     } catch (e: any) {
       toast({ title: "Publish Failed", description: e.message, variant: "destructive" });
     } finally {
@@ -236,43 +224,23 @@ export default function NeuralForgeV2() {
              </div>
 
              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                   <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
-                      <SelectTrigger className="w-[180px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
-                         <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 text-white border-white/10">
-                         {EXAM_LIST.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                      </SelectContent>
-                   </Select>
-                   {config.exam === "Other..." && (
-                     <Input 
-                        placeholder="Custom Exam Name" 
-                        value={config.customExam} 
-                        onChange={e => setConfig({...config, customExam: e.target.value})}
-                        className="h-7 bg-zinc-800 text-[9px] font-bold rounded-lg border-white/5"
-                     />
-                   )}
-                </div>
+                <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
+                   <SelectTrigger className="w-[180px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
+                      <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent className="bg-zinc-950 text-white border-white/10">
+                      {EXAM_LIST.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                   </SelectContent>
+                </Select>
 
-                <div className="flex flex-col gap-1">
-                   <Select value={config.subject} onValueChange={v => setConfig({...config, subject: v})}>
-                      <SelectTrigger className="w-[150px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
-                         <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 text-white border-white/10">
-                         {SUBJECT_LIST.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                   </Select>
-                   {config.subject === "Other..." && (
-                     <Input 
-                        placeholder="Custom Subject Name" 
-                        value={config.customSubject} 
-                        onChange={e => setConfig({...config, customSubject: e.target.value})}
-                        className="h-7 bg-zinc-800 text-[9px] font-bold rounded-lg border-white/5"
-                     />
-                   )}
-                </div>
+                <Select value={config.subject} onValueChange={v => setConfig({...config, subject: v})}>
+                   <SelectTrigger className="w-[150px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
+                      <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent className="bg-zinc-950 text-white border-white/10">
+                      {SUBJECT_LIST.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                   </SelectContent>
+                </Select>
 
                 <Select value={config.difficulty} onValueChange={v => setConfig({...config, difficulty: v})}>
                    <SelectTrigger className="w-[100px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
@@ -286,10 +254,10 @@ export default function NeuralForgeV2() {
                 </Select>
 
                 <div className="flex items-center bg-zinc-900 border border-white/5 h-8 rounded-lg px-3 gap-2">
-                   <span className="text-[8px] font-black text-zinc-500 uppercase">Count:</span>
+                   <span className="text-[8px] font-black text-zinc-600 uppercase">Count:</span>
                    <input 
                      type="number" 
-                     className="bg-transparent border-none text-[9px] font-black w-6 outline-none" 
+                     className="bg-transparent border-none text-[9px] font-black w-8 outline-none" 
                      value={config.count}
                      onChange={e => setConfig({...config, count: parseInt(e.target.value) || 1})}
                    />
@@ -305,8 +273,8 @@ export default function NeuralForgeV2() {
                         <MessageSquare size={32} className="text-zinc-600" />
                      </div>
                      <div>
-                        <h2 className="text-2xl font-black uppercase tracking-tighter">Forge Idle</h2>
-                        <p className="text-[10px] font-bold uppercase tracking-widest mt-1">Ready for high-yield synthesis</p>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Forge Standby</h2>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mt-1">Select logic signals and command the synthesis</p>
                      </div>
                   </div>
                 )}
@@ -350,7 +318,7 @@ export default function NeuralForgeV2() {
                                <div className="flex items-center justify-between px-2">
                                   <div className="flex items-center gap-2">
                                      <Badge className="bg-emerald-500/10 text-emerald-500 text-[8px] font-black">{m.artifacts.length} ARTIFACTS</Badge>
-                                     <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Previewing Batch</p>
+                                     <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Active Buffer</p>
                                   </div>
                                   <Button 
                                     onClick={() => publishBatch(m.artifacts || [])}
@@ -385,6 +353,35 @@ export default function NeuralForgeV2() {
 
           <footer className="p-6 bg-zinc-950 border-t border-white/5 shrink-0">
              <div className="max-w-4xl mx-auto space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(config.exam === "Other..." || config.subject === "Other...") && (
+                    <div className="flex gap-4 col-span-full animate-in slide-in-from-top-2">
+                       {config.exam === "Other..." && (
+                         <div className="flex-1 space-y-1">
+                            <label className="text-[9px] font-black uppercase text-zinc-600 px-1 tracking-widest">Manual Board</label>
+                            <Input 
+                              placeholder="Board Identity" 
+                              value={config.customExam}
+                              onChange={e => setConfig({...config, customExam: e.target.value})}
+                              className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-bold"
+                            />
+                         </div>
+                       )}
+                       {config.subject === "Other..." && (
+                         <div className="flex-1 space-y-1">
+                            <label className="text-[9px] font-black uppercase text-zinc-600 px-1 tracking-widest">Manual Subject</label>
+                            <Input 
+                              placeholder="Subject Identity" 
+                              value={config.customSubject}
+                              onChange={e => setConfig({...config, customSubject: e.target.value})}
+                              className="h-10 bg-zinc-900 border-white/5 rounded-xl text-xs font-bold"
+                            />
+                         </div>
+                       )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="relative group">
                    <div className="absolute inset-0 bg-primary/5 blur-xl group-focus-within:bg-primary/10 transition-all rounded-3xl" />
                    <div className="relative flex flex-col bg-[#111218] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden">
@@ -392,7 +389,7 @@ export default function NeuralForgeV2() {
                          <div className="flex-1 space-y-1">
                             <label className="text-[9px] font-black uppercase text-zinc-500 px-1 tracking-widest">Mock Identity</label>
                             <Input 
-                              placeholder="e.g. SI Marathon 2024" 
+                              placeholder="e.g. Excise Inspector #42" 
                               value={config.title}
                               onChange={e => setConfig({...config, title: e.target.value})}
                               className="h-10 bg-transparent border-none focus-visible:ring-0 text-sm font-black p-1"
@@ -411,7 +408,7 @@ export default function NeuralForgeV2() {
                       </div>
                       <div className="flex gap-4 items-end p-4">
                         <Textarea 
-                          placeholder="Command the Forge... (e.g. Generate 50 hardest Punjab GK MCQs for PSSSB Patwari pattern)"
+                          placeholder="Command the Forge... (e.g. Generate hardest bilingual MCQs for PSSSB Patwari cycle)"
                           className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium p-2 no-scrollbar resize-none min-h-[50px] max-h-[120px]"
                           value={input}
                           onChange={e => setInput(e.target.value)}
@@ -428,12 +425,12 @@ export default function NeuralForgeV2() {
                    </div>
                 </div>
 
-                <div className="flex justify-center gap-6 text-[8px] font-black text-zinc-600 uppercase tracking-[0.4em]">
-                   <span className="flex items-center gap-1.5"><div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Batch Sync v12.5</span>
-                   <span>•</span>
+                <div className="flex justify-center gap-6 text-[8px] font-black text-zinc-700 uppercase tracking-[0.4em]">
                    <span>Fault Tolerant AI</span>
                    <span>•</span>
                    <span>Raavi Compliant</span>
+                   <span>•</span>
+                   <span>Batch Sync v12.5</span>
                 </div>
              </div>
           </footer>

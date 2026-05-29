@@ -302,7 +302,7 @@ export default function LandingPage() {
       <section className="container mx-auto max-w-6xl px-6 pb-48">
         <div className="relative rounded-[60px] p-16 md:p-24 overflow-hidden border border-primary/30 group">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-[#050816] to-accent/20" />
-          <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-[3s]">
+          <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-[3000ms]">
             <Zap size={400} />
           </div>
           
