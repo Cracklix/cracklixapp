@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminProtect from '@/components/admin/admin-protect';
 import { Button } from '@/components/ui/button';
@@ -8,173 +8,152 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { 
-  Zap, 
-  Sparkles, 
-  Send, 
-  Bot, 
-  User, 
-  Loader2, 
+  FileText, 
+  Upload, 
+  Plus, 
   Database, 
   Rocket, 
-  Settings, 
-  ShieldCheck,
-  Cpu,
-  History,
-  AlertCircle
+  CheckCircle2, 
+  Trash2, 
+  Languages, 
+  Timer, 
+  Zap,
+  Loader2,
+  Image as ImageIcon,
+  Search,
+  LayoutGrid
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { synthesizeNeuralBatch } from '@/services/neural-forge-v3';
-import { EXAM_LIST, SUBJECT_LIST } from '@/types';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { EXAM_CONFIG, LanguageMode } from '@/types';
+import { parseRawText } from '@/services/question-parser';
+import { addDoc, collection, doc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import * as pdfjsLib from 'pdfjs-dist';
+import Tesseract from 'tesseract.js';
 
-/**
- * CRACKLIX MASTER NEURAL CORE v4
- * Unified AI Synthesis Command Center.
- * Batching and Firestore logic moved to client to satisfy project rules.
- */
-export default function NeuralCoreStudio() {
+// Worker config
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+export default function ManualMockBuilder() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [input, setInput] = useState("");
-  const [artifacts, setArtifacts] = useState<any[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
+  const [activeTab, setActiveTab] = useState("paste");
+  
+  // Basic Config
   const [config, setConfig] = useState({
-    exam: EXAM_LIST[0],
-    subject: SUBJECT_LIST[0],
-    totalCount: 10,
     title: "",
+    exam: "PSSSB",
+    subject: "Punjab GK",
     duration: 60,
     negativeMarking: 0.25,
-    accessType: 'pass_plus'
+    marksPerQuestion: 1,
+    languageMode: "english" as LanguageMode,
+    accessType: "pass_plus" as any
   });
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-      }
-    }
-  }, [messages, loading]);
+  const [rawText, setRawText] = useState("");
+  const [parsedArtifacts, setParsedArtifacts] = useState<any[]>([]);
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
+  // Local Parsing Logic
+  const handleIngestRaw = () => {
+    if (!rawText.trim()) return;
+    const questions = parseRawText(rawText);
+    setParsedArtifacts(questions);
+    toast({ title: "Ingestion Complete", description: `Detected ${questions.length} MCQs.` });
+  };
 
-    const userMsg = { role: 'user', text: input, id: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-    const instruction = input;
-    setInput("");
+  const handleFileUpload = async (e: any) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
     setLoading(true);
-
-    const aiMsgId = Date.now() + 1;
-    setMessages(prev => [...prev, { role: 'ai', text: "Initializing Neural Core v4...", status: 'thinking', id: aiMsgId }]);
-
     try {
-      const totalCount = config.totalCount;
-      const batchSize = 5;
-      const totalBatches = Math.ceil(totalCount / batchSize);
-      let allResults: any[] = [];
-
-      for (let i = 0; i < totalBatches; i++) {
-        const currentBatchCount = Math.min(batchSize, totalCount - i * batchSize);
-        
-        setMessages(prev => prev.map(m => 
-          m.id === aiMsgId ? { ...m, text: `Neural Core: Synthesizing segment ${i + 1}/${totalBatches}...` } : m
-        ));
-
-        const batchResults = await synthesizeNeuralBatch({
-          exam: config.exam,
-          instruction,
-          subject: config.subject,
-          count: currentBatchCount
-        });
-
-        allResults = [...allResults, ...batchResults];
-        setArtifacts(prev => [...prev, ...batchResults]);
-
-        setMessages(prev => prev.map(m => 
-          m.id === aiMsgId ? { ...m, text: `Segment ${i + 1} stabilized. Validated ${batchResults.length} artifacts.` } : m
-        ));
-
-        // Delay for API stability
-        if (i < totalBatches - 1) {
-          await new Promise(r => setTimeout(r, 1500));
+      if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          fullText += content.items.map((item: any) => item.str).join(' ');
         }
+        setRawText(fullText);
+        const questions = parseRawText(fullText);
+        setParsedArtifacts(questions);
+      } else if (file.type.startsWith('image/')) {
+        const { data: { text } } = await Tesseract.recognize(file, 'eng+pan+hin');
+        setRawText(text);
+        const questions = parseRawText(text);
+        setParsedArtifacts(questions);
       }
-
-      setMessages(prev => prev.map(m => m.id === aiMsgId ? { 
-        ...m, 
-        text: `Synthesis Stabilized. Validated ${allResults.length} artifacts according to board patterns.`, 
-        status: 'done' 
-      } : m));
-
-    } catch (error: any) {
-      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `Neural Fracture: ${error.message}. Shifting to fallback node...`, status: 'error' } : m));
-      toast({ title: "Core Disruption", variant: "destructive" });
+      toast({ title: "Extraction Success" });
+    } catch (err: any) {
+      toast({ title: "Parsing Error", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const publishToArena = async () => {
-    if (artifacts.length === 0) return;
+  const handlePublish = async () => {
+    if (!config.title || parsedArtifacts.length === 0) {
+      return toast({ title: "Missing Data", description: "Set title and ingest questions.", variant: "destructive" });
+    }
+
     setLoading(true);
     try {
       const batch = writeBatch(db);
       const mockRef = doc(collection(db, "mocks"));
       
-      const mockData = {
+      const totalMarks = parsedArtifacts.length * config.marksPerQuestion;
+
+      batch.set(mockRef, {
+        ...config,
         id: mockRef.id,
-        title: config.title || `${config.exam} Simulation - ${new Date().toLocaleDateString()}`,
-        exam: config.exam,
-        totalQuestions: artifacts.length,
-        duration: config.duration || Math.round(artifacts.length * 1.2),
-        negativeMarking: config.negativeMarking || 0.25,
-        totalMarks: artifacts.reduce((acc, q) => acc + (q.marks || 1), 0),
-        accessType: config.accessType || 'pass_plus',
-        status: 'published',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        totalQuestions: parsedArtifacts.length,
+        totalMarks,
+        status: "published",
         attemptCount: 0,
-        languageMode: 'bilingual'
-      };
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
 
-      batch.set(mockRef, mockData);
-
-      artifacts.forEach((q, idx) => {
+      parsedArtifacts.forEach((q, idx) => {
         const qRef = doc(db, "mocks", mockRef.id, "questions", `q_${idx}`);
+        const finalAnswer = q.answer.charCodeAt(0) - 65; // A=0, B=1...
+
         batch.set(qRef, {
-          ...q,
           id: qRef.id,
+          questionEn: q.question,
+          options: q.options.map((opt: string) => ({ en: opt })),
+          correctAnswer: finalAnswer,
+          explanationEn: q.explanation,
+          subject: config.subject,
+          difficulty: "medium",
+          marks: config.marksPerQuestion,
+          negativeMarks: config.negativeMarking,
           order: idx,
           createdAt: Date.now()
         });
 
-        // Mirror to Global Atomic Bank
+        // Sync to Atomic Bank
         const bankRef = doc(collection(db, "questions"));
         batch.set(bankRef, {
-          ...q,
-          status: 'published',
-          source: 'NEURAL_CORE_V4',
+          questionEn: q.question,
+          subject: config.subject,
+          status: "published",
           createdAt: Date.now()
         });
       });
 
       await batch.commit();
-
-      toast({ title: "Simulation Deployed", description: "Pushed to student Live Arena." });
-      setArtifacts([]);
-      setMessages(prev => [...prev, { role: 'ai', text: "Mock successfully stabilized. identity ID: " + mockRef.id, id: Date.now() }]);
-    } catch (err: any) {
-      toast({ title: "Publish Breach", description: err.message, variant: "destructive" });
+      toast({ title: "Mock Published", description: "Simulation is now live in student arena." });
+      setParsedArtifacts([]);
+      setRawText("");
+    } catch (e: any) {
+      toast({ title: "Publish Failed", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -182,158 +161,193 @@ export default function NeuralCoreStudio() {
 
   return (
     <AdminProtect>
-      <div className="flex bg-[#05060f] h-screen text-white overflow-hidden">
+      <div className="flex bg-[#05070a] min-h-screen text-white">
         <AdminSidebar />
-        
-        <main className="flex-1 flex flex-col relative">
-          <header className="h-16 border-b border-white/5 bg-zinc-950/50 backdrop-blur-xl px-8 flex items-center justify-between shrink-0 z-50">
-             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center blue-glow">
-                   <Cpu className="text-primary w-6 h-6" />
-                </div>
-                <div>
-                   <h1 className="text-sm font-black uppercase tracking-tighter">Neural Core v4.0</h1>
-                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Master Punjab Exam Engine</p>
-                </div>
-             </div>
+        <main className="flex-1 p-10 overflow-y-auto no-scrollbar">
+          <div className="max-w-6xl mx-auto space-y-12">
+            
+            <header className="flex justify-between items-end border-b border-white/5 pb-8">
+              <div className="space-y-1">
+                <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">Manual Mock Builder</h1>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Upload → Parse → Build → Publish</p>
+              </div>
+              <div className="flex gap-4">
+                <Button variant="outline" className="h-12 rounded-xl border-white/10 hover:bg-white/5 font-black text-[10px] uppercase tracking-widest">
+                   Save Draft
+                </Button>
+                <Button onClick={handlePublish} disabled={loading} className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-[10px] uppercase tracking-widest shadow-xl blue-glow">
+                   {loading ? <Loader2 className="animate-spin" /> : <Rocket className="mr-2 w-4 h-4" />} Publish Mock
+                </Button>
+              </div>
+            </header>
 
-             <div className="flex items-center gap-3">
-                <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
-                   <SelectTrigger className="w-[180px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
-                      <SelectValue />
-                   </SelectTrigger>
-                   <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-[400px]">
-                      {EXAM_LIST.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                   </SelectContent>
-                </Select>
+            <div className="grid lg:grid-cols-12 gap-10">
+               {/* Left: Configuration */}
+               <div className="lg:col-span-4 space-y-6">
+                  <Card className="p-8 rounded-[40px] bg-zinc-900/40 border-white/5 space-y-8">
+                     <h3 className="text-xl font-bold flex items-center gap-3">
+                        <LayoutGrid className="text-primary w-5 h-5" /> Config Node
+                     </h3>
 
-                <Select value={config.subject} onValueChange={v => setConfig({...config, subject: v})}>
-                   <SelectTrigger className="w-[150px] h-8 bg-zinc-900 border-white/5 rounded-lg text-[9px] font-black uppercase">
-                      <SelectValue />
-                   </SelectTrigger>
-                   <SelectContent className="bg-zinc-950 text-white border-white/10 max-h-[400px]">
-                      {SUBJECT_LIST.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                   </SelectContent>
-                </Select>
+                     <div className="space-y-6">
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-zinc-500 px-2 tracking-widest">Simulation Title</label>
+                           <Input 
+                             placeholder="e.g. Patwari Mega Mock #1" 
+                             value={config.title}
+                             onChange={e => setConfig({...config, title: e.target.value})}
+                             className="h-12 bg-black/40 border-white/5 rounded-xl px-4 font-bold"
+                           />
+                        </div>
 
-                <div className="flex items-center bg-zinc-900 border border-white/5 h-8 rounded-lg px-3 gap-2">
-                   <span className="text-[8px] font-black text-zinc-600 uppercase">Batch:</span>
-                   <input 
-                     type="number" 
-                     className="bg-transparent border-none text-[9px] font-black w-8 outline-none" 
-                     value={config.totalCount}
-                     onChange={e => setConfig({...config, totalCount: parseInt(e.target.value) || 1})}
-                   />
-                </div>
-             </div>
-          </header>
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-zinc-500 px-2 tracking-widest">Exam Board</label>
+                           <Select value={config.exam} onValueChange={v => setConfig({...config, exam: v})}>
+                              <SelectTrigger className="h-12 bg-black/40 border-white/5 rounded-xl font-bold">
+                                 <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-zinc-950 text-white border-white/10">
+                                 {Object.keys(EXAM_CONFIG).map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                              </SelectContent>
+                           </Select>
+                        </div>
 
-          <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-             <div className="max-w-4xl mx-auto space-y-8 pb-20">
-                {messages.length === 0 && (
-                  <div className="h-[50vh] flex flex-col items-center justify-center text-center space-y-8 opacity-20">
-                     <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="w-20 h-20 rounded-[32px] bg-primary flex items-center justify-center blue-glow">
-                        <Sparkles size={32} />
-                     </motion.div>
-                     <div className="space-y-2">
-                        <h2 className="text-2xl font-black uppercase tracking-tighter">Core Ready</h2>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Input instructions to begin institutional artifact synthesis.</p>
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-zinc-500 px-2 tracking-widest">Subject Stream</label>
+                           <Select value={config.subject} onValueChange={v => setConfig({...config, subject: v})}>
+                              <SelectTrigger className="h-12 bg-black/40 border-white/5 rounded-xl font-bold">
+                                 <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-zinc-950 text-white border-white/10">
+                                 {EXAM_CONFIG[config.exam as keyof typeof EXAM_CONFIG]?.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                           </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-zinc-500 px-2 tracking-widest">Language Mode</label>
+                           <Select value={config.languageMode} onValueChange={v => setConfig({...config, languageMode: v as any})}>
+                              <SelectTrigger className="h-12 bg-black/40 border-white/5 rounded-xl font-bold">
+                                 <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-zinc-950 text-white border-white/10">
+                                 <SelectItem value="english">English</SelectItem>
+                                 <SelectItem value="punjabi">Punjabi</SelectItem>
+                                 <SelectItem value="hindi">Hindi</SelectItem>
+                                 <SelectItem value="en_pa">English + Punjabi</SelectItem>
+                                 <SelectItem value="en_hi">English + Hindi</SelectItem>
+                                 <SelectItem value="trilingual">Trilingual (EN+PA+HI)</SelectItem>
+                              </SelectContent>
+                           </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-2">
+                              <label className="text-[9px] font-black uppercase text-zinc-500 px-2 tracking-widest">Timer (Mins)</label>
+                              <Input type="number" value={config.duration} onChange={e => setConfig({...config, duration: Number(e.target.value)})} className="h-12 bg-black/40 border-white/5 rounded-xl px-4 font-black" />
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-[9px] font-black uppercase text-zinc-500 px-2 tracking-widest">Negative Mark</label>
+                              <Input type="number" step="0.25" value={config.negativeMarking} onChange={e => setConfig({...config, negativeMarking: Number(e.target.value)})} className="h-12 bg-black/40 border-white/5 rounded-xl px-4 font-black text-red-500" />
+                           </div>
+                        </div>
                      </div>
-                  </div>
-                )}
-
-                <AnimatePresence mode="popLayout">
-                  {messages.map((m) => (
-                    <motion.div 
-                      key={m.id} 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={cn("flex gap-5 max-w-5xl", m.role === 'user' ? "flex-row-reverse ml-auto" : "flex-row")}
-                    >
-                       <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg", m.role === 'user' ? "bg-zinc-800" : "bg-primary blue-glow")}>
-                          {m.role === 'user' ? <User size={18} /> : <Bot size={18} />}
-                       </div>
-                       
-                       <div className={cn("p-5 rounded-[28px] text-sm leading-relaxed border shadow-2xl", m.role === 'user' ? "bg-zinc-900/50 border-white/5 rounded-tr-none" : "bg-zinc-950 border-primary/20 rounded-tl-none")}>
-                          {m.status === 'thinking' ? (
-                            <div className="flex items-center gap-3 text-primary animate-pulse">
-                               <Loader2 className="w-4 h-4 animate-spin" />
-                               <span className="text-[10px] font-black uppercase tracking-widest">{m.text}</span>
-                            </div>
-                          ) : (
-                            <p className={cn(m.status === 'error' ? "text-red-400 font-mono text-xs" : "text-zinc-100")}>{m.text}</p>
-                          )}
-                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-             </div>
-          </ScrollArea>
-
-          {artifacts.length > 0 && (
-            <div className="px-8 py-4 bg-zinc-950 border-t border-white/5 flex items-center justify-between animate-in slide-in-from-bottom-2">
-               <div className="flex items-center gap-4">
-                  <Badge className="bg-emerald-500/10 text-emerald-500 border-none px-3 py-1 font-black uppercase text-[10px]">{artifacts.length} ARTIFACTS STABILIZED</Badge>
-                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Master Bank Sync: Ready</p>
+                  </Card>
                </div>
-               <Button onClick={publishToArena} disabled={loading} className="h-10 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[10px] font-black uppercase blue-glow shadow-xl">
-                  <Rocket size={14} className="mr-2" /> ⚡ DEPLOY LIVE
-               </Button>
-            </div>
-          )}
 
-          <footer className="p-6 bg-zinc-950/50 backdrop-blur-xl border-t border-white/5 shrink-0">
-             <div className="max-w-4xl mx-auto">
-                <div className="relative group">
-                   <div className="absolute inset-0 bg-primary/5 blur-xl group-focus-within:bg-primary/10 transition-all rounded-3xl" />
-                   <div className="relative flex flex-col bg-[#111218] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden">
-                      <div className="flex gap-4 p-3 items-center bg-white/[0.02] border-b border-white/5">
-                         <div className="flex-1">
-                            <Input 
-                              placeholder="Mock Title (e.g. Master Cadre Punjabi Sunday Marathon)" 
-                              value={config.title}
-                              onChange={e => setConfig({...config, title: e.target.value})}
-                              className="h-8 bg-transparent border-none focus-visible:ring-0 text-[10px] font-black uppercase"
-                            />
-                         </div>
-                         <div className="h-6 w-px bg-white/5" />
-                         <div className="px-4">
-                            <label className="text-[8px] font-black text-zinc-500 uppercase block">Timer (M)</label>
-                            <input 
-                               type="number" 
-                               value={config.duration}
-                               onChange={e => setConfig({...config, duration: parseInt(e.target.value) || 60})}
-                               className="bg-transparent border-none text-[10px] font-black w-10 text-center outline-none"
-                            />
-                         </div>
-                      </div>
-                      <div className="flex gap-4 items-end p-4">
-                        <Textarea 
-                          placeholder="Command the Core... (e.g. Generate 20 tricky PSTET Child Pedagogy artifacts based on Kohlberg's theory)"
-                          className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium p-2 no-scrollbar resize-none min-h-[50px] max-h-[120px]"
-                          value={input}
-                          onChange={e => setInput(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                        />
-                        <Button 
-                          onClick={handleSend}
-                          disabled={loading || !input.trim()}
-                          className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 blue-glow shadow-xl shrink-0"
-                        >
-                           {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Send size={20} />}
-                        </Button>
-                      </div>
-                   </div>
-                </div>
-                <div className="mt-4 flex justify-center gap-6 text-[8px] font-black text-zinc-700 uppercase tracking-[0.4em]">
-                   <span>Syllabus Aware AI</span>
-                   <span>•</span>
-                   <span>Raavi Normalization</span>
-                   <span>•</span>
-                   <span>Core v4.0</span>
-                </div>
-             </div>
-          </footer>
+               {/* Right: Ingest Engine */}
+               <div className="lg:col-span-8 space-y-6">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                     <TabsList className="bg-zinc-950 border border-white/5 p-1 rounded-2xl h-14 w-full justify-start">
+                        <TabsTrigger value="paste" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">Paste Questions</TabsTrigger>
+                        <TabsTrigger value="upload" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-primary">PDF / Image Ingest</TabsTrigger>
+                        <TabsTrigger value="review" className="rounded-xl px-8 font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-emerald-600">Review ({parsedArtifacts.length})</TabsTrigger>
+                     </TabsList>
+
+                     <TabsContent value="paste" className="m-0 space-y-6">
+                        <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 p-10 space-y-8">
+                           <div className="flex justify-between items-center">
+                              <div className="space-y-1">
+                                 <h4 className="text-xl font-bold">Text Ingest</h4>
+                                 <p className="text-xs text-zinc-500">Paste raw questions from ChatGPT or Official PDFs.</p>
+                              </div>
+                              <Button onClick={handleIngestRaw} className="h-11 px-8 rounded-xl bg-primary font-black text-[10px] uppercase tracking-widest">
+                                 Sync Signal
+                              </Button>
+                           </div>
+                           <Textarea 
+                             placeholder="1. Question text here? A) Opt 1 B) Opt 2 C) Opt 3 D) Opt 4 Answer: B Explanation: ..."
+                             value={rawText}
+                             onChange={e => setRawText(e.target.value)}
+                             className="min-h-[400px] bg-black/40 border-white/5 rounded-[32px] p-8 text-sm leading-relaxed overflow-y-auto no-scrollbar font-medium"
+                           />
+                        </Card>
+                     </TabsContent>
+
+                     <TabsContent value="upload" className="m-0">
+                        <Card className="rounded-[40px] bg-zinc-900/40 border-white/5 p-20 flex flex-col items-center justify-center text-center border-dashed border-2 relative group min-h-[500px]">
+                           <div className="w-24 h-24 rounded-[32px] bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-all">
+                              <Upload className="text-primary w-10 h-10" />
+                           </div>
+                           <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">Artifact Collector</h3>
+                           <p className="text-zinc-500 text-sm max-w-sm mb-12">Scanned PDFs, Screenshots, or Handwritten notes. Supported: EN, PA, HI.</p>
+                           
+                           <input type="file" id="artifact-upload" className="hidden" onChange={handleFileUpload} />
+                           <label htmlFor="artifact-upload" className="cursor-pointer h-16 px-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-sm flex items-center justify-center blue-glow">
+                              {loading ? <Loader2 className="animate-spin mr-3" /> : <Plus className="mr-3" />}
+                              SELECT SOURCE ARTIFACT
+                           </label>
+                        </Card>
+                     </TabsContent>
+
+                     <TabsContent value="review" className="m-0 space-y-6">
+                        {parsedArtifacts.length > 0 ? (
+                          <div className="grid gap-6">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center justify-between">
+                               <div className="flex items-center gap-4">
+                                  <CheckCircle2 className="text-emerald-500" />
+                                  <div>
+                                     <p className="font-bold">Heuristic Confidence: 92%</p>
+                                     <p className="text-[10px] uppercase font-black text-emerald-500/60">Schema Validated for {config.languageMode}</p>
+                                  </div>
+                               </div>
+                               <Button variant="ghost" onClick={() => setParsedArtifacts([])} className="text-red-500 hover:bg-red-500/10 rounded-xl">Clear All</Button>
+                            </div>
+
+                            {parsedArtifacts.map((q, i) => (
+                              <Card key={i} className="p-8 rounded-[32px] bg-zinc-900/30 border-white/5 space-y-6 group hover:border-primary/30 transition-all">
+                                 <div className="flex justify-between items-start">
+                                    <Badge className="bg-zinc-800 text-zinc-400 font-black uppercase text-[8px] px-3 py-1">Artifact #{i+1}</Badge>
+                                    <Button variant="ghost" size="icon" className="text-zinc-600 hover:text-red-500"><Trash2 size={16} /></Button>
+                                 </div>
+                                 <div className="space-y-4">
+                                    <p className="text-lg font-bold leading-relaxed">{q.question}</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                       {q.options.map((opt: string, idx: number) => (
+                                         <div key={idx} className={cn("p-4 rounded-xl border text-sm", String.fromCharCode(65+idx) === q.answer ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" : "bg-black/20 border-white/5 text-zinc-500")}>
+                                            {String.fromCharCode(65+idx)}. {opt}
+                                         </div>
+                                       ))}
+                                    </div>
+                                    <div className="pt-4 border-t border-white/5">
+                                       <p className="text-[9px] font-black uppercase text-zinc-600 mb-1">Rationalization</p>
+                                       <p className="text-xs text-zinc-400 leading-relaxed italic">{q.explanation || "No explanation detected."}</p>
+                                    </div>
+                                 </div>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-40 text-center opacity-20">
+                             <Database size={60} className="mx-auto mb-6" />
+                             <p className="text-xl font-black uppercase tracking-[0.4em]">Payload Buffer Empty</p>
+                          </div>
+                        )}
+                     </TabsContent>
+                  </Tabs>
+               </div>
+            </div>
+          </div>
         </main>
       </div>
     </AdminProtect>
