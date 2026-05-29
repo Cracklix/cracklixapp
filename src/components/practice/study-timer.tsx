@@ -1,11 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Timer, Play, Pause, RotateCcw, Brain, Coffee, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { trackProgress } from '@/services/daily-target';
 import { useAuth } from '@/lib/auth-context';
@@ -17,31 +16,42 @@ export default function StudyTimer() {
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
   const [totalMinutes, setTotalMinutes] = useState(0);
 
-  useEffect(() => {
-    let interval: any = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(t => t - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-      handleComplete();
-    }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
+  const handleComplete = useCallback(() => {
+    setIsActive(false);
+    setMode((prevMode) => {
+      if (prevMode === 'focus') {
+        const minutes = 25;
+        setTotalMinutes(prev => prev + minutes);
+        if (user) {
+          trackProgress(user.uid, 'minutes', minutes);
+        }
+        setTimeLeft(5 * 60);
+        return 'break';
+      } else {
+        setTimeLeft(25 * 60);
+        return 'focus';
+      }
+    });
+  }, [user]);
 
-  const handleComplete = () => {
-    if (mode === 'focus') {
-      const minutes = 25;
-      setTotalMinutes(prev => prev + minutes);
-      if (user) trackProgress(user.uid, 'minutes', minutes);
-      setMode('break');
-      setTimeLeft(5 * 60);
-    } else {
-      setMode('focus');
-      setTimeLeft(25 * 60);
+  useEffect(() => {
+    if (!isActive) {
+      return;
     }
-  };
+
+    const interval = setInterval(() => {
+      setTimeLeft(prevTime => {
+        if (prevTime <= 1) {
+          clearInterval(interval);
+          handleComplete();
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isActive, handleComplete]);
 
   const toggle = () => setIsActive(!isActive);
   const reset = () => {

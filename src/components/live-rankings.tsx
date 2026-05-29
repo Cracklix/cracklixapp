@@ -13,8 +13,15 @@ import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/e
 export default function LiveRankings() {
   const [ranks, setRanks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const SAFE_MODE = true; // RECOVERY LOCK: Enabled
 
   useEffect(() => {
+    if (SAFE_MODE) {
+      setLoading(false);
+      setRanks([]);
+      return;
+    }
+
     const collectionRef = collection(db, "liveRanks");
     const q = query(
       collectionRef,
@@ -54,14 +61,21 @@ export default function LiveRankings() {
              </div>
              Arena Ranks
           </CardTitle>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live Sync
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[10px] font-black uppercase tracking-widest">
+            <Zap className="w-3 h-3" />
+            Sync Paused
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-6">
-        {loading ? (
+        {SAFE_MODE ? (
+          <div className="py-12 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 mx-auto flex items-center justify-center opacity-30">
+              <Zap className="text-zinc-500 w-5 h-5" />
+            </div>
+            <p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest italic">Live Sync Paused</p>
+          </div>
+        ) : loading ? (
           <div className="space-y-4 py-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-16 rounded-2xl bg-zinc-800/50 animate-pulse" />

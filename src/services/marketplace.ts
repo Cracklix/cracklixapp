@@ -35,14 +35,16 @@ export interface Product {
 
 export async function getProducts(category?: string): Promise<Product[]> {
   const productsRef = collection(db, 'products');
-  let q = query(productsRef, orderBy('createdAt', 'desc'));
-  
-  if (category && category !== 'All') {
-    q = query(productsRef, where('category', '==', category), orderBy('createdAt', 'desc'));
-  }
+  const q = query(productsRef, orderBy('createdAt', 'desc'));
   
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+  const allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+
+  if (category && category !== 'All') {
+    return allProducts.filter(p => p.category === category);
+  }
+
+  return allProducts;
 }
 
 export async function getCreatorProducts(creatorId: string): Promise<Product[]> {

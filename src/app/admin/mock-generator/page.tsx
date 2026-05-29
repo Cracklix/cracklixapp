@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   FileSearch,
-  BookOpen
+  BookOpen,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,6 +31,7 @@ import { parseRawText } from '@/services/question-parser';
 import { extractText } from '@/services/ocr';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { cn } from '@/lib/utils';
 
 export default function ManualMockBuilder() {
   const [activeTab, setActiveTab] = useState('raw');

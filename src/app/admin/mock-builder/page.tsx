@@ -1,44 +1,32 @@
-
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import { 
   Plus, 
-  Trash2, 
   Save, 
-  Settings, 
   Image as ImageIcon, 
   FileText, 
   Database, 
-  Globe, 
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Search,
-  ChevronRight,
-  ChevronDown
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
 import { EXAM_CONFIG } from '@/types';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MockBuilder() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('raw');
-  const [selectedExam, setSelectedExam] = useState('PSSSB Clerk');
+  const [selectedExam, setSelectedExam] = useState('PSSSB');
   const [selectedSubject, setSelectedSubject] = useState('Punjab GK');
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [rawText, setRawText] = useState('');
   
-  // Clean effects - no loops
   useEffect(() => {
     if (selectedExam) {
       const subjects = EXAM_CONFIG[selectedExam as keyof typeof EXAM_CONFIG] || [];
@@ -47,14 +35,14 @@ export default function MockBuilder() {
         setSelectedSubject(subjects[0] || "");
       }
     }
-  }, [selectedExam]);
+  }, [selectedExam, selectedSubject]);
 
   const handleManualIngest = async () => {
     if (!rawText.trim()) return;
     setIsProcessing(true);
     // Simulation of parser
     setTimeout(() => {
-      toast.success('Successfully structured 5 artifacts');
+      toast({ title: 'Successfully structured 5 artifacts' });
       setIsProcessing(false);
     }, 1500);
   };

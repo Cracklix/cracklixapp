@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, orderBy, limit, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AdminSidebar from "@/components/admin/sidebar";
 import AdminProtect from "@/components/admin/admin-protect";
@@ -16,13 +15,15 @@ import {
   CheckCircle2,
   AlertTriangle,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  MoreVertical
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 export default function AdminLeaderboardPage() {
   const { toast } = useToast();
@@ -48,7 +49,6 @@ export default function AdminLeaderboardPage() {
 
   async function handleReset() {
     if (!confirm("This will erase ALL current rankings. This is usually done for new recruitment cycles. Continue?")) return;
-    // For MVP, we alert. In production, we'd batch delete or flag as archived.
     toast({ title: "Reset Sequence Initiated", description: "Archiving current cycle rankings..." });
   }
 
@@ -66,7 +66,7 @@ export default function AdminLeaderboardPage() {
                    </div>
                    <h1 className="font-headline text-5xl font-black tracking-tighter">Rank Registry</h1>
                 </div>
-                <p className="text-zinc-500 font-medium">Manage the Punjab State Rankings and student merit logs.</p>
+                <p className="text-zinc-500 font-medium ml-1">Manage the Punjab State Rankings and student merit logs.</p>
               </div>
               <div className="flex gap-4">
                  <Button variant="outline" className="h-14 rounded-2xl border-white/10 hover:bg-white/5 font-bold" onClick={loadRanks}>

@@ -1,6 +1,6 @@
 /**
- * CRACKLIX INGEST ENGINE v1.0
- * Multi-Stage Regex Heuristic for Raw Text Ingestion.
+ * CRACKLIX INGEST ENGINE v2.0
+ * Improved Multi-Stage Regex Heuristic for Raw Text Ingestion.
  */
 
 export interface ParsedQuestion {
@@ -11,33 +11,33 @@ export interface ParsedQuestion {
 }
 
 export function parseRawText(text: string): ParsedQuestion[] {
-  // Split by question markers (e.g., 1., Q1., Question 1:)
-  const blocks = text.split(/(?=\d+[\.\)])|(?=Q\d+[\.\)])|(?=Question\s+\d+[:\.])/gi)
-    .filter(b => b.trim().length > 20);
+  const questions: ParsedQuestion[] = [];
+  const questionBlocks = text.split(/(?=^\d+\.\s*)/gm);
 
-  return blocks.map(block => {
-    // 1. Extract Question
-    const questionMatch = block.split(/[A-D][\)\.]/)[0].trim();
-    
-    // 2. Extract Options
-    const optionsMatch = block.match(/[A-D][\)\.](.*?)(?=[A-D][\)\.]|Answer:|Explanation:|$)/gs);
-    const options = optionsMatch 
-      ? optionsMatch.map(o => o.replace(/^[A-D][\)\.]\s*/, '').trim()) 
-      : [];
+  for (const block of questionBlocks) {
+    if (block.trim() === '') continue;
 
-    // 3. Extract Answer
-    const answerMatch = block.match(/Answer:\s*([A-D])/i);
-    const answer = answerMatch ? answerMatch[1].toUpperCase() : "A";
+    const questionMatch = block.match(/^(\d+\.\s*.*?)(?=\n[A-Z]\))/s);
+    const question = questionMatch ? questionMatch[1].replace(/\d+\.\s*/, '').trim() : '';
 
-    // 4. Extract Explanation
-    const explanationMatch = block.match(/Explanation:\s*(.*)/is);
-    const explanation = explanationMatch ? explanationMatch[1].trim() : "";
+    const optionsMatch = Array.from(block.matchAll(/([A-Z])\)\s(.*?)(?=\n[A-Z]\)|\nAnswer:|\nExplanation:|$)/gs));
+    const options = optionsMatch.map(match => match[2].trim());
 
-    return {
-      question: questionMatch.replace(/^\d+[\.\)]\s*|Q\d+[\.\)]\s*/, ''),
-      options: options.slice(0, 4),
-      answer,
-      explanation
-    };
-  });
+    const answerMatch = block.match(/Answer:\s*[A-Z]/);
+    const answer = answerMatch ? answerMatch[0].slice(-1) : '';
+
+    const explanationMatch = block.match(/Explanation:\s*(.*)/s);
+    const explanation = explanationMatch ? explanationMatch[1].trim() : '';
+
+    if (question && options.length > 0 && answer) {
+        questions.push({
+            question,
+            options,
+            answer,
+            explanation,
+        });
+    }
+  }
+
+  return questions;
 }
